@@ -1,0 +1,117 @@
+import os, shutil
+Import("env")
+
+img_file      = "bareOS.img"
+test_file     = "tests.img"
+
+def error(code, msg):
+    print(msg)
+    Exit(code)
+
+milestone = env["milestone"]
+dirs = ("system", "device", "app", "lib")
+wraps = ("shell", "uart_handler", "handle_clk", "ctxload", "disable_interrupts", "restore_interrupts", "initialize", "resched",
+         "create_thread", "resume_thread", "join_thread", "uart_putc", "uart_getc", "builtin_hello", "builtin_echo", "init_tty", "wait_sem",
+         "post_sem", "tty_getc", "tty_putc", "hello", "echo", "kill_thread", "ctxsw", "suspend_thread", "enqueue_thread", "dequeue_thread",
+         "sleep_thread", "unsleep_thread", "create_sem", "free_sem", "init_heap", "malloc", "free", "create", "open", "close",
+         "setmaskbit_fs", "clearmaskbit_fs", "getmaskbit_fs", "mkfs", "mount_fs", "umount_fs", "mk_ramdisk", "free_ramdisk", "read_bs",
+         "write_bs", "raise_syscall", "set_uart_interrupt", "read", "write", "seek", "handle_syscall", "delegate_clk", "supervisor_start",
+         "display_kernel_info", "lock_mutex", "release_mutex")
+
+wraps_flags   = " ".join([f"--wrap={n}" for n in wraps])
+kernel_files  = [Glob(os.path.join("kernel", d, "*.[cs]")) for d in dirs]
+test_files    = [
+    Glob(os.path.join("kernel", "testing", "*.s")),
+    os.path.join("kernel", "testing", "testutils.c"),
+    os.path.join("kernel", "testing", f"ms{milestone}.c"),
+    os.path.join("kernel", "testing", "wrappers.c"),
+    os.path.join("kernel", "testing", "proxy.c")
+]
+
+test_env = env.Clone()
+test_env.Append(CFLAGS=f"-DMILESTONE={milestone}")
+test_env.Append(LINKFLAGS=wraps_flags)
+
+def do_checkout(target, source, env):
+    with open(".msfile", 'w') as f:
+        f.write(str(milestone))
+    try:
+        os.mkdir(os.path.join("kernel", "app"))
+    except OSError: pass
+    try:
+        os.mkdir(os.path.join("kernel", "testing"))
+    except OSError: pass
+    
+    for fname in os.listdir(".setup"):
+        parts = fname.split('-')
+        if parts[1] == milestone:
+            out_file = os.path.join("kernel", parts[2], parts[3])
+            print(f"-- Checking out file: {out_file}")
+            if os.path.isfile(out_file):
+                while (resp := input(f"  '{out_file}' exists, would you like to replace this file? [y/N]")) not in ['', 'y', 'Y', 'n', 'N']: pass
+                if resp in ['n', 'N', '']: continue
+            shutil.copy2(os.path.join(".setup", fname), out_file)
+            os.system(f"git add {out_file}")
+
+    with open(os.path.join("kernel", "testing", "complete.h"), 'w') as f:
+        f.write("#ifndef COMPLETE_H\n#define COMPLETE_H\n")
+        for n in range(1, int(milestone) + 1):
+            print(f"#define MILESTONE_{n}");
+            f.write(f"#define MILESTONE_{n}\n")
+        f.write("#endif\n")
+
+bld_checkout = env.Builder(action=do_checkout)
+env["BUILDERS"]["Checkout"] = bld_checkout
+
+
+def do_gdb(target, source, env):
+    gdb_file = test_file if "test" in COMMAND_LINE_TARGETS else img_file
+    os.system(f'{env["GDB"]} -ex "file {gdb_file}" -ex "target remote :{env["port"]}"')
+    env.Exit(0)
+
+bld_gdb = env.Builder(action=do_gdb)
+env["BUILDERS"]["GDB"] = bld_gdb
+
+def do_qemu(target, source, env):
+    env['qflags'] += f" -S -gdb tcp::{env['port']}"
+
+bld_qemu = env.Builder(action=do_qemu)
+env["BUILDERS"]["Qemu"] = bld_qemu
+
+# ----------------------  Build OS Image  ----------------------------
+objs   = env.Object(kernel_files)
+img    = env.Program(img_file, objs)
+img    = env.Command(None, img, Copy(img_file, "$SOURCE"))
+env.Alias("gdb", objs)
+
+t_objs = test_env.Object(test_files)
+tester = test_env.Program(test_file, objs + t_objs)
+tester = test_env.Command(None, tester, Copy(test_file, "$SOURCE"))
+env.Alias("build", img + tester)
+env.Default(["build"])
+
+
+# ----------------------  Virtualization  ----------------------------
+if "debug" in COMMAND_LINE_TARGETS:
+    env['qflags'] += f" -S -gdb tcp::{env['port']}"
+run = env.Command(target="run_cmd", source=img_file, action=f"{env['QEMU']} -kernel {img_file} {env['qflags']}")
+env.Depends(run, img)
+env.Alias("run", run)
+
+test = env.Command("test_cmd", source=tester, action=f"{env['QEMU']} -kernel {test_file} {env['qflags']}")
+env.Depends(test, tester)
+env.Alias("test", test)
+
+# --------------------  Environment Management  ----------------------
+checkout = env.Checkout("checkout_runner", None)
+env.Alias("checkout", checkout)
+
+gdb = env.GDB("gdb_runner", None)
+env.Alias("gdb", gdb)
+
+debug = env.Qemu("qemu_runner", None)
+env.Alias("debug", debug)
+
+env.Clean(img, env["memmap"])
+env.Clean(img, f"#{img_file}")
+env.Clean(tester, f"#{test_file}")
