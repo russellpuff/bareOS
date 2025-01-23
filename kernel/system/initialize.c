@@ -1,15 +1,15 @@
 #include <barelib.h>
+#include <bareio.h>
 #include <interrupts.h>
 
 void display_kernel_info(void) {
-  /* Pre-boot student code goes here */
-  /* ------------------------------- */
-
-  
-
-  /* ------------------------------- */
+  kprintf("Kernel start: %x\n--Kernel size: %d\nGlobals start: %x\nHeap/Stack start: %x\n--Free Memory Available: %d\n",
+    (unsigned long)&text_start,
+    (unsigned long)(&data_start - &text_start),
+    (unsigned long)&data_start,
+    (unsigned long)&mem_start,
+    (unsigned long)(&mem_end - &mem_start));
 }
-
 
 /*
  *  This function calls any initialization functions to set up

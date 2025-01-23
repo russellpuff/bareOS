@@ -10,6 +10,7 @@ void kprintf(const char* format, ...) {
         switch(*(++format)) {
             case 'd':
                 int dec = va_arg(ap, int);
+                if(dec == 0) { uart_putc('0'); break; }
                 bool neg = false;
                 if(dec < 0) { neg = true; dec *= -1; }
                 /* Without resorting to an array, this annoyingly runs O(2n)
@@ -28,13 +29,13 @@ void kprintf(const char* format, ...) {
                 }
                 break;
             case 'x':
-                uint hex = va_arg(ap, uint);
+                unsigned int hex = va_arg(ap, unsigned int);
                 uart_putc('0'); uart_putc('x');
-                uint mask = 0xF0000000;
+                unsigned int mask = 0xF0000000;
                 if(hex == 0) { uart_putc('0'); break; }
                 bool lead_zero = true; // This is to ignore leading zeroes since the example doesn't want them. 
                 for(int i = 0; i < 8; ++i) {
-                    uint num = (hex & mask) >> (28 - (i * 4)); 
+                    unsigned int num = (hex & mask) >> (28 - (i * 4)); 
                     char c;
                     if(num < 10) { c = num + '0'; }
                     else { c = num + 'W'; }
