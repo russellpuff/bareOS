@@ -9,41 +9,47 @@ void kprintf(const char* format, ...) {
     if(*format == '%') {
         switch(*(++format)) {
             case 'd':
-                int dec = va_arg(ap, int);
+                int32 dec = va_arg(ap, int32);
                 if(dec == 0) { uart_putc('0'); break; }
-                bool neg = false;
-                if(dec < 0) { neg = true; dec *= -1; }
-                /* Without resorting to an array, this annoyingly runs O(2n)
-                   Wait wouldn't using an array still be O(2n?) lol */
-                int rev = 0;
+                if(dec < 0) 
+                { 
+                    uart_putc('-');
+                    dec *= -1; 
+                }
+
+                int32 reversed = 0;
                 while(dec > 0) {
-                    int digit = dec % 10;
-                    rev = (rev * 10) + digit;
+                    int16 digit = dec % 10;
+                    reversed = (reversed * 10) + digit;
                     dec /=10;
                 }
-                if(neg) { uart_putc('-'); }
-                while(rev > 0) {
-                    int digit = rev % 10;
+                
+                while(reversed > 0) {
+                    int32 digit = reversed % 10;
                     uart_putc(digit + '0');
-                    rev /= 10;
+                    reversed /= 10;
                 }
                 break;
             case 'x':
-                unsigned int hex = va_arg(ap, unsigned int);
+                uint32 hex = va_arg(ap, uint32);
                 uart_putc('0'); uart_putc('x');
-                unsigned int mask = 0xF0000000;
                 if(hex == 0) { uart_putc('0'); break; }
-                bool lead_zero = true; // This is to ignore leading zeroes since the example doesn't want them. 
-                for(int i = 0; i < 8; ++i) {
-                    unsigned int num = (hex & mask) >> (28 - (i * 4)); 
+                bool lead_zero = true; // Ignore leading zeroes.  
+                for(uint32 i = 0, mask = 0xF0000000; i < 8; ++i, mask >>= 4) {
+                    uint32 num = (hex & mask) >> (28 - (i * 4)); 
                     char c;
                     if(num < 10) { c = num + '0'; }
                     else { c = num + 'W'; }
                     if(c != '0' || !lead_zero) {
                         uart_putc(c);
-                        lead_zero = false; // Once we hit a non-zero number, leading zeroes are done. 
+                        lead_zero = false; // Once we hit a non-zero number, leading zeroes are done.
                     }
-                    mask >>= 4; // apparently >>= is an operator
+                }
+                break;
+            case 's': // lousy %s implementation
+                char* str = var_arg(ap, char*);
+                while(*str != '\0') {
+                    uart_putc(*str++);
                 }
                 break;
             case ' ':
@@ -54,7 +60,7 @@ void kprintf(const char* format, ...) {
                 */
                 uart_putc(' ');
                 break;
-            default: // Print nothing for now. GCC will print nothing if there's no valid character following the %
+            default: // Print32 nothing for now. GCC will print32 nothing if there's no valid character following the %
                 break;
         }
     } else {
