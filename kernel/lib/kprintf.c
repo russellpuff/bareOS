@@ -60,7 +60,7 @@ void kprintf(const char* format, ...) {
                 */
                 uart_putc(' ');
                 break;
-            default: // Print32 nothing for now. GCC will print32 nothing if there's no valid character following the %
+            default: // Print nothing for now. GCC will print nothing if there's no valid character following the %
                 break;
         }
     } else {
