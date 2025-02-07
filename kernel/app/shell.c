@@ -2,6 +2,7 @@
 #include <barelib.h>
 #include <shell.h>
 #include <string.h>
+
 #define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
 #define LINE_SIZE 1024
 
@@ -14,15 +15,11 @@ byte shell(char* arg) {
     while (1) {
         kprintf("%s", PROMPT);
         char line[LINE_SIZE]; /* Kinda want to extract this to a function bc it's used elsewhere but I need malloc. */
-        uint16 ctr = 0;
-        do {
-            line[ctr] = uart_getc();
-        } while (line[ctr++] != '\n' && ctr < LINE_SIZE - 1);
-        line[--ctr] = '\0';
+        get_line(line, LINE_SIZE);
 
         /* Extract first argument (program name). 10 char string is an arbitrary limit. */
         char arg0[11];
-        ctr = 0;
+        int ctr = 0;
         for (; ctr < 10; ++ctr) {
             if (line[ctr] == ' ' || line[ctr] == '\0') { break; }
             arg0[ctr] = line[ctr];
@@ -79,7 +76,7 @@ byte shell(char* arg) {
         } else if (!strcmp(arg0, "echo")) {
           last_retval = builtin_echo(line);
         } else {
-          kprintf("Unknown command\n");
+          kprintf("%s: command not found\n", arg0);
         }
     }
     return 0;

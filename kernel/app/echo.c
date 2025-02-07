@@ -14,13 +14,7 @@ byte builtin_echo(char* arg) {
   if(!strcmp(arg, "echo") || !strcmp(arg, "echo ")) {
     while(1) { 
       char line[LINE_SIZE]; 
-      uint16 ctr = 0;
-      do {
-        line[ctr] = uart_getc();
-        ++char_cnt;
-      } while (line[ctr++] != '\n' && ctr < LINE_SIZE - 1);
-      line[--ctr] = '\0';
-      --char_cnt;
+      char_cnt += get_line(line, LINE_SIZE);
       if(!strcmp(line, "")) { return char_cnt; }
       kprintf("%s\n", line);
     }

@@ -9,5 +9,6 @@
 char uart_putc(char);
 char uart_getc(void);
 void kprintf(const char*, ...);
+unsigned short get_line(char*, unsigned short);
 
 #endif
