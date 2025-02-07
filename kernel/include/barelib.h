@@ -25,6 +25,9 @@ typedef unsigned long int uint64;     /*                                        
 typedef __builtin_va_list va_list;    /*                                            */
 
 void init_uart(void);
+byte shell(char*);
+byte builtin_echo(char*);
+byte builtin_hello(char*);
 
 extern byte text_start;    /*  Shares the address of the first instruction in the text segment                  */
 extern byte text_end;      /*  Shares the address directly after the last instruction in the text segment       */

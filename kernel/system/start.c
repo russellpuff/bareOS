@@ -10,12 +10,7 @@ void display_kernel_info(void);
  */
 
 static void root_thread(void) {
-  /* Post-boot student code goes here */
-  /* -------------------------------- */
-  
-  
-  
-  /* -------------------------------- */
+  shell("what goes here? lol");
   while (1);
 }
 
