@@ -1,16 +1,9 @@
 #include <bareio.h>
 #include <barelib.h>
 #include <shell.h>
+#include <string.h>
 #define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
 #define LINE_SIZE 1024
-
-/* Doesn't bareOS kind of sound like "bare ass"? */
-int16 strcmp(const char* str1, const char* str2) {
-  for(; *str1 == *str2; str1++, str2++) {
-    if(*str1 == '\0') { return 0; }
-  }
-  return (unsigned char)*str1 - (unsigned char)*str2;
-}
 
 /*
  * 'shell' loops forever, prompting the user for input, then calling a function based

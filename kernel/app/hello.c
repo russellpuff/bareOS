@@ -1,13 +1,6 @@
 #include <bareio.h>
 #include <barelib.h>
-
-/* I have to put this somewhere... */
-int16 strcmp3(const char* str1, const char* str2) {
-  for(; *str1 == *str2; str1++, str2++) {
-    if(*str1 == '\0') { return 0; }
-  }
-  return *(const unsigned char*)str1 - *(const unsigned char*)str2;
-}
+#include <string.h>
 
 /*
  * 'builtin_hello' prints "Hello, <text>!\n" where <text> is the contents 
@@ -15,7 +8,7 @@ int16 strcmp3(const char* str1, const char* str2) {
  * If no text exists, print and error and return 1 instead.
  */
 byte builtin_hello(char* arg) {
-  if(!strcmp3(arg, "hello") || !strcmp3(arg, "hello ")) {
+  if(!strcmp(arg, "hello") || !strcmp(arg, "hello ")) {
     kprintf("Error - bad argument\n");
     return 1;
   }

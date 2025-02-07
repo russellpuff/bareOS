@@ -1,4 +1,6 @@
-#include <bareio.h>
-#include <barelib.h>
+#ifndef H_STRING
+#define H_STRING
 
-/* strcmp is going to go here one day. */
+int16 strcmp(const char*, const char*);
+
+#endif
