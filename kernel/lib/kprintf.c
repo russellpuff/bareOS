@@ -47,7 +47,7 @@ void kprintf(const char* format, ...) {
                 }
                 break;
             case 's': // lousy %s implementation
-                char* str = var_arg(ap, char*);
+                char* str = va_arg(ap, char*);
                 while(*str != '\0') {
                     uart_putc(*str++);
                 }

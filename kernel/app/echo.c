@@ -1,7 +1,7 @@
 #include <bareio.h>
 #include <barelib.h>
 
-int16 strcmp(const char* str1, const char* str2) {
+int16 strcmp2(const char* str1, const char* str2) {
   for(; *str1 == *str2; str1++, str2++) {
     if(*str1 == '\0') { return 0; }
   }
@@ -15,21 +15,24 @@ int16 strcmp(const char* str1, const char* str2) {
  * followed immediately by another \n).
  */
 byte builtin_echo(char* arg) {
-  const LINE_SIZE = 1024;
-  if(!strcmp(arg, "echo") || !strcmp(arg, "echo ")) {
+  const uint16 LINE_SIZE = 1024;
+  uint16 char_cnt = 0;
+  if(!strcmp2(arg, "echo") || !strcmp2(arg, "echo ")) {
     while(1) { 
       char line[LINE_SIZE]; 
       uint16 ctr = 0;
       do {
-      line[ctr] = uart_getc();
+        line[ctr] = uart_getc();
+        ++char_cnt;
       } while (line[ctr++] != '\n' && ctr < LINE_SIZE - 1);
-    line[ctr == LINE_SIZE ? ctr : --ctr] = '\0';
-      if(!strcmp(line, "")) { return 0; }
-      kprintf("\n%s\n", line);
+      line[--ctr] = '\0';
+      --char_cnt;
+      if(!strcmp2(line, "")) { return char_cnt; }
+      kprintf("%s\n", line);
     }
   } else {
     arg += 5;
-    kprintf("%s", arg);
+    kprintf("%s\n", arg);
   }
   return 0;
 }

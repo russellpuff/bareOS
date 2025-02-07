@@ -2,11 +2,6 @@
 #include "proxy.h"
 #include "complete.h"
 
-#ifndef MILESTONE_2
-byte shell(char* arg) { return 0; }
-byte builtin_hello(char* arg) { return 0; }
-byte builtin_echo(char* arg) { return 0; }
-#endif
 //-----------------------------------------------
 #ifndef MILESTONE_3
 int32 create_thread(void* addr, char* arg, uint32 len) { return 0; }

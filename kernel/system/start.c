@@ -1,4 +1,5 @@
 #include <barelib.h>
+#include <shell.h>
 
 void initialize(void);
 void display_kernel_info(void);

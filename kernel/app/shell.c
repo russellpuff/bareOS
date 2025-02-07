@@ -1,5 +1,6 @@
 #include <bareio.h>
 #include <barelib.h>
+#include <shell.h>
 #define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
 #define LINE_SIZE 1024
 
@@ -16,7 +17,7 @@ int16 strcmp(const char* str1, const char* str2) {
  * on the text read in from the user.
  */
 byte shell(char* arg) {
-    byte last_retval = 127;
+    byte last_retval = 0;
     while (1) {
         kprintf("%s", PROMPT);
         char line[LINE_SIZE]; /* Kinda want to extract this to a function bc it's used elsewhere but I need malloc. */
@@ -24,23 +25,23 @@ byte shell(char* arg) {
         do {
             line[ctr] = uart_getc();
         } while (line[ctr++] != '\n' && ctr < LINE_SIZE - 1);
-        line[ctr == LINE_SIZE - 1 ? --ctr : ctr] = '\0';
+        line[--ctr] = '\0';
 
         /* Extract first argument (program name). 10 char string is an arbitrary limit. */
-        char* arg0[11];
+        char arg0[11];
         ctr = 0;
         for (; ctr < 10; ++ctr) {
             if (line[ctr] == ' ' || line[ctr] == '\0') { break; }
             arg0[ctr] = line[ctr];
         }
-        arg0[++ctr] = '\0';
+        arg0[ctr] = '\0';
 
         /* TODO: only run this code if you actually have to. */
         char digits[3];
         ctr = (last_retval < 10) ? 1 : (last_retval < 100) ? 2 : 3;
         if (last_retval == 0) { digits[0] = '0'; }
         else {
-            for (char q = ctr; q--; last_retval /= 10)
+            for (uint16 q = ctr; q--; last_retval /= 10)
             {
                 digits[q] = (last_retval % 10) + '0';
             }
@@ -85,7 +86,7 @@ byte shell(char* arg) {
         } else if (!strcmp(arg0, "echo")) {
           last_retval = builtin_echo(line);
         } else {
-          kprintf("%s: command not found\n", arg0);
+          kprintf("Unknown command\n");
         }
     }
     return 0;
