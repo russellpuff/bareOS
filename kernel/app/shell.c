@@ -31,7 +31,7 @@ byte shell(char* arg) {
         ctr = (last_retval < 10) ? 1 : (last_retval < 100) ? 2 : 3;
         if (last_retval == 0) { digits[0] = '0'; }
         else {
-            for (uint16 q = ctr; q--; last_retval /= 10)
+            for (uint16 q = ctr; q--; last_retval /= 10) /* I wrote this myself but don't remember doing so. Spooky. */
             {
                 digits[q] = (last_retval % 10) + '0';
             }
@@ -62,7 +62,7 @@ byte shell(char* arg) {
                         waiting = t;
                     }
                     if (bar + 1 != LINE_SIZE) { /* If this causes the string to grow larger than line size, truncates the end on purpose. */
-                        line[bar++] = waiting;   /* Will fix some other time, write shorter prompts shitlord. */
+                        line[bar++] = waiting;  /* Will fix some other time, write shorter prompts shitlord. */
                     }
                     line[bar] = '\0';
                     break;
@@ -72,9 +72,11 @@ byte shell(char* arg) {
         }
 
         if(!strcmp(arg0, "hello")) {
-          last_retval = builtin_hello(line);
+            last_retval = builtin_hello(line);
         } else if (!strcmp(arg0, "echo")) {
-          last_retval = builtin_echo(line);
+            last_retval = builtin_echo(line);
+        } else if (!strcmp(arg0, "exit")) {
+            break;
         } else {
           kprintf("%s: command not found\n", arg0);
         }
