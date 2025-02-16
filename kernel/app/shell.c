@@ -2,6 +2,7 @@
 #include <barelib.h>
 #include <shell.h>
 #include <string.h>
+#include <thread.h>
 
 #define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
 #define LINE_SIZE 1024
@@ -15,7 +16,7 @@ byte shell(char* arg) {
     while (1) {
         kprintf("%s", PROMPT);
         char line[LINE_SIZE]; /* Kinda want to extract this to a function bc it's used elsewhere but I need malloc. */
-        get_line(line, LINE_SIZE);
+        uint32 chars_read = get_line(line, LINE_SIZE);
 
         /* Extract first argument (program name). 10 char string is an arbitrary limit. */
         char arg0[11];
@@ -71,10 +72,15 @@ byte shell(char* arg) {
             else { ++count; }
         }
 
+        /* TODO: Only store a pointer in the if statements, then create thread outside for less repeat code. */
         if(!strcmp(arg0, "hello")) {
-            last_retval = builtin_hello(line);
+            uint32 hid = create_thread(&builtin_hello, line, chars_read);
+            resume_thread(hid);
+            last_retval = join_thread(hid);
         } else if (!strcmp(arg0, "echo")) {
-            last_retval = builtin_echo(line);
+            uint32 hid = create_thread(&builtin_hello, line, chars_read);
+            resume_thread(hid);
+            last_retval = join_thread(hid);
         } else if (!strcmp(arg0, "exit")) {
             break;
         } else {

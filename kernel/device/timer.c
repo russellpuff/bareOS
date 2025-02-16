@@ -5,6 +5,7 @@
 
 #include <barelib.h>
 #include <interrupts.h>
+#include <syscall.h>
 
 #define TRAP_TIMER_ENABLE 0xa0
 
@@ -26,10 +27,5 @@ void init_clk(void) {
  */
 s_interrupt handle_clk(void) {
   acknowledge_interrupt();
-  /* Student timer code goes here */
-  /* ---------------------------- */
-  
-  
-  
-  /* ---------------------------- */
+  raise_syscall(RESCHED);
 }

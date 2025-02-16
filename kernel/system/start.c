@@ -1,5 +1,6 @@
 #include <barelib.h>
 #include <shell.h>
+#include <thread.h>
 
 void initialize(void);
 void display_kernel_info(void);
@@ -11,7 +12,9 @@ void display_kernel_info(void);
  */
 
 static void root_thread(void) {
-  shell("what goes here? lol");
+  uint32 shtid = create_thread(&shell, "idk", 3);
+  resume_thread(shtid);
+  join_thread(shtid);
   while (1);
 }
 
