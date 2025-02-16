@@ -121,6 +121,12 @@ static uint32 pre_putc(char* result, char ch) {
   return 1;
 }
 
+static uint32 pre_join(int32* result, uint32 tid) {
+  if (tid == 1)
+    t__analytics[JOIN_THREAD_REF].numcalls -= 1;
+  return 0;
+}
+
 static char* input = "echo me\nhello world\n";
 static uint32 pre_getc(char* result) {
   static int32 idx = 0;
@@ -135,6 +141,7 @@ static uint32 pre_shell(int32* result, char* arg) {
   app = "shell";
   t__analytics[UART_GETC_REF].precall = (uint32 (*)())pre_getc;
   t__analytics[UART_PUTC_REF].precall = (uint32 (*)())pre_putc;
+  //t__reset_analytics();
   return 0;
 }
 
@@ -285,12 +292,14 @@ static uint32 setup_shell(void) {
   t__analytics[SHELL_REF].precall = (uint32 (*)())pre_shell;
   t__analytics[ECHO_REF].precall = (uint32 (*)())pre_echo;
   t__analytics[HELLO_REF].precall = (uint32 (*)())pre_hello;
+  t__analytics[JOIN_THREAD_REF].precall = (uint32 (*)())pre_join;
   
   return 0;
 }
 
 static uint32 setup_resched(void) {
   t__analytics[RESCHED_REF].precall = NULL;
+  t__analytics[JOIN_THREAD_REF].precall = NULL;
   t__analytics[CTXSW_REF].precall = (uint32 (*)())pre_ctxsw;
   // setup_ctx(new, old, count);
 

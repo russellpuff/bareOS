@@ -1,4 +1,5 @@
 #include <barelib.h>
+#include <thread.h>
 
 /*
  *  This file contains code for handling exceptions generated
@@ -9,8 +10,7 @@
  */
 
 void (*syscall_table[]) (void) = {
-  /*  Add any new system calls here  */
-  
+  [0] = resched
 };
 
 extern int32 signum;
