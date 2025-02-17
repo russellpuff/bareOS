@@ -1,6 +1,7 @@
 #include <barelib.h>
 #include <bareio.h>
 #include <interrupts.h>
+#include <thread.h>
 
 void display_kernel_info(void) {
   kprintf("Kernel start: %x\n--Kernel size: %d\nGlobals start: %x\nHeap/Stack start: %x\n--Free Memory Available: %d\n",
@@ -18,4 +19,5 @@ void display_kernel_info(void) {
 void initialize(void) {
   init_uart();
   init_interrupts();
+  init_threads();
 }
