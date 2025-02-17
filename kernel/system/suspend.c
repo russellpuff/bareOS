@@ -16,5 +16,5 @@ int32 suspend_thread(uint32 threadid) {
   }
   thread_table[threadid].state = TH_SUSPEND;
   raise_syscall(RESCHED);
-  return 0;
+  return threadid;
 }
