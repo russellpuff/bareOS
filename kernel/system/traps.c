@@ -10,7 +10,7 @@
  */
 
 void (*syscall_table[]) (void) = {
-  [0] = resched
+  resched
 };
 
 extern int32 signum;

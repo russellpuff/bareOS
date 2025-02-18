@@ -12,7 +12,7 @@ void resched(void) {
       uint32 old_thread = current_thread;
       current_thread = i;
       thread_table[i].state = TH_RUNNING;
-      if(thread_table[old_thread].state != TH_SUSPEND) { thread_table[old_thread].state = TH_READY; }
+      if(thread_table[old_thread].state & TH_RUNNABLE) { thread_table[old_thread].state = TH_READY; }
       ctxsw(&(thread_table[i].stackptr), &(thread_table[old_thread].stackptr));
       return;
     }
