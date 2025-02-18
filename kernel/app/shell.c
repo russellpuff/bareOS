@@ -6,6 +6,22 @@
 
 #define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
 #define LINE_SIZE 1024
+#define MAX_ARG0_SIZE 10
+
+command_t builtin_commands[] = {
+    { "hello", (function_t)builtin_hello },
+    { "echo", (function_t)builtin_echo },
+    { NULL, NULL }
+};
+
+function_t get_command(const char* name) {
+    for(int i = 0; builtin_commands[i].name != NULL; ++i) {
+        if(!strcmp(name, builtin_commands[i].name)) {
+            return builtin_commands[i].func;
+        }
+    }
+    return NULL;
+}
 
 /*
  * 'shell' loops forever, prompting the user for input, then calling a function based
@@ -15,32 +31,36 @@ byte shell(char* arg) {
     byte last_retval = 0;
     while (1) {
         kprintf("%s", PROMPT);
-        char line[LINE_SIZE]; /* Kinda want to extract this to a function bc it's used elsewhere but I need malloc. */
+        char line[LINE_SIZE];
         uint32 chars_read = get_line(line, LINE_SIZE);
 
-        /* Extract first argument (program name). 10 char string is an arbitrary limit. */
-        char arg0[11];
-        int ctr = 0;
-        for (; ctr < 10; ++ctr) {
+        /* Extract first argument (program name). */
+        char arg0[MAX_ARG0_SIZE + 1]; /* factor in null character */
+        uint16 ctr = 0;
+        for (; ctr < MAX_ARG0_SIZE; ++ctr) {
             if (line[ctr] == ' ' || line[ctr] == '\0') { break; }
             arg0[ctr] = line[ctr];
         }
         arg0[ctr] = '\0';
 
-        /* TODO: only run this code if you actually have to. */
-        char digits[3];
-        ctr = (last_retval < 10) ? 1 : (last_retval < 100) ? 2 : 3;
-        if (last_retval == 0) { digits[0] = '0'; }
-        else {
-            for (uint16 q = ctr; q--; last_retval /= 10) /* I wrote this myself but don't remember doing so. Spooky. */
-            {
-                digits[q] = (last_retval % 10) + '0';
-            }
-        }
-
+        /* Replace line placeholders with enviornment variables. */
+        bool rvRequest = false;
         uint16 count = 0;
         while (line[count] != '\0') {
             if (line[count] == '$' && line[count + 1] == '?') {
+                char digits[3];
+                if(!rvRequest) {
+                    ctr = (last_retval < 10) ? 1 : (last_retval < 100) ? 2 : 3;
+                    if (last_retval == 0) { digits[0] = '0'; }
+                    else {
+                        for (uint16 q = ctr; q--; last_retval /= 10)
+                        {
+                            digits[q] = (last_retval % 10) + '0';
+                        }
+                    }
+                    rvRequest = true;
+                }
+
                 switch (ctr) { /* TODO: refactor this to be less stupid */
                 case 1:
                     line[count] = digits[0];
@@ -72,19 +92,14 @@ byte shell(char* arg) {
             else { ++count; }
         }
 
-        /* TODO: Only store a pointer in the if statements, then create thread outside for less repeat code. */
-        if(!strcmp(arg0, "hello")) {
-            uint32 hid = create_thread(&builtin_hello, line, chars_read);
-            resume_thread(hid);
-            last_retval = join_thread(hid);
-        } else if (!strcmp(arg0, "echo")) {
-            uint32 hid = create_thread(&builtin_hello, line, chars_read);
-            resume_thread(hid);
-            last_retval = join_thread(hid);
-        } else if (!strcmp(arg0, "exit")) {
-            break;
+        /* Try to run a built-in program. In the future, try calling a user-installed program too. */
+        function_t func = get_command(arg0);
+        if(func) {
+            uint32 fid = create_thread(func, line, chars_read);
+            resume_thread(fid);
+            last_retval = join_thread(fid);
         } else {
-          kprintf("%s: command not found\n", arg0);
+            kprintf("%s: command not found\n", arg0);
         }
     }
     return 0;
