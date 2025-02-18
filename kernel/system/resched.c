@@ -9,10 +9,11 @@
 void resched(void) {
   for(uint32 i = current_thread + 1; i != current_thread; i = (i + 1) % NTHREADS) {
     if(thread_table[i].state == TH_READY) {
-      thread_table[i].state = TH_RUNNING;
-      if(thread_table[current_thread].state != TH_SUSPEND) { thread_table[current_thread].state = TH_READY; }
-      ctxsw(&thread_table[i].stackptr, &thread_table[current_thread].stackptr);
+      uint32 old_thread = current_thread;
       current_thread = i;
+      thread_table[i].state = TH_RUNNING;
+      if(thread_table[old_thread].state != TH_SUSPEND) { thread_table[old_thread].state = TH_READY; }
+      ctxsw(&(thread_table[i].stackptr), &(thread_table[old_thread].stackptr));
       return;
     }
   }

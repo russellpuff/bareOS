@@ -9,13 +9,14 @@
  *  raise RESCHED and loop to check again later.                         */
 int32 join_thread(uint32 threadid) {
   /* TODO: Check if there's invalid states for this. */
-  if(threadid < 0 || threadid >= NTHREADS || thread_table[threadid].state == TH_FREE) {
+  if(threadid >= NTHREADS || thread_table[threadid].state == TH_FREE) {
     return -1;
   }
 
   while(thread_table[threadid].state != TH_DEFUNCT) {
     raise_syscall(RESCHED);
   }
+  
   thread_table[threadid].state = TH_FREE;
   return thread_table[threadid].retval;
 }

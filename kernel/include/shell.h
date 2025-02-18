@@ -1,7 +1,7 @@
 #ifndef H_SHELL
 #define H_SHELL
 
-typedef byte (*function_t)(void*);
+typedef byte (*function_t)(char*);
 
 typedef struct {
     const char* name;
