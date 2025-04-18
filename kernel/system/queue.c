@@ -13,26 +13,56 @@ queue_t ready_list;              /*  Struct with the ready_list root  */
 /* 'init_queues' sets all entries in the queue_table to initial values so they   *
  *  can be used safely later during OS operations.                               */
 void init_queues(void) {
-  
+  for(int i = 0; i < NTHREADS; ++i) {
+	queue_table[i].key = -1;
+	queue_table[i].qnext = NULL;
+	queue_table[i].qprev = NULL;
+  }
+  ready_list.key = 0;
+  ready_list.qnext = &ready_list;
+  ready_list.qprev = &ready_list;
   return;
 }
 
-
-/*  'thread_enqueue' takes a  pointer to the "root" of a queue  and a threadid of a thread  *
- *  to add to the queue.   The thread  will be placed in the queue so that the `key` field  * 
+/*  'enqueue_thread' takes a  pointer to the "root" of a queue  and a threadid of a thread  *
+ *  to add to the queue. The thread  will be placed in the queue so that the `key` field  * 
  *  of each  queue entry is in ascending order from head to tail  and FIFO order when keys  *
  *  match.                                                                                  */
 int32 enqueue_thread(queue_t* queue, uint32 threadid) {
+	if(threadid < 0 || threadid > NTHREADS) return -1;
+	queue_t* node = &queue_table[threadid];
+	if(node->qprev != NULL || node->qnext != NULL) return -1; /* In a queue already. */
 
-  return 0;
+	/* FIFO on same key in ascending order means same key is closer to tail, so...
+	   Loop until we're past the point where the node needs to be entered and shove
+	   it before that point. */
+	queue_t* curr = queue->qnext;
+	while(curr != queue && curr->key <= node->key)
+		curr = curr->qnext;
+	(curr->qprev)->qnext = node;
+	node->qprev = curr->qprev;
+	curr->qprev = node;
+	node->qnext = curr;
+  	return 0;
 }
 
-
-/*  'thread_dequeue' takes a queue pointer associated with a queue "root" and removes the  *
+/*  'dequeue_thread' takes a queue pointer associated with a queue "root" and removes the  *
  *  thread at the head of the queue and returns its the thread table index, ensuring that  *
- *  the queue  maintains its  structure and the head correctly points to the  next thread  *
+ *  the queue maintains its structure and the head correctly points to the next thread  *
  *  (if any).                                                                              */
 int32 dequeue_thread(queue_t* queue) {
+	if(queue->qprev == NULL || queue->qnext == NULL || 
+		queue->qnext == queue || queue->qprev == queue) 
+		return -1;
+	queue_t* node = queue->qnext;
+	
+	int threadid = 0;
+	for(; threadid < NTHREADS; ++threadid)
+		if(&queue_table[threadid] == node) break;
+	if(threadid == NTHREADS) return -1;
 
-  return 0;
+	(node->qprev)->qnext = node->qnext;
+	(node->qnext)->qprev = node->qprev;
+	node->qprev = node->qnext = NULL;
+	return threadid;
 }
