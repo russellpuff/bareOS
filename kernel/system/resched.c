@@ -1,5 +1,6 @@
 #include <barelib.h>
 #include <thread.h>
+#include <queue.h>
 
 /*  'resched' places the current running thread into the ready state  *
  *  and  places it onto  the tail of the  ready queue.  Then it gets  *
@@ -7,14 +8,17 @@
  *  'current_thread'.  Finally,  'resched' uses 'ctxsw' to swap from  *
  *  the old thread to the new thread.                                 */
 void resched(void) {
-  for(uint32 i = current_thread + 1; i != current_thread; i = (i + 1) % NTHREADS) {
-    if(thread_table[i].state == TH_READY) {
-      uint32 old_thread = current_thread;
-      current_thread = i;
-      thread_table[i].state = TH_RUNNING;
-      if(thread_table[old_thread].state & TH_RUNNABLE) { thread_table[old_thread].state = TH_READY; }
-      ctxsw(&(thread_table[i].stackptr), &(thread_table[old_thread].stackptr));
-      return;
-    }
-  }
+	uint32 new_thread = dequeue_thread(&ready_list);
+	if(new_thread == -1) return;
+	uint32 old_thread = current_thread;
+	current_thread = new_thread;
+	thread_table[new_thread].state = TH_RUNNING;
+	if(thread_table[old_thread].state & TH_RUNNABLE) 
+	{ 
+		thread_table[old_thread].state = TH_READY; 
+		queue_table[old_thread].key = 10; /* TODO: Replace with priority stuff later. */
+		enqueue_thread(&ready_list, old_thread);
+	}
+	ctxsw(&(thread_table[new_thread].stackptr), &(thread_table[old_thread].stackptr));
+	return;
 }
