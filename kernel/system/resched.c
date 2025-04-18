@@ -16,7 +16,7 @@ void resched(void) {
 	if(thread_table[old_thread].state & TH_RUNNABLE) 
 	{ 
 		thread_table[old_thread].state = TH_READY; 
-		queue_table[old_thread].key = 10; /* TODO: Replace with priority stuff later. */
+		queue_table[old_thread].key = thread_table[old_thread].priority;
 		enqueue_thread(&ready_list, old_thread);
 	}
 	ctxsw(&(thread_table[new_thread].stackptr), &(thread_table[old_thread].stackptr));

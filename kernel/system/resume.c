@@ -9,10 +9,9 @@
  *  sets  the thread's  state to  ready and raises a RESCHED  syscall to  schedule a new  *
  *  thread.  Returns the threadid to confirm resumption.                                  */
 int32 resume_thread(uint32 threadid) {
-  if(threadid >= NTHREADS || 
-      thread_table[threadid].state != TH_SUSPEND) {
+  if(threadid >= NTHREADS || thread_table[threadid].state != TH_SUSPEND)
     return -1;
-  }
+    
   thread_table[threadid].state = TH_READY;
   enqueue_thread(&ready_list, threadid);
   raise_syscall(RESCHED);
