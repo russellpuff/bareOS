@@ -106,8 +106,8 @@ int32 detach_thread(uint32 threadid, bool delta) {
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev == NULL || node->qnext == NULL) return -1;
 
-	if(delta & node->qnext != &sleep_list) { /* In delta mode, we need to adjust the relative key of the next node first. */
-		(node->qnext)->key += node->key; /* What if it was at the end? This alters the key of the root which does... nothing? */
+	if(delta & (node->qnext != &sleep_list)) { /* In delta mode, we need to adjust the relative key of the next node first. */
+		(node->qnext)->key += node->key;
 	}
 
 	(node->qprev)->qnext = node->qnext;

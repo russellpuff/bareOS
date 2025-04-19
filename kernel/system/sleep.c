@@ -21,7 +21,7 @@ int32 sleep_thread(uint32 threadid, uint32 delay) {
 /*  If the thread is in the sleep state, remove the thread from the  *
  *  sleep queue and resumes it.                                      */
 int32 unsleep_thread(uint32 threadid) {
-	if(threadid >= NTHREADS || !(thread_table[threadid].state & TH_SLEEP)) return -1;
+	if(threadid >= NTHREADS || thread_table[threadid].state != TH_SLEEP) return -1;
 	detach_thread(threadid, true);
 	queue_t* node = &queue_table[threadid];
 	node->key = thread_table[threadid].priority;
