@@ -13,7 +13,7 @@ int32 resume_thread(uint32 threadid) {
     return -1;
     
   thread_table[threadid].state = TH_READY;
-  enqueue_thread(&ready_list, threadid);
+  enqueue_thread(&ready_list, threadid, false);
   raise_syscall(RESCHED);
   return threadid;
 }

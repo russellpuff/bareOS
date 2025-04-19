@@ -1,5 +1,6 @@
 #include <thread.h>
 #include <queue.h>
+#include <sleep.h>
 
 /*  Queues entries in bareOS are contained in the 'queue_table' array.  Each queue has a "root"
  *  that contains  pointers to  the first  and last  elements in that respective queue.  These
@@ -19,8 +20,9 @@ void init_queues(void) {
 	queue_table[i].qprev = NULL;
   }
   ready_list.key = 0;
-  ready_list.qnext = &ready_list;
-  ready_list.qprev = &ready_list;
+  ready_list.qnext = ready_list.qprev = &ready_list;
+  sleep_list.key = 0;
+  sleep_list.qnext = sleep_list.qprev = &sleep_list;
   return;
 }
 
@@ -28,7 +30,7 @@ void init_queues(void) {
  *  to add to the queue. The thread  will be placed in the queue so that the `key` field  * 
  *  of each  queue entry is in ascending order from head to tail  and FIFO order when keys  *
  *  match.                                                                                  */
-int32 enqueue_thread(queue_t* queue, uint32 threadid) {
+int32 enqueue_thread(queue_t* queue, uint32 threadid, bool delta) {
 	if(threadid >= NTHREADS) return -1;
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev != NULL || node->qnext != NULL) return -1; /* In a queue already. */
@@ -38,8 +40,19 @@ int32 enqueue_thread(queue_t* queue, uint32 threadid) {
 	   Loop until we're past the point where the node needs to be entered and shove
 	   it before that point. */
 	queue_t* curr = queue->qnext;
-	while(curr != queue && curr->key <= node->key)
-		curr = curr->qnext;
+	if(delta) { /* In delta mode, we sort by cumulative rather than absolute. */
+		uint32 delayActual = queue_table[threadid].key;
+		uint32 cummDelay = 0;
+		while(curr != queue && delayActual <= cummDelay) {
+			cummDelay += curr->key;
+			node->key -= curr->key;
+			curr = curr->qnext;
+		}
+	} else {
+		while(curr != queue && curr->key <= node->key)
+			curr = curr->qnext;
+	}
+
 	(curr->qprev)->qnext = node;
 	node->qprev = curr->qprev;
 	curr->qprev = node;
@@ -70,10 +83,14 @@ int32 dequeue_thread(queue_t* queue) {
 
 /* 'detach_thread' removes a thread from a queue regardless of where in the queue
     that thread actually is. Will fail if the thread isn't in a queue. */
-int32 detach_thread(uint32 threadid) {
+int32 detach_thread(uint32 threadid, bool delta) {
 	if(threadid >= NTHREADS) return -1;
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev == NULL || node->qnext == NULL) return -1;
+
+	if(delta) { /* In delta mode, we need to adjust the relative key of the next node first. */
+		(node->qnext)->key += node->key; /* What if it was at the end? This alters the key of the root which does... nothing? */
+	}
 
 	(node->qprev)->qnext = node->qnext;
 	(node->qnext)->qprev = node->qprev;

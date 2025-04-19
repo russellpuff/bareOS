@@ -15,10 +15,8 @@ int32 suspend_thread(uint32 threadid) {
     return -1;
   }
 
-  /* Remove from ready_list. We can't expect it to be at the head of the list when
-     this is called, so we detach it manually. TODO: Move into queue.c */
   if(thread_table[threadid].state == TH_READY) {
-    detach_thread(threadid);
+    detach_thread(threadid, false);
   }
 
   thread_table[threadid].state = TH_SUSPEND;
