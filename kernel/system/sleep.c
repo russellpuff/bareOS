@@ -9,10 +9,9 @@ queue_t sleep_list;
  *  sleep delta list.                                             */
 int32 sleep_thread(uint32 threadid, uint32 delay) {
 	if(threadid >= NTHREADS || thread_table[threadid].state != TH_READY) return -1;
-	detach_thread(threadid);
-	thread_table[threadid].priority = delay; /* Save the delay for the clock to use later. */
+	detach_thread(threadid, false);
 	thread_table[threadid].state = TH_SLEEP;
-	enqueue_thread(&sleep_list, threadid);
+	enqueue_thread(&sleep_list, threadid, true);
 	queue_t* node = &queue_table[threadid];
 	node->key = delay;
 	raise_syscall(RESCHED);
@@ -23,6 +22,11 @@ int32 sleep_thread(uint32 threadid, uint32 delay) {
  *  sleep queue and resumes it.                                      */
 int32 unsleep_thread(uint32 threadid) {
 	if(threadid >= NTHREADS || !(thread_table[threadid].state & TH_SLEEP)) return -1;
-	
+	detach_thread(threadid, true);
+	queue_t* node = &queue_table[threadid];
+	node->key = thread_table[threadid].priority;
+	thread_table[threadid].state = TH_READY;
+	enqueue_thread(&ready_list, threadid);
+	raise_syscall(RESCHED);
 	return 0;
 }
