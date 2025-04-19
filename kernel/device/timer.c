@@ -6,6 +6,8 @@
 #include <barelib.h>
 #include <interrupts.h>
 #include <syscall.h>
+#include <queue.h>
+#include <sleep.h>
 
 #define TRAP_TIMER_ENABLE 0xa0
 
@@ -27,5 +29,13 @@ void init_clk(void) {
  */
 s_interrupt handle_clk(void) {
   acknowledge_interrupt();
+  sleep_list.qnext->key -= 10;
+  while(sleep_list.qnext->key == 0) {
+	uint32 tid = dequeue_thread(&sleep_list);
+	if(tid == -1) continue;
+	queue_t* node = &queue_table[tid];
+	node->key = thread_table[tid].priority;
+	enqueue_thread(&ready_list, tid);
+  }
   raise_syscall(RESCHED);
 }
