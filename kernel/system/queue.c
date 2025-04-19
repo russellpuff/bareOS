@@ -67,3 +67,18 @@ int32 dequeue_thread(queue_t* queue) {
 	node->qprev = node->qnext = NULL;
 	return threadid;
 }
+
+/* 'detach_thread' removes a thread from a queue regardless of where in the queue
+    that thread actually is. Will fail if the thread isn't in a queue. */
+int32 detach_thread(uint32 threadid) {
+	if(threadid >= NTHREADS) return -1;
+	queue_t* node = &queue_table[threadid];
+	if(node->qprev == NULL || node->qnext == NULL) return -1;
+
+	(node->qprev)->qnext = node->qnext;
+	(node->qnext)->qprev = node->qprev;
+	node->qnext = NULL;
+	node->qprev = NULL;
+	node->key = -1;
+	return 0;
+}
