@@ -5,4 +5,5 @@
 #define MILESTONE_3
 #define MILESTONE_4
 #define MILESTONE_5
+#define MILESTONE_6
 #endif
