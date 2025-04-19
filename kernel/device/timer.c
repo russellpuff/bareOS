@@ -33,9 +33,7 @@ s_interrupt handle_clk(void) {
   while(sleep_list.qnext->key == 0) {
 	uint32 tid = dequeue_thread(&sleep_list);
 	if(tid == -1) continue;
-	queue_t* node = &queue_table[tid];
-	node->key = thread_table[tid].priority;
-	enqueue_thread(&ready_list, tid);
+	unsleep_thread(tid);
   }
   raise_syscall(RESCHED);
 }

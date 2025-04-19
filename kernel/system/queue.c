@@ -86,6 +86,11 @@ int32 dequeue_thread(queue_t* queue) {
 		if(&queue_table[threadid] == node) break;
 	if(threadid == NTHREADS) return -1;
 
+	/* Not sure how else to implement. Detach and unsleep are mutually exclusive. */
+	if(queue == &sleep_list) {
+		(node->qnext)->key += node->key;
+	}
+
 	(node->qprev)->qnext = node->qnext;
 	(node->qnext)->qprev = node->qprev;
 	node->qprev = node->qnext = NULL;

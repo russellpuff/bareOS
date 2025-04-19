@@ -11,9 +11,9 @@ int32 sleep_thread(uint32 threadid, uint32 delay) {
 	if(threadid >= NTHREADS || thread_table[threadid].state != TH_READY) return -1;
 	detach_thread(threadid, false);
 	thread_table[threadid].state = TH_SLEEP;
-	delta_enqueue(&sleep_list, threadid);
 	queue_t* node = &queue_table[threadid];
 	node->key = delay;
+	delta_enqueue(&sleep_list, threadid);
 	raise_syscall(RESCHED);
 	return 0;
 }
