@@ -45,20 +45,19 @@ int32 enqueue(queue_t* queue, uint32 threadid, bool delta) {
 	if(threadid >= NTHREADS) return -1;
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev != NULL || node->qnext != NULL) return -1; /* In a queue already. */
-	node->key = thread_table[threadid].priority;
+	//node->key = thread_table[threadid].priority;
 
 	/* FIFO on same key in ascending order means same key is closer to tail, so...
 	   Loop until we're past the point where the node needs to be entered and shove
 	   it before that point. */
 	queue_t* curr = queue->qnext;
 	if(delta) { /* In delta mode, we sort by cumulative rather than absolute. */
-		uint32 delayActual = queue_table[threadid].key;
-		uint32 cummDelay = 0;
-		while(curr != queue && delayActual <= cummDelay) {
-			cummDelay += curr->key;
-			node->key -= curr->key;
-			curr = curr->qnext;
-		}
+		uint32 delay = node->key;
+			while (curr != queue && delay >= curr->key) {
+				delay -= curr->key;
+				curr = curr->qnext;
+			}
+		node->key = delay;
 	} else {
 		while(curr != queue && curr->key <= node->key)
 			curr = curr->qnext;
@@ -68,6 +67,9 @@ int32 enqueue(queue_t* queue, uint32 threadid, bool delta) {
 	node->qprev = curr->qprev;
 	curr->qprev = node;
 	node->qnext = curr;
+
+	if (delta && curr != queue)
+    	curr->key -= node->key;
   	return 0;
 }
 
@@ -104,7 +106,7 @@ int32 detach_thread(uint32 threadid, bool delta) {
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev == NULL || node->qnext == NULL) return -1;
 
-	if(delta) { /* In delta mode, we need to adjust the relative key of the next node first. */
+	if(delta & node->qnext != &sleep_list) { /* In delta mode, we need to adjust the relative key of the next node first. */
 		(node->qnext)->key += node->key; /* What if it was at the end? This alters the key of the root which does... nothing? */
 	}
 
