@@ -18,7 +18,9 @@ extern queue_t queue_table[];
 extern queue_t ready_list;
 
 /*  thread related prototypes  */
-int32 enqueue_thread(queue_t*, uint32, bool);
+int32 enqueue_thread(queue_t*, uint32);
+int32 delta_enqueue(queue_t*, uint32);
+int32 enqueue(queue_t*, uint32, bool);
 int32 dequeue_thread(queue_t*);
 int32 detach_thread(uint32, bool);
 void init_queues(void);

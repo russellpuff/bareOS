@@ -29,8 +29,19 @@ void init_queues(void) {
 /*  'enqueue_thread' takes a  pointer to the "root" of a queue  and a threadid of a thread  *
  *  to add to the queue. The thread  will be placed in the queue so that the `key` field  * 
  *  of each  queue entry is in ascending order from head to tail  and FIFO order when keys  *
- *  match.                                                                                  */
-int32 enqueue_thread(queue_t* queue, uint32 threadid, bool delta) {
+ *  match. */
+
+/* These are wrapper functions because the test uses normal enqueue the "correct" way. */
+int32 enqueue_thread(queue_t* queue, uint32 threadid) {
+	return enqueue(queue, threadid, false);
+}
+
+int32 delta_enqueue(queue_t* queue, uint32 threadid) {
+	return enqueue(queue, threadid, true);
+}
+
+/* the real enqueue thread function */
+int32 enqueue(queue_t* queue, uint32 threadid, bool delta) {
 	if(threadid >= NTHREADS) return -1;
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev != NULL || node->qnext != NULL) return -1; /* In a queue already. */
