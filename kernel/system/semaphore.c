@@ -1,6 +1,15 @@
 #include <interrupts.h>
 #include <queue.h>
 #include <semaphore.h>
+#include <syscall.h>
+
+static int32 MUTEX_LOCK;
+
+int32 resume_no_resched(uint32 threadid) {
+	thread_table[threadid].state = TH_READY;
+	enqueue_thread(&ready_list, threadid);
+	return threadid;
+}
 
 /*
  *  All Semaphore operations should use a mutex to prevent another thread
@@ -20,9 +29,19 @@ semaphore_t create_sem(int32 count) {
 
 /*  Marks a semaphore as free and release all waiting threads  */
 int32 free_sem(semaphore_t* sem) {
-
-  
-  return 0;
+	lock_mutex(&MUTEX_LOCK);
+	if(sem->state == S_FREE) {
+		release_mutex(&MUTEX_LOCK);
+		return -1;
+	}
+	while(sem->queue.qnext != &sem->queue) {
+		int32 threadid = dequeue_thread(&sem->queue);
+		resume_no_resched(threadid);
+	}
+	sem->state = S_FREE;
+	release_mutex(&MUTEX_LOCK);
+	raise_syscall(RESCHED);
+	return 0;
 }
 
 /*  Decrements the given  semaphore if it is in use.  If  the semaphore  *
@@ -41,3 +60,5 @@ int32 post_sem(semaphore_t* sem) {
   
   return 0;
 }
+
+
