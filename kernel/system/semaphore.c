@@ -11,9 +11,11 @@
 /*  Creates a semaphore_t structure and  initializes it to base  *
  *  values.  The count is assigned to the semaphore's key value  */
 semaphore_t create_sem(int32 count) {
-
-  
-  return (semaphore_t){0};
+	semaphore_t sem;
+	sem.state = S_USED;
+	sem.queue.key = count;
+	sem.queue.qnext = sem.queue.qprev = &sem.queue;
+	return sem;
 }
 
 /*  Marks a semaphore as free and release all waiting threads  */
