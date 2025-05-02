@@ -23,5 +23,5 @@ void initialize(void) {
   init_interrupts();
   init_threads();
   init_queues();
-  init_heap(void);
+  init_heap();
 }

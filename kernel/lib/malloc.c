@@ -22,7 +22,6 @@ void init_heap(void) {
  *  Returns a pointer to the newly created allocation     */
 void* malloc(uint64 size) {
 	if(size == 0 || freelist == NULL) return 0;
-	size = ALIGN8(size); /* Round up to nearest 8 bytes. */
 	uint64 need = size + sizeof(alloc_t);
 	/* Do walk free list for first-fit free memory. */
 	alloc_t* prev = NULL;
