@@ -12,6 +12,7 @@ void init_threads(void) {
     thread_table[i].parent = NTHREADS;
     thread_table[i].priority = 0;
     thread_table[i].stackptr = (uint64*)get_stack(i);
+	thread_table[i].sem = create_sem(0);
   }
   current_thread = 0;
   thread_table[current_thread].state = TH_RUNNING;

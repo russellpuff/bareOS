@@ -2,6 +2,7 @@
 #define H_THREAD
 
 #include <barelib.h>
+#include <semaphore.h>
 #define NTHREADS 20    /*  Maximum number of running threads  */
 
 #define TH_RUNNABLE  0x1  /*  These macros are not intended for  direct use.  Instead they  */
@@ -28,6 +29,7 @@ typedef struct _thread {
   uint32 parent;         /*  The index into the 'thread_table' of the thread's parent                */
   byte retval;           /*  The return value of the function (only valid when state == TH_DEFUNCT)  */
   uint32 priority;       /*  Thread priority (0=highest MAX_UINT32=lowest)                           */
+  semaphore_t sem;       /*  Semaphore for the current thread                                        */
 } thread_t;
 
 extern thread_t thread_table[];

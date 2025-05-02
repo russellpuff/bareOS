@@ -2,7 +2,7 @@
 #include <thread.h>
 #include <interrupts.h>
 #include <syscall.h>
-
+#include <semaphore.h>
 
 /*  Takes an index into the thread_table.  If that thread is not free (in use),  *
  *  sets the thread to defunct and raises a RESCHED syscall.                     */
@@ -15,6 +15,6 @@ int32 kill_thread(uint32 threadid) {
       thread_table[i].state = TH_FREE;      /*  Reap running children threads         */
   }
   thread_table[threadid].state = TH_DEFUNCT; /*  Set the thread's state to TH_DEFUNCT  */
-  raise_syscall(RESCHED);                    /*  schedules another thread              */
+  free_sem(&thread_table[threadid].sem); /* Calls resched after dumping children. */
   return 0;
 }
