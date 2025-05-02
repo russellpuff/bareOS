@@ -3,6 +3,7 @@
 #include <interrupts.h>
 #include <thread.h>
 #include <queue.h>
+#include <malloc.h>
 
 void display_kernel_info(void) {
   kprintf("Kernel start: %x\n--Kernel size: %d\nGlobals start: %x\nHeap/Stack start: %x\n--Free Memory Available: %d\n",
@@ -22,4 +23,5 @@ void initialize(void) {
   init_interrupts();
   init_threads();
   init_queues();
+  init_heap(void);
 }
