@@ -1,5 +1,5 @@
 #include <barelib.h>
-#include <TEMPmalloc.h>
+#include <malloc.h>
 #include <thread.h>
 
 alloc_t* freelist;
@@ -66,5 +66,32 @@ void* malloc(uint64 size) {
  *  allocation, coallesce the adjacent free blocks into   *
  *  one larger free block.                                */
 void free(void* addr) {
+	alloc_t* header = (alloc_t*)((byte*)addr - sizeof(alloc_t)); /* Find header. Currently just trusts you didn't pass in a bad pointer. */
+	/* Start hunting for its place in the list. */
+	alloc_t* prev = NULL;
+	alloc_t* curr = freelist;
+	while(curr && curr < header) {
+		prev = curr;
+		curr = curr->next;
+	}
+	header->state = M_FREE;
+	header->next = curr;
+	if(prev) prev->next = header;
+	else freelist = header;
+
+	/* Try to coalesce. */
+	if(curr && (byte*)header + sizeof(alloc_t) + header->size == (byte*)curr) {
+		/* Next segment of memory is also free. */
+		header->size += sizeof(alloc_t) + curr->size;
+		header->next = curr->next;
+	}
+
+	if(prev && (byte*)prev + sizeof(alloc_t) + prev->size == (byte*)header) {
+		/* Previous segment of memory is also free. */
+		prev->size += sizeof(alloc_t) + header->size;
+		prev->next = header->next;
+		header = prev; /* Probably redundant. */
+	}
+
 	return;
 }
