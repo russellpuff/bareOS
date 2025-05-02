@@ -10,6 +10,18 @@ int32 resume_no_resched(uint32 threadid) {
 	enqueue_thread(&ready_list, threadid);
 	return threadid;
 }
+/* This function is to avoid a possible pitfall involving
+   threads with their own priorities being ordered wrongly
+   in the semaphore queue. Currently assuming raw FIFO.   */
+int32 sem_enqueue(queue_t* queue, uint32 threadid) {
+	queue_t* node = &queue_table[threadid];
+	queue_t* tail = queue->qprev;
+	tail->qnext = node;
+	node->qprev = tail;
+	node->qnext = queue;
+	queue->qprev= node;
+	return 0;
+}
 
 /*
  *  All Semaphore operations should use a mutex to prevent another thread
@@ -48,17 +60,28 @@ int32 free_sem(semaphore_t* sem) {
  *  is less than 0, marks the thread as waiting and switches to another  *
  *  another thread.                                                      */
 int32 wait_sem(semaphore_t* sem) {
-
-
-  return 0;
+	lock_mutex(&MUTEX_LOCK);
+	if(sem->state == S_FREE) {
+		release_mutex(&MUTEX_LOCK);
+		return -1;
+	}
+	--sem->queue.key;
+	if(sem->queue.key >= 0) {
+		release_mutex(&MUTEX_LOCK);
+		return 0;
+	}
+	thread_table[current_thread].state = TH_WAITING;
+	sem_enqueue(&sem->queue, current_thread);
+	release_mutex(&MUTEX_LOCK);
+	raise_syscall(RESCHED);
+ 	return 0;
 }
 
 /*  Increments the given semaphore if it is in use.  Resume the next  *
  *  waiting thread (if any).                                          */
 int32 post_sem(semaphore_t* sem) {
-
-  
-  return 0;
+	
+  	return 0;
 }
 
 
