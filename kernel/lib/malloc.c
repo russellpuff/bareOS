@@ -1,5 +1,5 @@
 #include <barelib.h>
-#include <malloc.h>
+#include <TEMPmalloc.h>
 #include <thread.h>
 
 alloc_t* freelist;
@@ -10,7 +10,7 @@ alloc_t* freelist;
 //--------- This function is complete --------------//
 void init_heap(void) {
   freelist = (alloc_t*)&mem_start;
-  freelist->size = (uint64)(get_stack(NTHREADS) - mem_start - sizeof(alloc_t));
+  freelist->size = (uint64)(get_stack(NTHREADS) - &mem_start - sizeof(alloc_t));
   freelist->state = M_FREE;
   freelist->next = NULL;
 }
@@ -21,7 +21,44 @@ void init_heap(void) {
  *  contains the remaining free space on the heap.        *
  *  Returns a pointer to the newly created allocation     */
 void* malloc(uint64 size) {
-  return 0;
+	if(size == 0 || freelist == NULL) return 0;
+	size = ALIGN8(size); /* Round up to nearest 8 bytes. */
+	uint64 need = size + sizeof(alloc_t);
+	/* Do walk free list for first-fit free memory. */
+	alloc_t* prev = NULL;
+	alloc_t* curr = freelist;
+	while(curr != NULL) {
+		uint64 block_total = curr->size + sizeof(alloc_t);
+		if(block_total >= need) break;
+		prev = curr;
+		curr = curr->next;
+	}
+	if(curr == NULL) return 0;
+
+	const byte MIN_BYTES = 8;
+	alloc_t* next;
+	if(curr->size + sizeof(alloc_t) - need >= MIN_BYTES + sizeof(alloc_t)) {
+		/* Do split. */
+		uint64 remaining_bytes = curr->size + sizeof(alloc_t) - need;
+		alloc_t* remainder = (alloc_t*)((byte*)curr + need); /* Cast to get a pointer for arithmetic. */
+		remainder->size = remaining_bytes - sizeof(alloc_t);
+		remainder->state = M_FREE;
+		remainder->next = curr->next;
+		/* Update free list */
+		if(prev == NULL) freelist = remainder;
+		else prev->next = remainder;
+		next = remainder;
+	} else {
+		next = curr->next;
+	}
+	if(prev == NULL) freelist = next;
+	else prev->next = next;
+
+	curr->size = size;
+	curr->state = M_USED;
+	curr->next = NULL; /* Maybe redundant? */
+
+    return (char*)curr + sizeof(alloc_t);
 }
 
 /*  Free the allocation at location 'addr'.  If the newly *
@@ -29,5 +66,5 @@ void* malloc(uint64 size) {
  *  allocation, coallesce the adjacent free blocks into   *
  *  one larger free block.                                */
 void free(void* addr) {
-  return;
+	return;
 }
