@@ -3,7 +3,7 @@
 #include <semaphore.h>
 #include <syscall.h>
 
-static int32 MUTEX_LOCK;
+static byte MUTEX_LOCK;
 
 int32 resume_no_resched(uint32 threadid) {
 	thread_table[threadid].state = TH_READY;
@@ -14,6 +14,10 @@ int32 resume_no_resched(uint32 threadid) {
    threads with their own priorities being ordered wrongly
    in the semaphore queue. Currently assuming raw FIFO.   */
 int32 sem_enqueue(queue_t* queue, uint32 threadid) {
+	/* Init queue. */
+	if(queue->qnext == NULL) {
+		queue->qnext = queue->qprev = queue;
+	}
 	queue_t* node = &queue_table[threadid];
 	queue_t* tail = queue->qprev;
 	tail->qnext = node;
@@ -35,7 +39,7 @@ semaphore_t create_sem(int32 count) {
 	semaphore_t sem;
 	sem.state = S_USED;
 	sem.queue.key = count;
-	sem.queue.qnext = sem.queue.qprev = &sem.queue;
+	sem.queue.qnext = sem.queue.qprev = NULL;
 	return sem;
 }
 
@@ -95,5 +99,3 @@ int32 post_sem(semaphore_t* sem) {
 	}
   	return 0;
 }
-
-
