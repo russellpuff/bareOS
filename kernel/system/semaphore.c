@@ -80,7 +80,19 @@ int32 wait_sem(semaphore_t* sem) {
 /*  Increments the given semaphore if it is in use.  Resume the next  *
  *  waiting thread (if any).                                          */
 int32 post_sem(semaphore_t* sem) {
-	
+	lock_mutex(&MUTEX_LOCK);
+	if(sem->state == S_FREE) {
+		release_mutex(&MUTEX_LOCK);
+		return -1;
+	}
+	++sem->queue.key;
+	if(sem->queue.key <= 0) {
+		int32 threadid = dequeue_thread(&sem->queue);
+		release_mutex(&MUTEX_LOCK);
+		resume_thread(threadid);
+	} else {
+		release_mutex(&MUTEX_LOCK);
+	}
   	return 0;
 }
 
