@@ -9,7 +9,12 @@ ring_buffer_t tty_out;
 /*  Initialize the `tty_in_sem` and `tty_out_sem` semaphores  *
  *  for later TTY calls.                                      */
 void init_tty(void) {
-  
+	set_uart_interrupt(0);
+	tty_in.head = 0;
+	tty_out.head = 0;
+	tty_in.sem = create_sem(0);
+	tty_out.sem = create_sem(0);
+	set_uart_interrupt(1);
 }
 
 /*  Get a character  from the `tty_in`  buffer and remove  *

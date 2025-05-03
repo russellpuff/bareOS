@@ -19,9 +19,10 @@ void display_kernel_info(void) {
  *  devices and other systems.
  */
 void initialize(void) {
-  init_uart();
-  init_interrupts();
-  init_threads();
-  init_queues();
-  init_heap();
+	init_tty();
+	init_uart();
+	init_interrupts();
+	init_threads();
+	init_queues();
+	init_heap();
 }
