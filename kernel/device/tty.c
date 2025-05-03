@@ -22,8 +22,13 @@ void init_tty(void) {
  *  wait on  the semaphore  for data to be  placed in the  *
  *  buffer by the UART.                                    */
 char tty_getc(void) {
-  
-  return 0;
+	wait_sem(&tty_in.sem);
+	set_uart_interrupt(0);
+	char c = tty_in.buffer[tty_in.head];
+	tty_in.head  = (tty_in.head + 1) % TTY_BUFFLEN;
+	--tty_in.count;
+	set_uart_interrupt(1);
+	return c;
 }
 
 /*  Place a character into the `tty_out` buffer and enable  *
@@ -31,6 +36,10 @@ char tty_getc(void) {
  *  semaphore  until notified  that there  space has  been  *
  *  made in the  buffer by the UART. */
 void tty_putc(char ch) {
-
-  
+	wait_sem(&tty_out.sem);
+	set_uart_interrupt(0);
+	uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
+	tty_out.buffer[tail] = ch;
+	++tty_out.count;
+	set_uart_interrupt(1);
 }
