@@ -62,7 +62,7 @@ void set_uart_interrupt(byte enabled) {
 void uart_handler(void) {
 	byte code = uart[UART0_INT_STAT] & UART_INT_MASK;
 	if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
-		char c = uart[UART0_INT_STAT];
+		char c = uart[UART0_RW_REG];
 
 		/* Push into tty_in */
 		uint32 tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
@@ -83,7 +83,11 @@ void uart_handler(void) {
 		/* Enable interrupts. */
 		set_uart_interrupt(1);
 	} else if(code == UART_TX_INTR) { /*  If interrupt was caused by UART awaiting char */
-
+		char c = tty_out.buffer[tty_out.head];
+		tty_out.head = (tty_out.head + 1) % TTY_BUFFLEN;
+		uart[UART0_RW_REG] = c;
+		post_sem(&tty_out.sem);
+		if(--tty_out.count == 0) set_uart_interrupt(0);
 	}
 }
 
