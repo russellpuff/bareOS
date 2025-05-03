@@ -1,5 +1,6 @@
 #include <barelib.h>
 #include <interrupts.h>
+#include <tty.h>
 
 #define UART_PRIO_ADDR        0xc000028   /*  These  values and  addresses  are used to  setup  */
 #define UART_ENABLE           0x400       /*  the UART on the PLIC.  The addresses must be set  */
@@ -59,11 +60,31 @@ void set_uart_interrupt(byte enabled) {
  *     (see '__traps' in bootstrap.s)
  */
 void uart_handler(void) {
-  byte code = uart[UART0_INT_STAT] & UART_INT_MASK;
-  if (code == UART_RX_INTR)                              /*  If interrupt was caused by a keypress                                                  */
-    readchar = uart[UART0_RW_REG];                       /*    Read UART and save the char in 'readchar'.  -- This text replaced in Milestone 8 --  */
-  else if (code == UART_TX_INTR)                         /*  If interrupt was caused by UART awaiting char                                          */
-    return;                                              /*    Do nothing, for now                         -- This text replaced in Milestone 8 --  */
+	byte code = uart[UART0_INT_STAT] & UART_INT_MASK;
+	if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
+		char c = uart[UART0_INT_STAT];
+
+		/* Push into tty_in */
+		uint32 tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
+    	tty_in.buffer[tail] = c;
+    	if (tty_in.count < TTY_BUFFLEN) tty_in.count++;
+
+		/* Also push into tty_out */
+		tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
+    	tty_out.buffer[tail] = c;
+    	if (tty_out.count < TTY_BUFFLEN) tty_out.count++;
+
+		/* Signal on a newline. */
+		if(c == '\n') {
+			for(int32 i = 0; i < tty_in.count; ++i)
+				post_sem(&tty_in.sem);
+		}
+
+		/* Enable interrupts. */
+		set_uart_interrupt(1);
+	} else if(code == UART_TX_INTR) { /*  If interrupt was caused by UART awaiting char */
+
+	}
 }
 
 /*
