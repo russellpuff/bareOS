@@ -9,12 +9,12 @@ ring_buffer_t tty_out;
 /*  Initialize the `tty_in_sem` and `tty_out_sem` semaphores  *
  *  for later TTY calls.                                      */
 void init_tty(void) {
-	set_uart_interrupt(0);
 	tty_in.head = 0;
-	tty_out.head = 0;
+	tty_in.count = 0;
 	tty_in.sem = create_sem(0);
-	tty_out.sem = create_sem(0);
-	set_uart_interrupt(1);
+	tty_out.head = 0;
+	tty_out.count = 0;
+	tty_out.sem = create_sem(TTY_BUFFLEN);
 }
 
 /*  Get a character  from the `tty_in`  buffer and remove  *
@@ -23,11 +23,9 @@ void init_tty(void) {
  *  buffer by the UART.                                    */
 char tty_getc(void) {
 	wait_sem(&tty_in.sem);
-	set_uart_interrupt(0);
 	char c = tty_in.buffer[tty_in.head];
 	tty_in.head  = (tty_in.head + 1) % TTY_BUFFLEN;
 	--tty_in.count;
-	set_uart_interrupt(1);
 	return c;
 }
 
@@ -37,7 +35,6 @@ char tty_getc(void) {
  *  made in the  buffer by the UART. */
 void tty_putc(char ch) {
 	wait_sem(&tty_out.sem);
-	set_uart_interrupt(0);
 	uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
 	tty_out.buffer[tail] = ch;
 	++tty_out.count;
