@@ -42,7 +42,6 @@ int32 create(char* filename) {
 	for(uint16 i = 0; i < INODE_BLOCKS; ++i)
 		inode.blocks[i] = EMPTY;
 	if(write_bs(b, 0, &inode, sizeof(inode_t)) == -1) return -1;
-
 	
 	++fsd->root_dir.numentries;
 	setmaskbit_fs(b);
