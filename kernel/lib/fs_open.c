@@ -1,15 +1,15 @@
 #include <barelib.h>
 #include <fs.h>
-#include <string.h>
+//#include <string.h>
 
-/*
+
 int16 strcmp2(const char* str1, const char* str2) {
   for(; *str1 == *str2; str1++, str2++) {
     if(*str1 == '\0') { return 0; }
   }
   return (unsigned char)*str1 - (unsigned char)*str2;
 }
-*/
+
 
 extern fsystem_t* fsd;
 extern filetable_t oft[NUM_FD];
@@ -26,7 +26,7 @@ int32 open(char* filename) {
 		if(!fsd->root_dir.entry[i].name[0])  {
 			continue;
 		}
-		if(!strcmp(filename, fsd->root_dir.entry[i].name)) {
+		if(!strcmp2(filename, fsd->root_dir.entry[i].name)) {
 			slot = i;
 			break;
 		}
@@ -49,7 +49,7 @@ int32 open(char* filename) {
 
 	/* Read inode. */
 	inode_t inode;
-	if(read_bs(fsd->root_dir.entry[slot].inode_block, 0, &inode, sizeof(inode_t)) < 0) return -1;
+	if(read_bs(fsd->root_dir.entry[slot].inode_block, 0, &inode, sizeof(inode_t)) == -1) return -1;
 
 	/* Populate oft slot with info. */
 	oft[fd].state = FSTATE_OPEN;

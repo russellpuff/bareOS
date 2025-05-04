@@ -1,15 +1,15 @@
 #include <barelib.h>
 #include <fs.h>
-#include <string.h>
+//#include <string.h>
 
-/*
-int16 strcmp(const char* str1, const char* str2) {
+
+int16 strcmp0(const char* str1, const char* str2) {
   for(; *str1 == *str2; str1++, str2++) {
     if(*str1 == '\0') { return 0; }
   }
   return (unsigned char)*str1 - (unsigned char)*str2;
 }
-*/
+
 
 extern fsystem_t* fsd;
 
@@ -20,18 +20,17 @@ extern fsystem_t* fsd;
  *  the new file.                                         */
 int32 create(char* filename) {
 	if(fsd->root_dir.numentries == DIR_SIZE) return -1;
+
 	/* Try to find a slot. */
-	int32 slot = -1;
-	for(int32 i = 0; i < DIR_SIZE; ++i) {
-		if(!fsd->root_dir.entry[i].name[0])  {
-			if(slot == -1) slot = i;
-			continue;
-		}
-		if(!strcmp(filename, fsd->root_dir.entry[i].name)) return -1;
-	}
-	if(slot == -1) return -1;
+	for (uint32 i = 0; i < fsd->root_dir.numentries; ++i) {
+        if (!strcmp0(filename, fsd->root_dir.entry[i].name))
+            return -1;
+    }
+    /* Use next available slot (no way to delete files so whatever). */
+    int32 slot = fsd->root_dir.numentries;
+
 	/* Find bit to use. */
-	int b = 0;
+	uint32 b = 0;
 	for(; b < fsd->device.nblocks; ++b)
 		if(!getmaskbit_fs(b)) break;
 	if(b == fsd->device.nblocks) return -1;
@@ -45,19 +44,19 @@ int32 create(char* filename) {
 		fsd->root_dir.entry[slot].name[n] = filename[n];
 
 	fsd->root_dir.entry[slot].inode_block = b;
-
 	/* Construct inode. */
 	inode_t inode;
 	inode.id = b;
+	inode.size = 0;
 	for(uint16 i = 0; i < INODE_BLOCKS; ++i)
 		inode.blocks[i] = EMPTY;
-	if(write_bs(b, 0, &inode, sizeof(inode_t)) < 0) return -1;
+	if(write_bs(b, 0, &inode, sizeof(inode_t)) == -1) return -1;
 
-	fsd->root_dir.entry[slot].inode_block = b;
+	
 	++fsd->root_dir.numentries;
 	setmaskbit_fs(b);
 
-	if (write_bs(BM_BIT, 0, fsd->freemask, fsd->freemasksz) < 0) return -1; /* write back */
-    if (write_bs(SB_BIT, 0, fsd, sizeof(fsystem_t)) < 0) return -1; /* write super */
+	if (write_bs(BM_BIT, 0, fsd->freemask, fsd->freemasksz) == -1) return -1; /* write back */
+    if (write_bs(SB_BIT, 0, fsd, sizeof(fsystem_t)) == -1) return -1; /* write super */
 	return 0;
 }
