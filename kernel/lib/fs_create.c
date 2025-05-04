@@ -1,15 +1,6 @@
 #include <barelib.h>
 #include <fs.h>
-//#include <string.h>
-
-
-int16 strcmp0(const char* str1, const char* str2) {
-  for(; *str1 == *str2; str1++, str2++) {
-    if(*str1 == '\0') { return 0; }
-  }
-  return (unsigned char)*str1 - (unsigned char)*str2;
-}
-
+#include <string.h>
 
 extern fsystem_t* fsd;
 
@@ -23,7 +14,7 @@ int32 create(char* filename) {
 
 	/* Try to find a slot. */
 	for (uint32 i = 0; i < fsd->root_dir.numentries; ++i) {
-        if (!strcmp0(filename, fsd->root_dir.entry[i].name))
+        if (!strcmp(filename, fsd->root_dir.entry[i].name))
             return -1;
     }
     /* Use next available slot (no way to delete files so whatever). */

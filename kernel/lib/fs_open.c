@@ -1,15 +1,6 @@
 #include <barelib.h>
 #include <fs.h>
-//#include <string.h>
-
-
-int16 strcmp2(const char* str1, const char* str2) {
-  for(; *str1 == *str2; str1++, str2++) {
-    if(*str1 == '\0') { return 0; }
-  }
-  return (unsigned char)*str1 - (unsigned char)*str2;
-}
-
+#include <string.h>
 
 extern fsystem_t* fsd;
 extern filetable_t oft[NUM_FD];
@@ -26,7 +17,7 @@ int32 open(char* filename) {
 		if(!fsd->root_dir.entry[i].name[0])  {
 			continue;
 		}
-		if(!strcmp2(filename, fsd->root_dir.entry[i].name)) {
+		if(!strcmp(filename, fsd->root_dir.entry[i].name)) {
 			slot = i;
 			break;
 		}
