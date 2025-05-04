@@ -22,10 +22,10 @@ int32 find_free_block(void) {
  *  returns - 'fs_write' should return the number of bytes written to the    *
  *            file.                                                          */
 int32 write(uint32 fd, char* buff, uint32 len) {
-	if(fd < 0 || fd >= NUM_FD) return -1;
+	if(fd < 0 || fd >= NUM_FD || oft[fd].state == FSTATE_CLOSED) return -1;
 	inode_t* inode = &oft[fd].inode;
-	uint32 orig_size = inode->size;
 	uint32 written = 0;
+	uint32 orig_size = inode->size;
 	/* Get index and location. */
 	uint16 index = oft[fd].head / MDEV_BLOCK_SIZE;
 	uint16 offset = oft[fd].head % MDEV_BLOCK_SIZE;
@@ -45,6 +45,8 @@ int32 write(uint32 fd, char* buff, uint32 len) {
 		offset = 0;
 	}
 
+	inode->size = oft[fd].head > orig_size ? oft[fd].head : orig_size; /* Overwrites don't add size. */
+	write_bs(inode->id, 0, inode, sizeof(inode_t)); /* write inode */
 	write_bs(BM_BIT, 0, fsd->freemask, fsd->freemasksz); /* write back */
 	write_bs(SB_BIT, 0, fsd, sizeof(*fsd)); /* write super */
   	return written;

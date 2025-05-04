@@ -14,16 +14,14 @@
  *           smaller).                                                      */
 int32 read(uint32 fd, char* buff, uint32 len) {
 	if(fd < 0 || fd >= NUM_FD || oft[fd].state == FSTATE_CLOSED) return -1;
-	int32 head = oft[fd].head; /* NANOSECONDS FASTER !!! */
-	int32 size = oft[fd].inode.size;
-	if(head == size) return 0; /* Nothing left to read. */
+	if(oft[fd].head == oft[fd].inode.size) return 0; /* Nothing left to read. */
 
-	int32 to_read = len < size - head ? len : size - head;
+	int32 to_read = len < oft[fd].inode.size - oft[fd].head ? len : oft[fd].inode.size -  oft[fd].head;
 	int32 bytes_read = 0;
 	while(bytes_read < to_read) {
 		/* Find position in block and figure out how much to transfer. */
-		int16 index = head / MDEV_BLOCK_SIZE;
-		int16 offset = head % MDEV_BLOCK_SIZE;
+		int16 index = oft[fd].head / MDEV_BLOCK_SIZE;
+		int16 offset = oft[fd].head % MDEV_BLOCK_SIZE;
 		int16 transfer = to_read - bytes_read < MDEV_BLOCK_SIZE - offset ? 
 			to_read - bytes_read : MDEV_BLOCK_SIZE - offset;
 		/* Read into buffer at offset bytes_read.*/
