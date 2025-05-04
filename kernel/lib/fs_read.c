@@ -13,7 +13,7 @@
  *           or the  number of bytes  remaining in the file,  whichever is  *
  *           smaller).                                                      */
 int32 read(uint32 fd, char* buff, uint32 len) {
-	if(fd < 0 || fd > NUM_FD || oft[fd].state == FSTATE_CLOSED) return -1;
+	if(fd < 0 || fd >= NUM_FD || oft[fd].state == FSTATE_CLOSED) return -1;
 	int32 head = oft[fd].head; /* NANOSECONDS FASTER !!! */
 	int32 size = oft[fd].inode.size;
 	if(head == size) return 0; /* Nothing left to read. */
@@ -31,5 +31,5 @@ int32 read(uint32 fd, char* buff, uint32 len) {
 		oft[fd].head += transfer;
 		bytes_read += transfer;
 	}
-	return 0;
+	return bytes_read;
 }
