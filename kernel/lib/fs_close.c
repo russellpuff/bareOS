@@ -9,5 +9,17 @@ extern filetable_t oft[NUM_FD];
     device.  If the  entry is already closed,  return an  *
  *  error.                                                */
 int32 close(int32 fd) {
-  return 0;
+	if(fd < 0 || fd >= NUM_FD) return -1;
+	if(oft[fd].state == FSTATE_CLOSED) return -1;
+
+	/* Write back inode. */
+	int16 b = fsd->root_dir.entry[oft[fd].direntry].inode_block;
+	if(write_bs(b, 0, &oft[fd].inode, sizeof(inode_t)) < 0) return -1;
+
+	/* Clear the entry and set status to close. */
+	oft[fd].state = FSTATE_CLOSED;
+	oft[fd].head = 0;
+	oft[fd].direntry = EMPTY;
+	
+	return 0;
 }
