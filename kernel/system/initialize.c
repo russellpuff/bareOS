@@ -5,6 +5,7 @@
 #include <queue.h>
 #include <malloc.h>
 #include <tty.h>
+#include <fs.h>
 
 void display_kernel_info(void) {
   kprintf("Kernel start: %x\n--Kernel size: %d\nGlobals start: %x\nHeap/Stack start: %x\n--Free Memory Available: %d\n",
@@ -26,4 +27,7 @@ void initialize(void) {
 	init_threads();
 	init_queues();
 	init_heap();
+	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
+	mkfs();
+	mount_fs();
 }
