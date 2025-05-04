@@ -19,6 +19,7 @@ extern fsystem_t* fsd;
  *  unused  block in the block  device and  assign it to  *
  *  the new file.                                         */
 int32 create(char* filename) {
+	if(fsd->root_dir.numentries == DIR_SIZE) return -1;
 	/* Try to find a slot. */
 	int32 slot = -1;
 	for(int32 i = 0; i < DIR_SIZE; ++i) {
@@ -36,7 +37,13 @@ int32 create(char* filename) {
 	if(b == fsd->device.nblocks) return -1;
 
 	/* Copy in filename. */
-	memcpy(fsd->root_dir.entry[slot].name, filename, FILENAME_LEN);
+	/* barelib.c memset causing issues, do it manually. */
+	for(int16 m = 0; m < FILENAME_LEN; ++m)
+		fsd->root_dir.entry[slot].name[m] = '\0';
+	/* barelib.c memcpy also junk. */
+	for (int n = 0; filename[n] && n < FILENAME_LEN - 1; ++n)
+		fsd->root_dir.entry[slot].name[n] = filename[n];
+
 	fsd->root_dir.entry[slot].inode_block = b;
 
 	/* Construct inode. */
@@ -46,8 +53,10 @@ int32 create(char* filename) {
 		inode.blocks[i] = EMPTY;
 	if(write_bs(b, 0, &inode, sizeof(inode_t)) < 0) return -1;
 
+	fsd->root_dir.entry[slot].inode_block = b;
+	++fsd->root_dir.numentries;
 	setmaskbit_fs(b);
-	
+
 	if (write_bs(BM_BIT, 0, fsd->freemask, fsd->freemasksz) < 0) return -1; /* write back */
     if (write_bs(SB_BIT, 0, fsd, sizeof(fsystem_t)) < 0) return -1; /* write super */
 	return 0;
