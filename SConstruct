@@ -101,7 +101,7 @@ lflags = f"-nostdlib -Map {map_file} -T {ld_file} "
 AS     = "-".join([arch, "as"])
 aflags = "-march=rv64imac_zicsr -mabi=lp64 -g "
 QEMU   = "qemu-system-riscv64"
-qflags = f"-M virt -bios none -chardev stdio,id=uart0{logfile} -serial chardev:uart0 -display none"
+qflags = f"-M virt -bios none -m 256M -chardev stdio,id=uart0{logfile} -serial chardev:uart0 -display none -device loader,file=import.img,addr=0x84000000"
 GDB    = "-".join([arch, "gdb"])
 
 env = Environment(CC=CC, AS=AS, LINK=LD, QEMU=QEMU, GDB=GDB, CPPPATH=inc_dir, LINKFLAGS=lflags, memmap=map_file, qflags=qflags, port=PORT)
