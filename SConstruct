@@ -132,24 +132,32 @@ files = sorted(
 )
 
 for f in files:
-    name_bytes = do_name_bytes(os.path.splitext(f)[0])
+    stem = os.path.splitext(f)[0]
+    name_bytes = do_name_bytes(stem)
     if name_bytes is None:
         continue
+
     path = os.path.join(LOAD_DIR, f)
     f_size = os.path.getsize(path)
     if f_size > MAX_FILE_SIZE:
         continue
-    header_name = os.path.splitext(os.path.basename(f))[0] + ".header"
-    header_path = os.path.join(LOAD_DIR, header_name)
-    if not os.path.exists(header_path): # create header file if it doesn't exist, reuse old (fix later)
-        with open(header_path, 'wb') as hf:
-            hf.write(name_bytes + do_size_bytes(f_size))
-    # write header
+
+    header_path = os.path.join(LOAD_DIR, stem + ".header")
+
+    # Force rewrite header.
+    header = name_bytes + do_size_bytes(f_size)
+    assert len(header) == HEADER_SIZE
+    with open(header_path, 'wb') as hf:
+        hf.write(header)
+
+    # load header
     qflags += f"-device loader,file={header_path},addr=0x{current:08x} "
     current += HEADER_SIZE
-    # write file
+    # load file
     qflags += f"-device loader,file={path},addr=0x{current:08x} "
     current += f_size
+
+print(qflags)
 
 
 

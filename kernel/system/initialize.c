@@ -37,7 +37,7 @@ void IMPORT_TEST(void) {
 	name_buff[16] = '\0';
 	uint16 size = bytes_to_u16(ptr);
 	ptr += 16;
-	kprintf("Imported file name: %s size: %d content: %s", name_buff, size, ptr);
+	kprintf("Imported file name: %s size: %d content: %s\n", name_buff, size, ptr);
 }
 
 /*
