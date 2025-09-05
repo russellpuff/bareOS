@@ -19,9 +19,25 @@ void display_kernel_info(void) {
     (unsigned long)(&mem_end));
 }
 
-void test_ramdisk_probe(void) {
-	char *ptr = (char*)IMPORT_BASE;
-	kprintf("Imported bytes: %s\n", ptr);
+uint16 bytes_to_u16(const byte* ptr) { /* Unsafe test function */
+	uint16 value = 0;
+	for (int i = 0; i < 16; ++i) {
+        value |= ((uint16)ptr[i]) << (8 * i);
+    }
+    return value;
+}
+
+void IMPORT_TEST(void) {
+	byte *ptr = (byte*)IMPORT_BASE;
+	char name_buff[17];
+	for(int i = 0; i < 16; ++i) {
+		name_buff[i] = *ptr;
+		++ptr;
+	}
+	name_buff[16] = '\0';
+	uint16 size = bytes_to_u16(ptr);
+	ptr += 16;
+	kprintf("Imported file name: %s size: %d content: %s", name_buff, size, ptr);
 }
 
 /*
@@ -38,5 +54,5 @@ void initialize(void) {
 	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
 	mkfs();
 	mount_fs();
-	test_ramdisk_probe();
+	IMPORT_TEST();
 }
