@@ -11,6 +11,7 @@
 command_t builtin_commands[] = {
     { "hello", (function_t)builtin_hello },
     { "echo", (function_t)builtin_echo },
+    { "cat", (function_t)builtin_cat },
     { NULL, NULL }
 };
 

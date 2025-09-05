@@ -38,6 +38,10 @@ void IMPORT_TEST(void) {
 	uint16 size = bytes_to_u16(ptr);
 	ptr += 16;
 	kprintf("Imported file name: %s size: %d content: %s\n", name_buff, size, ptr);
+	create(name_buff);
+	uint32 fd = open(name_buff);
+	write(fd, (char*)ptr, size);
+	close(fd);
 }
 
 /*
