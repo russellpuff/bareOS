@@ -7,6 +7,8 @@
 #include <tty.h>
 #include <fs.h>
 
+#include <shell.h> /* TESTING */
+
 #define IMPORT_BASE 0x84000000
 
 void display_kernel_info(void) {
@@ -42,6 +44,8 @@ void IMPORT_TEST(void) {
 	uint32 fd = open(name_buff);
 	write(fd, (char*)ptr, size);
 	close(fd);
+	kprintf("cat test:\n");
+	builtin_cat(name_buff);
 }
 
 /*

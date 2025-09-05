@@ -12,6 +12,6 @@ byte builtin_cat(char* arg) {
     char buffer[BUFFER_SIZE];
     read(fd, buffer, BUFFER_SIZE);
     close(fd);
-    kprintf(buffer);
+    kprintf("%s\n", buffer);
     return 0;
 }
