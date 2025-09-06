@@ -5,5 +5,5 @@ obj/
 *.img
 *.sh
 load/
-.sconsign.dblite
+*.dblite
 .msfile
