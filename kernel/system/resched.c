@@ -13,12 +13,12 @@ void resched(void) {
 	uint32 old_thread = current_thread;
 	current_thread = new_thread;
 	thread_table[new_thread].state = TH_RUNNING;
-	if(thread_table[old_thread].state & TH_READY) 
-	{ 
-		thread_table[old_thread].state = TH_READY; 
-		queue_table[old_thread].key = thread_table[old_thread].priority;
-		enqueue_thread(&ready_list, old_thread);
-	}
-	ctxsw(&(thread_table[new_thread].stackptr), &(thread_table[old_thread].stackptr));
+        if(thread_table[old_thread].state == TH_RUNNING ||
+           thread_table[old_thread].state == TH_READY) {
+                thread_table[old_thread].state = TH_READY;
+                queue_table[old_thread].key = thread_table[old_thread].priority;
+                enqueue_thread(&ready_list, old_thread);
+        }
+        ctxsw(&(thread_table[new_thread].stackptr), &(thread_table[old_thread].stackptr));
 	return;
 }
