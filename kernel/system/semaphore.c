@@ -5,11 +5,6 @@
 
 static byte MUTEX_LOCK;
 
-int32 resume_no_resched(uint32 threadid) {
-	thread_table[threadid].state = TH_READY;
-	enqueue_thread(&ready_list, threadid);
-	return threadid;
-}
 /* This function is to avoid a possible pitfall involving
    threads with their own priorities being ordered wrongly
    in the semaphore queue. Currently assuming raw FIFO.   */
@@ -45,19 +40,23 @@ semaphore_t create_sem(int32 count) {
 
 /*  Marks a semaphore as free and release all waiting threads  */
 int32 free_sem(semaphore_t* sem) {
-	lock_mutex(&MUTEX_LOCK);
-	if(sem->state == S_FREE) {
-		release_mutex(&MUTEX_LOCK);
-		return -1;
-	}
-	while(sem->queue.qnext != &sem->queue) {
-		int32 threadid = dequeue_thread(&sem->queue);
-		resume_no_resched(threadid);
-	}
-	sem->state = S_FREE;
-	release_mutex(&MUTEX_LOCK);
-	raise_syscall(RESCHED);
-	return 0;
+    lock_mutex(&MUTEX_LOCK);
+    if(sem->state == S_FREE) {
+        release_mutex(&MUTEX_LOCK);
+        return -1;
+    }
+	if(sem->queue.qnext != NULL) {
+		while(sem->queue.qnext != &sem->queue) {
+			int32 threadid = dequeue_thread(&sem->queue);
+			if(threadid >= 0) {
+				resume_thread(threadid);
+	        }
+	    }
+    }
+    sem->state = S_FREE;
+    release_mutex(&MUTEX_LOCK);
+    raise_syscall(RESCHED);
+    return 0;
 }
 
 /*  Decrements the given  semaphore if it is in use.  If  the semaphore  *
