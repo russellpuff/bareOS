@@ -34,8 +34,8 @@ volatile byte* uart;
 
 
 char uart_putc(char ch) {
-  while ((uart[UART0_STAT_REG] & UART_IDLE) == 0);     /*  Wait for the UART to be idle  */
-  return uart[UART0_RW_REG] = (ch & 0xff);             /*  Send character to the UART    */
+  tty_putc(ch);
+  return ch;
 }
 char uart_getc(void) {
   char ch = tty_getc();                                /*  Fetch next char from TTY ring buffer      */
@@ -59,21 +59,17 @@ void uart_handler(void) {
 	if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
 		char c = uart[UART0_RW_REG];
 
-		/* Push into tty_in */
 		uint32 tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
-    	tty_in.buffer[tail] = c;
-    	if (tty_in.count < TTY_BUFFLEN) tty_in.count++;
+                tty_in.buffer[tail] = c;
+                if (tty_in.count < TTY_BUFFLEN) {
+                        tty_in.count++;
+                        post_sem(&tty_in.sem);             /* Notify readers a char is available */
+                }
 
-		/* Also push into tty_out */
-		tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
-    	tty_out.buffer[tail] = c;
-    	if (tty_out.count < TTY_BUFFLEN) tty_out.count++;
-
-		/* Signal on a newline. */
-		if(c == '\n') {
-			for(int32 i = 0; i < tty_in.count; ++i)
-				post_sem(&tty_in.sem);
-		}
+                /* Also push into tty_out */
+                tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
+                tty_out.buffer[tail] = c;
+                if (tty_out.count < TTY_BUFFLEN) tty_out.count++;
 
 		/* Enable interrupts. */
 		set_uart_interrupt(1);
