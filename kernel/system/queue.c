@@ -45,7 +45,9 @@ int32 enqueue(queue_t* queue, uint32 threadid, bool delta) {
 	if(threadid >= NTHREADS) return -1;
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev != NULL || node->qnext != NULL) return -1; /* In a queue already. */
-	//node->key = thread_table[threadid].priority;
+	if(!delta) {
+		node->key = thread_table[threadid].priority;
+	}
 
 	/* FIFO on same key in ascending order means same key is closer to tail, so...
 	   Loop until we're past the point where the node needs to be entered and shove

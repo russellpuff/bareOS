@@ -7,3 +7,4 @@ obj/
 load/
 *.dblite
 .msfile
+clean
