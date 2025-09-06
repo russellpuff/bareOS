@@ -32,14 +32,26 @@
 
 volatile byte* uart;
 
+/* public wrapper, don't do this */
+void uart_wake_tx(void) {
+    set_uart_interrupt(1);
+}
 
 char uart_putc(char ch) {
   tty_putc(ch);
   return ch;
 }
+
 char uart_getc(void) {
-  char ch = tty_getc();                                /*  Fetch next char from TTY ring buffer      */
-  return (ch == '\r' ? '\n' : ch);                    /*  Replace the CR character with newline      */
+  char ch = tty_getc();                  /*  Fetch next char from TTY ring buffer      */
+  if(ch == '\r') {
+    tty_putc('\r');
+    tty_putc('\n');
+    return '\n'; /* Replace CR with newline */
+  } else {
+    tty_putc(ch);
+    return ch;
+  }
 }
 
 /*  This function is used to enable or disable interrupt generation on the NS16550  *
@@ -55,31 +67,25 @@ void set_uart_interrupt(byte enabled) {
  *     (see '__traps' in bootstrap.s)
  */
 void uart_handler(void) {
-	byte code = uart[UART0_INT_STAT] & UART_INT_MASK;
-	if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
-		char c = uart[UART0_RW_REG];
+    byte code = uart[UART0_INT_STAT] & UART_INT_MASK;
+    if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
+      char c = uart[UART0_RW_REG];
 
-		uint32 tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
-                tty_in.buffer[tail] = c;
-                if (tty_in.count < TTY_BUFFLEN) {
-                        tty_in.count++;
-                        post_sem(&tty_in.sem);             /* Notify readers a char is available */
-                }
-
-                /* Also push into tty_out */
-                tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
-                tty_out.buffer[tail] = c;
-                if (tty_out.count < TTY_BUFFLEN) tty_out.count++;
-
-		/* Enable interrupts. */
-		set_uart_interrupt(1);
-	} else if(code == UART_TX_INTR) { /*  If interrupt was caused by UART awaiting char */
-		char c = tty_out.buffer[tty_out.head];
-		tty_out.head = (tty_out.head + 1) % TTY_BUFFLEN;
-		uart[UART0_RW_REG] = c;
-		post_sem(&tty_out.sem);
-		if(--tty_out.count == 0) set_uart_interrupt(0);
-	}
+      uint32 tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
+      if (tty_in.count < TTY_BUFFLEN) {
+          tty_in.buffer[tail] = c;
+          tty_in.count++;
+          post_sem(&tty_in.sem);             /* Notify readers a char is available */
+      }
+    } else if(code == UART_TX_INTR) { /*  If interrupt was caused by UART awaiting char */
+        if (tty_out.count > 0) {
+          char c = tty_out.buffer[tty_out.head];
+          tty_out.head = (tty_out.head + 1) % TTY_BUFFLEN;
+          uart[UART0_RW_REG] = c;
+          post_sem(&tty_out.sem);
+        if (--tty_out.count == 0) set_uart_interrupt(0);
+        } else { set_uart_interrupt(0); }
+    }
 }
 
 /*

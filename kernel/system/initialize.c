@@ -43,7 +43,7 @@ void IMPORT_TEST(void) {
 	uint32 fd = open(name_buff);
 	write(fd, (char*)ptr, size);
 	close(fd);
-	kprintf("Imported file: %s", name_buff);
+	kprintf("Imported file: %s\n", name_buff);
 }
 
 /*
