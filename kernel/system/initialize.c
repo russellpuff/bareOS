@@ -39,13 +39,11 @@ void IMPORT_TEST(void) {
 	name_buff[16] = '\0';
 	uint16 size = bytes_to_u16(ptr);
 	ptr += 16;
-	kprintf("Imported file name: %s size: %d content: %s\n", name_buff, size, ptr);
 	create(name_buff);
 	uint32 fd = open(name_buff);
 	write(fd, (char*)ptr, size);
 	close(fd);
-	kprintf("cat test:\n");
-	builtin_cat(name_buff);
+	kprintf("Imported file: %s", name_buff);
 }
 
 /*
