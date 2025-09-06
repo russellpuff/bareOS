@@ -30,7 +30,6 @@
 #define UART_TX_INTR  0x2                 /*  UART interrupt code for "transmit reg empty"     */
 #define UART_INT_MASK 0xE                 /*  Mask for extracting interrupt data from reg      */
 
-static char readchar = NULL;
 volatile byte* uart;
 
 
@@ -39,12 +38,8 @@ char uart_putc(char ch) {
   return uart[UART0_RW_REG] = (ch & 0xff);             /*  Send character to the UART    */
 }
 char uart_getc(void) {
-  char ch;                                             /*  This function synchronously waits for      */
-  while ((ch = readchar) == NULL);                     /*  a value to be placed  into 'readchar'      */
-  readchar = NULL;                                     /*      (see 'uart_handler')                   */
-  ch = (ch == '\r' ? '\n' : ch);                       /*  Replace the CR character with newline      */
-  uart_putc(ch);                                       /*                                             */
-  return ch;                                           /*  Return the character read.                 */
+  char ch = tty_getc();                                /*  Fetch next char from TTY ring buffer      */
+  return (ch == '\r' ? '\n' : ch);                    /*  Replace the CR character with newline      */
 }
 
 /*  This function is used to enable or disable interrupt generation on the NS16550  *
