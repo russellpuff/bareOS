@@ -43,6 +43,7 @@ void kprintf(const char* format, ...) {
                         ul = u;
                     }
                     while(i--) uart_putc(buff[i]);
+                    break;
                 } else {
 
                 }

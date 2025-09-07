@@ -30,9 +30,10 @@ void initialize(void) {
 	init_threads();
 	init_queues();
 	init_heap();
-	byte* imp = do_malloc_import();
+	byte* imp = do_malloc_import(); /* QEMU loader injects at top of freelist. So we steal it asap. */
 	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
 	mkfs();
 	mount_fs();
 	IMPORT_TEST(imp);
+	free(imp); 
 }

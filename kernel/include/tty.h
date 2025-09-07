@@ -2,6 +2,7 @@
 #define H_TTY
 
 #include <semaphore.h>
+
 #define TTY_BUFFLEN 128
 
 typedef struct {
