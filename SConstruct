@@ -33,7 +33,7 @@ FILENAME_LEN = _const("FILENAME_LEN")
 DIR_SIZE = _const("DIR_SIZE")
 MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
 HEADER_SIZE = FILENAME_LEN + 16
-START_ADDR = 0x8007be31
+START_ADDR = 0x8003bb90 + 24 # start of heap + sizeof(alloc_t), kernel.ld hardcodes available memory so this won't change unless I change it
 
 
 def do_name_bytes(stem: str) -> bytes:
@@ -86,7 +86,7 @@ lflags = f"-nostdlib -Map {map_file} -T {ld_file} "
 AS     = "-".join([arch, "as"])
 aflags = "-march=rv64imac_zicsr -mabi=lp64 -g "
 QEMU   = "qemu-system-riscv64"
-qflags = f"-M virt -bios none -m 256M -chardev stdio,id=uart0{logfile} -serial chardev:uart0 -display none "
+qflags = f"-M virt -bios none -m 128M -chardev stdio,id=uart0{logfile} -serial chardev:uart0 -display none "
 GDB    = "-".join([arch, "gdb"])
 
 #Load user filess from /load, this is attached to qflags

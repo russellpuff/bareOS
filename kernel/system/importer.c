@@ -4,6 +4,17 @@
 #include <malloc.h>
 #include <fs.h>
 
+#include <bareio.h>
+
+void* do_malloc_import(void) {
+	uint64 MAX_FS_CAPACITY = INODE_BLOCKS * MDEV_BLOCK_SIZE * DIR_SIZE;
+	uint64 HEAD_SIZE = 32;
+	uint64 TOTAL_HEAD_SIZE = HEAD_SIZE * DIR_SIZE;
+	uint64 MASTER_HEAD_SIZE = 2;
+	uint64 IMPORT_BYTES_NEEDED = MAX_FS_CAPACITY + TOTAL_HEAD_SIZE + MASTER_HEAD_SIZE;
+	kprintf("bytes to malloc: %lu\n", IMPORT_BYTES_NEEDED);
+	return malloc(IMPORT_BYTES_NEEDED);
+}
 
 void importer(void) {
     return;
@@ -17,9 +28,7 @@ uint16 bytes_to_u16(const byte* ptr) { /* Unsafe test function */
     return value;
 }
 
-void IMPORT_TEST(void) {
-    const int32 BYTES_NEEDED = 372;
-	byte* ptr = malloc(BYTES_NEEDED);
+void IMPORT_TEST(byte* ptr) {
 	char name_buff[17];
 	for(int i = 0; i < 16; ++i) {
 		name_buff[i] = *ptr;

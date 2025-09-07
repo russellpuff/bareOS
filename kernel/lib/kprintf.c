@@ -30,6 +30,22 @@ void kprintf(const char* format, ...) {
                     reversed /= 10;
                 }
                 break;
+            case 'l':
+                if(*(format + 1) == 'u') {
+                    ++format;
+                    uint64 ul = va_arg(ap, uint64);
+                    if(ul == 0) { uart_putc('0'); break; }
+                    char buff[20];
+                    int16 i = 0;
+                    while(ul) {
+                        uint64 u = ul / 10;
+                        buff[i++] = '0' + (char)(ul - u * 10);
+                        ul = u;
+                    }
+                    while(i--) uart_putc(buff[i]);
+                } else {
+
+                }
             case 'x':
                 uint32 hex = va_arg(ap, uint32);
                 uart_putc('0'); uart_putc('x');

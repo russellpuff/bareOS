@@ -30,8 +30,9 @@ void initialize(void) {
 	init_threads();
 	init_queues();
 	init_heap();
+	byte* imp = do_malloc_import();
 	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
 	mkfs();
 	mount_fs();
-	IMPORT_TEST();
+	IMPORT_TEST(imp);
 }
