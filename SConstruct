@@ -1,4 +1,4 @@
-import os, random, shutil
+import os, random, shutil, re
 
 try:
     # Remove '' target if present
@@ -16,19 +16,31 @@ try:
 except Exception:
     pass
 
-# constants for loading files
-INODE_BLOCKS = 12
-BLOCK_SIZE = 512
-MAX_NAME_LENGTH = 16
+# pseudo-constants for loading files, grabs from fs.h in case the ramdisk is changed
+fs_header = os.path.join("kernel", "include", "fs.h")
+with open(fs_header) as f:
+    fs_src = f.read()
+
+def _const(name):
+    m = re.search(r"#define\s+%s\s+(\d+)" % name, fs_src)
+    if not m:
+        raise ValueError(f"{name} not found in fs.h")
+    return int(m.group(1))
+
+INODE_BLOCKS = _const("INODE_BLOCKS")
+BLOCK_SIZE = _const("MDEV_BLOCK_SIZE")
+FILENAME_LEN = _const("FILENAME_LEN")
+DIR_SIZE = _const("DIR_SIZE")
 MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
-HEADER_SIZE = 32
-START_ADDR = 0x84000000
+HEADER_SIZE = FILENAME_LEN + 16
+START_ADDR = 0x8007be31
+
 
 def do_name_bytes(stem: str) -> bytes:
     b = stem.encode('utf-8')
-    if len(stem) > MAX_NAME_LENGTH:
+    if len(stem) > FILENAME_LEN:
         return None
-    return b[:MAX_NAME_LENGTH].ljust(MAX_NAME_LENGTH, b'\x00')
+    return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\x00')
 
 def do_size_bytes(size: int) -> bytes:
     return int(size).to_bytes(16, 'little')
@@ -85,7 +97,9 @@ files = sorted(
     f for f in os.listdir(LOAD_DIR)
     if os.path.isfile(os.path.join(LOAD_DIR, f))
     and not f.endswith('.header')
-)
+)[:DIR_SIZE]
+
+total_bytes = 0
 
 for f in files:
     stem = os.path.splitext(f)[0]
@@ -112,6 +126,7 @@ for f in files:
     # load file
     qflags += f"-device loader,file={path},addr=0x{current:08x} "
     current += f_size
+    total_bytes += HEADER_SIZE + f_size
 
 print(qflags)
 
