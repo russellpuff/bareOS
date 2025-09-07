@@ -1,7 +1,9 @@
 #include <importer.h>
 #include <barelib.h>
+#include <bareio.h>
 #include <malloc.h>
 #include <fs.h>
+
 
 void importer(void) {
     return;
@@ -16,7 +18,7 @@ uint16 bytes_to_u16(const byte* ptr) { /* Unsafe test function */
 }
 
 void IMPORT_TEST(void) {
-    const byte BYTES_NEEDED = 372;
+    const int32 BYTES_NEEDED = 372;
 	byte* ptr = malloc(BYTES_NEEDED);
 	char name_buff[17];
 	for(int i = 0; i < 16; ++i) {

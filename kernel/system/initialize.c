@@ -3,6 +3,11 @@
 #include <interrupts.h>
 #include <thread.h>
 #include <queue.h>
+#include <queue.h>
+#include <malloc.h>
+#include <tty.h>
+#include <fs.h>
+#include <importer.h>
 
 void display_kernel_info(void) {
   kprintf("Kernel start: %x\n--Kernel size: %d\nGlobals start: %x\nHeap/Stack start: %x\n--Free Memory Available: %d\nEnd of memory: %x\n",
