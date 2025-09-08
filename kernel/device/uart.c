@@ -53,6 +53,8 @@ char uart_getc(void) {
     tty_putc('\r');
     tty_putc('\n');
     return '\n'; /* Replace CR with newline */
+  } else if(ch == '\b' || ch == 0x7f) {
+    return '\b'; /* Don't put a backspace, caller handles processing this. */
   } else {
     tty_putc(ch);
     return ch;
