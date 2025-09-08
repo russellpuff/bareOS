@@ -27,10 +27,11 @@ int32 create(char* filename) {
 	if(b == fsd->device.nblocks) return -1;
 
 	/* Copy in filename. */
-	/* barelib.c memset causing issues, do it manually. */
-	for(int16 m = 0; m < FILENAME_LEN; ++m)
-		fsd->root_dir.entry[slot].name[m] = '\0';
-	/* barelib.c memcpy also junk. */
+	memset(fsd->root_dir.entry[slot].name, '\0', (uint64)FILENAME_LEN);
+	byte ncopy = 0;
+	while (ncopy < (FILENAME_LEN - 1) && filename[ncopy] != '\0') ++ncopy;
+	memcpy(fsd->root_dir.entry[slot].name, filename, ncopy); 
+
 	for (int n = 0; filename[n] && n < FILENAME_LEN - 1; ++n)
 		fsd->root_dir.entry[slot].name[n] = filename[n];
 
