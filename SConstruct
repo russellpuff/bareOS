@@ -33,7 +33,7 @@ FILENAME_LEN = _const("FILENAME_LEN")
 DIR_SIZE = _const("DIR_SIZE")
 MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
 HEADER_SIZE = FILENAME_LEN + 16
-START_ADDR = 0x8003bb90 + 24 # start of heap + sizeof(alloc_t), kernel.ld hardcodes available memory so this won't change unless I change it
+START_ADDR = 0x8003bba0 + 24 # start of heap + sizeof(alloc_t), kernel.ld hardcodes available memory so this won't change unless I change it or .conscript's size is changed.
 
 
 def do_name_bytes(stem: str) -> bytes:
@@ -93,6 +93,8 @@ GDB    = "-".join([arch, "gdb"])
 
 current = START_ADDR
 LOAD_DIR = 'load'
+if not os.path.exists(LOAD_DIR):
+    os.makedirs(LOAD_DIR)
 files = sorted(
     f for f in os.listdir(LOAD_DIR)
     if os.path.isfile(os.path.join(LOAD_DIR, f))
