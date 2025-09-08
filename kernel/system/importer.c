@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include <fs.h>
 #include <bareio.h>
+#include <string.h>
 
 /* Mildly unsafe helper that reads the raw bytes from header to a uint16. */
 uint16 bytes_to_u16(const byte* ptr) { 
@@ -23,9 +24,21 @@ void* do_malloc_import(void) {
 	return malloc(IMPORT_BYTES_NEEDED);
 }
 
+/* Basic helper function to advance a pointer to the end of a c string. */
+byte* run_to_nc(byte* ptr) {
+	while(*ptr != '\0') ++ptr;
+	return ptr;
+}
+
 byte importer(byte* ptr) {
+	byte status = 0;
+	const uint16 BUFFER_SIZE = 1024;
+	char buffer[BUFFER_SIZE];
+	byte* bptr = (byte*)buffer;
+	memset(buffer, '\0', BUFFER_SIZE);
 	byte num_files = *(ptr++);
-	kprintf("Importer is trying to import %d files...\n", num_files & 0xFF);
+	ksprintf(bptr, "Importer is trying to import %d files...\n", num_files & 0xFF);
+	bptr = run_to_nc(bptr);
 	for(byte i = 0; i < num_files; ++i) {
 		char name[FILENAME_LEN]; /* Read the file's name. */
 		for(int j = 0; j < FILENAME_LEN; ++j) {
@@ -36,13 +49,25 @@ byte importer(byte* ptr) {
 		/* Write to fd */
 		uint16 size = bytes_to_u16(ptr);
 		ptr += 16;
-		if(create(name) == -1) return -1;
+		if(create(name) == -1) {
+			status = -1;
+			break;
+		}
 		uint32 fd = open(name);
 		write(fd, (char*)ptr, size);
 		close(fd);
-		kprintf("Importer wrote %s (%u bytes).\n", name, size);
+		ksprintf(bptr, "Importer wrote %s (%u bytes).\n", name, size);
+		bptr = run_to_nc(bptr);
 		ptr += size;
 	}
-	kprintf("Importer finished with no errors.\n");
+	
+	if(status == 0) { ksprintf(bptr, "Importer finished with no errors."); } 
+	else { ksprintf(bptr, "The importer had an error and had to stop: couldn't create one of the files."); }
+	bptr = run_to_nc(bptr);
+	
+	char n[] = "importer.log\0";
+	uint32 nfd = create(n);
+	write(nfd, buffer, (bptr - (byte*)buffer) + 1);
+	close(nfd);
     return 0;
 }
