@@ -66,7 +66,8 @@ byte importer(byte* ptr) {
 	bptr = run_to_nc(bptr);
 	
 	char n[] = "importer.log\0";
-	uint32 nfd = create(n);
+	create(n);
+	uint32 nfd = open(n);
 	write(nfd, buffer, (bptr - (byte*)buffer) + 1);
 	close(nfd);
     return 0;

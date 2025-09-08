@@ -57,22 +57,22 @@ void master_kprintf(byte mode, byte* ptr, const char* format, va_list ap) {
                         ptr = mode_put('-', mode, ptr);
                         d *= -1;
                     }
-                    put_number((uint64)(uint32)d, mode, ptr);
+                    ptr = put_number((uint64)(uint32)d, mode, ptr);
                     break;
                 case 'u':
                     uint32 ud = va_arg(ap, uint32);
-                    put_number((uint64)ud, mode, ptr);
+                    ptr = put_number((uint64)ud, mode, ptr);
                     break;
                 case 'l':
                     if(*(format + 1) == 'u') {
                         ++format;
                         uint64 ul = va_arg(ap, uint64);
-                        put_number(ul, mode, ptr);
-                        break;
+                        ptr = put_number(ul, mode, ptr);
                     } else {
                         int64 l = va_arg(ap, int64);
-                        put_number((uint64)l, mode, ptr);
+                        ptr = put_number((uint64)l, mode, ptr);
                     }
+                    break;
                 case 'x':
                     uint32 hex = va_arg(ap, uint32);
                     ptr = mode_put('0', mode, ptr); ptr = mode_put('x', mode, ptr);
