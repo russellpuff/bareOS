@@ -1,4 +1,5 @@
 #include <barelib.h>
+#include <bareio.h>
 #include <interrupts.h>
 #include <tty.h>
 
@@ -35,6 +36,10 @@ volatile byte* uart;
 /* public wrapper, don't do this */
 void uart_wake_tx(void) {
     set_uart_interrupt(1);
+}
+
+void uart_write(const char* s) {
+    while(*s) uart_putc(*s++);
 }
 
 char uart_putc(char ch) {

@@ -46,21 +46,3 @@ byte importer(byte* ptr) {
 	kprintf("Importer finished with no errors.\n");
     return 0;
 }
-
-void IMPORT_TEST(byte* ptr) {
-	byte num_files = *(ptr++);
-	char name_buff[17];
-	for(int i = 0; i < 16; ++i) {
-		name_buff[i] = *ptr;
-		++ptr;
-	}
-	name_buff[16] = '\0';
-	uint16 size = bytes_to_u16(ptr);
-	ptr += 16;
-	create(name_buff);
-	uint32 fd = open(name_buff);
-	write(fd, (char*)ptr, size);
-	close(fd);
-	kprintf("Number of imported files: %d\n", num_files & 0xFF);
-	kprintf("Imported file: %s\n", name_buff);
-}

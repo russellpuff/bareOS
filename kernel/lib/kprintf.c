@@ -14,6 +14,21 @@ void put_number(uint64 u) {
     while(i--) uart_putc(buff[i]);
 } 
 
+void write_color_token(char t) {
+    switch(t){
+        case '0': uart_write("\x1b[0m");  break; // reset
+        case 'r': uart_write("\x1b[31m"); break;
+        case 'g': uart_write("\x1b[32m"); break;
+        case 'y': uart_write("\x1b[33m"); break;
+        case 'b': uart_write("\x1b[34m"); break;
+        case 'm': uart_write("\x1b[35m"); break;
+        case 'c': uart_write("\x1b[36m"); break;
+        case 'w': uart_write("\x1b[37m"); break;
+        case 'x': uart_write("\x1b[01;32m"); break; // prompt bright green
+        default:  uart_putc('&'); uart_putc(t); return; // literal
+    }
+}
+
 void kprintf(const char* format, ...) {
   va_list ap;
   va_start(ap, format);
@@ -72,11 +87,14 @@ void kprintf(const char* format, ...) {
                  * In this case, it WILL try to use its defined behavior for %t, it will also put a space BEFORE whatever it spits out.
                  * I don't do this right now because I don't know what I want to do. 
                 */
-                uart_putc(' ');
                 break;
+            case '%':
+                uart_putc('%');
             default: // Print nothing for now. GCC will print nothing if there's no valid character following the %
                 break;
         }
+    } else if(*format == '&') { /* OC donut steel color handler. */
+        write_color_token(*++format);
     } else {
         uart_putc(*format);
     }
