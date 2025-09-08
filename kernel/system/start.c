@@ -11,11 +11,15 @@ void display_kernel_info(void);
  *      (see bootstrap.s)
  */
 
+static void sys_idle() { for(;;) { } }
+
 static void root_thread(void) {
-  uint32 shtid = create_thread(&shell, "idk", 3);
-  resume_thread(shtid);
-  join_thread(shtid);
-  while (1);
+    uint32 idleTID = create_thread(&sys_idle, "", 0);
+    resume_thread(idleTID);
+    uint32 sh = create_thread(&shell, "", 0);
+    resume_thread(sh);
+    join_thread(sh);
+    for(;;) { }
 }
 
 /*

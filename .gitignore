@@ -4,3 +4,7 @@
 obj/
 *.img
 *.sh
+load/
+*.dblite
+.msfile
+clean

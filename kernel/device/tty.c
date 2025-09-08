@@ -34,9 +34,17 @@ char tty_getc(void) {
  *  semaphore  until notified  that there  space has  been  *
  *  made in the  buffer by the UART. */
 void tty_putc(char ch) {
-	wait_sem(&tty_out.sem);
-	uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
-	tty_out.buffer[tail] = ch;
-	++tty_out.count;
-	set_uart_interrupt(1);
+    if (ch == '\n') {
+        wait_sem(&tty_out.sem);
+        uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
+        tty_out.buffer[tail] = '\r';
+        ++tty_out.count;
+        uart_wake_tx();
+    }
+
+    wait_sem(&tty_out.sem);
+    uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
+    tty_out.buffer[tail] = ch;
+    ++tty_out.count;
+    uart_wake_tx();
 }

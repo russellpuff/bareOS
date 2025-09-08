@@ -11,6 +11,8 @@
 command_t builtin_commands[] = {
     { "hello", (function_t)builtin_hello },
     { "echo", (function_t)builtin_echo },
+    { "cat", (function_t)builtin_cat },
+    { "shutdown", (function_t)builtin_shutdown },
     { NULL, NULL }
 };
 
@@ -30,7 +32,7 @@ function_t get_command(const char* name) {
 byte shell(char* arg) {
     byte last_retval = 0;
     while (1) {
-        kprintf("%s", PROMPT);
+        kprintf("&x%s&0", PROMPT);
         char line[LINE_SIZE];
         uint32 chars_read = get_line(line, LINE_SIZE);
 

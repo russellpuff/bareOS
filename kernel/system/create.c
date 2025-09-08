@@ -1,6 +1,7 @@
 #include <barelib.h>
 #include <thread.h>
 #include <interrupts.h>
+#include <semaphore.h>
 
 static void trampoline(void) {
   asm volatile("sret");
@@ -44,6 +45,7 @@ int32 create_thread(void* proc, char* arg, uint32 arglen) {
   thread_table[i].state = TH_SUSPEND;          /*                                                                */
   thread_table[i].stackptr = (uint64*)stkptr;  /*              Configure the thread table entry                  */
   thread_table[i].parent = current_thread;     /*                                                                */
+  thread_table[i].sem = create_sem(0);
   ctxptr[-1] = (uint64)trampoline;             /*  [-1] Return address after context switch in Machine privilage */
   ctxptr[-2] = (uint64)proc;                   /*  [-2] 'a0' register or first argument to the wrapper function  */
   ctxptr[-3] = (uint64)wrapper;                /*  [-3] Return point after returning from system call            */
