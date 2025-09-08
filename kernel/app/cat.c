@@ -6,7 +6,7 @@ byte builtin_cat(char* arg) {
     if(arg[0] == 'c' && arg[1] == 'a' && arg[2] == 't' && arg[3] == ' ') arg += 4; /* Hotfix, deal with later. */
     int16 fd = open(arg);
     if(fd == -1) {
-        kprintf("%s - File not found.", arg);
+        kprintf("%s - File not found.\n", arg);
         return -1;
     }
     uint16 BUFFER_SIZE = 1024;

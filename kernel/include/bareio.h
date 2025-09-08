@@ -1,6 +1,8 @@
 #ifndef H_BAREIO
 #define H_BAREIO
 
+#include <barelib.h>
+
 /*
  *  This header includes function prototypes for IO procedures
  *  used by the UART and other print/scan related functions.
@@ -10,6 +12,7 @@ char uart_putc(char);
 char uart_getc(void);
 void uart_write(const char*);
 void kprintf(const char*, ...);
-unsigned short get_line(char*, unsigned short);
+void ksprintf(byte*, const char*, ...);
+uint16 get_line(char*, uint16);
 
 #endif
