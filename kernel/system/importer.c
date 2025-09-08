@@ -29,6 +29,7 @@ uint16 bytes_to_u16(const byte* ptr) { /* Unsafe test function */
 }
 
 void IMPORT_TEST(byte* ptr) {
+	byte num_files = *(ptr++);
 	char name_buff[17];
 	for(int i = 0; i < 16; ++i) {
 		name_buff[i] = *ptr;
@@ -41,5 +42,6 @@ void IMPORT_TEST(byte* ptr) {
 	uint32 fd = open(name_buff);
 	write(fd, (char*)ptr, size);
 	close(fd);
+	kprintf("Number of imported files: %d", num_files & 0xFF);
 	kprintf("Imported file: %s\n", name_buff);
 }

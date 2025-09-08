@@ -91,7 +91,7 @@ GDB    = "-".join([arch, "gdb"])
 
 #Load user filess from /load, this is attached to qflags
 
-current = START_ADDR
+current = START_ADDR + 1
 LOAD_DIR = 'load'
 if not os.path.exists(LOAD_DIR):
     os.makedirs(LOAD_DIR)
@@ -99,11 +99,14 @@ files = sorted(
     f for f in os.listdir(LOAD_DIR)
     if os.path.isfile(os.path.join(LOAD_DIR, f))
     and not f.endswith('.header')
-)[:DIR_SIZE]
+)
 
 total_bytes = 0
+valid_files = 0
 
 for f in files:
+    if(valid_files == DIR_SIZE)
+        break
     stem = os.path.splitext(f)[0]
     name_bytes = do_name_bytes(stem)
     if name_bytes is None:
@@ -129,6 +132,8 @@ for f in files:
     qflags += f"-device loader,file={path},addr=0x{current:08x} "
     current += f_size
     total_bytes += HEADER_SIZE + f_size
+    valid_files += 1
+qflags += f"-device loader,addr={START_ADDR:#x},data={valid_files:#x},data-len=1 "
 
 print(qflags)
 
