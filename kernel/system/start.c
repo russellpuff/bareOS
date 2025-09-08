@@ -3,7 +3,7 @@
 #include <thread.h>
 
 void initialize(void);
-void display_kernel_info(void);
+void display_welcome(void);
 
 /*
  *  This file contains the C code entry point executed by the kernel.
@@ -28,7 +28,7 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
   initialize();
-  display_kernel_info();
+  display_welcome();
   root_thread();
 }
 

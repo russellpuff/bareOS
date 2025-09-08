@@ -1,4 +1,6 @@
-import os, random, shutil, re
+import os, random, shutil, re, subprocess
+
+# Disable out of date targets --------------------------------------------------------------------------
 
 try:
     # Remove '' target if present
@@ -16,34 +18,7 @@ try:
 except Exception:
     pass
 
-# pseudo-constants for loading files, grabs from fs.h in case the ramdisk is changed
-fs_header = os.path.join("kernel", "include", "fs.h")
-with open(fs_header) as f:
-    fs_src = f.read()
-
-def _const(name):
-    m = re.search(r"#define\s+%s\s+(\d+)" % name, fs_src)
-    if not m:
-        raise ValueError(f"{name} not found in fs.h")
-    return int(m.group(1))
-
-INODE_BLOCKS = _const("INODE_BLOCKS")
-BLOCK_SIZE = _const("MDEV_BLOCK_SIZE")
-FILENAME_LEN = _const("FILENAME_LEN")
-DIR_SIZE = _const("DIR_SIZE")
-MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
-HEADER_SIZE = FILENAME_LEN + 16
-START_ADDR = 0x8003bba0 + 24 # start of heap + sizeof(alloc_t), kernel.ld hardcodes available memory so this won't change unless I change it or .conscript's size is changed.
-
-
-def do_name_bytes(stem: str) -> bytes:
-    b = stem.encode('utf-8')
-    if len(stem) > FILENAME_LEN - 1: # account for null terminator fs needs
-        return None
-    return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\0')
-
-def do_size_bytes(size: int) -> bytes:
-    return int(size).to_bytes(16, 'little')
+# QEMU Setup -------------------------------------------------------------------------------------------
 
 Help("""
 usage: scons command
@@ -88,6 +63,37 @@ aflags = "-march=rv64imac_zicsr -mabi=lp64 -g "
 QEMU   = "qemu-system-riscv64"
 qflags = f"-M virt -bios none -m 128M -chardev stdio,id=uart0{logfile} -serial chardev:uart0 -display none "
 GDB    = "-".join([arch, "gdb"])
+
+# File loading logic -----------------------------------------------------------------------------------
+
+# pseudo-constants for loading files, grabs from fs.h in case the ramdisk is changed
+fs_header = os.path.join("kernel", "include", "fs.h")
+with open(fs_header) as f:
+    fs_src = f.read()
+
+def _const(name):
+    m = re.search(r"#define\s+%s\s+(\d+)" % name, fs_src)
+    if not m:
+        raise ValueError(f"{name} not found in fs.h")
+    return int(m.group(1))
+
+INODE_BLOCKS = _const("INODE_BLOCKS")
+BLOCK_SIZE = _const("MDEV_BLOCK_SIZE")
+FILENAME_LEN = _const("FILENAME_LEN")
+DIR_SIZE = _const("DIR_SIZE")
+MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
+HEADER_SIZE = FILENAME_LEN + 16
+START_ADDR = 0x8003bba0 + 24 # start of heap + sizeof(alloc_t), kernel.ld hardcodes available memory so this won't change unless I change it or .conscript's size is changed.
+
+
+def do_name_bytes(stem: str) -> bytes:
+    b = stem.encode('utf-8')
+    if len(stem) > FILENAME_LEN - 1: # account for null terminator fs needs
+        return None
+    return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\0')
+
+def do_size_bytes(size: int) -> bytes:
+    return int(size).to_bytes(16, 'little')
 
 #Load user filess from /load, this is attached to qflags
 
@@ -135,7 +141,39 @@ for f in files:
     valid_files += 1
 qflags += f"-device loader,addr={START_ADDR:#x},data={valid_files:#x},data-len=1 "
 
-print(qflags)
+# print(qflags)
+
+# Generate version.h -----------------------------------------------------------------------------------
+
+header_path = os.path.join("kernel", "include", "version.h")
+try:
+    rev = subprocess.check_output([
+        "git", "rev-list", "--tags", "--max-count=1"
+    ]).strip()
+    tag = subprocess.check_output([
+        "git", "describe", "--tags", rev
+    ]).decode().strip()
+except Exception:
+    tag = "alpha0-0.0.0"
+
+m = re.match(r"alpha(\d+)-(\d+)\.(\d+)\.(\d+)", tag)
+alpha, major, minor, patch = (m.groups() if m else ("0", "0", "0", "0"))
+
+contents = f"""#ifndef VERSION_H
+            #define VERSION_H
+
+            #define VERSION_ALPHA {alpha}
+            #define VERSION_MAJOR {major}
+            #define VERSION_MINOR {minor}
+            #define VERSION_PATCH {patch}
+
+            #endif /* VERSION_H */
+            """
+
+with open(header_path, "w") as vf:
+    vf.write(contents)
+
+# Execute ----------------------------------------------------------------------------------------------
 
 env = Environment(CC=CC, AS=AS, LINK=LD, QEMU=QEMU, GDB=GDB, CPPPATH=inc_dir, LINKFLAGS=lflags, memmap=map_file, qflags=qflags, port=PORT)
 env.Append(ENV={"PATH": os.environ["PATH"]}, CFLAGS=cflags, ASFLAGS=aflags)
