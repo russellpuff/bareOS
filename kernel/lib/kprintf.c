@@ -22,7 +22,7 @@ void kprintf(const char* format, ...) {
     if(*format == '%') {
         switch(*(++format)) {
             case 'd':
-                int32 d = va_arc(ap, int32);
+                int32 d = va_arg(ap, int32);
                 if(d < 0) {
                     uart_putc('-');
                     d *= -1;

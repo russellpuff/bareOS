@@ -38,9 +38,9 @@ START_ADDR = 0x8003bba0 + 24 # start of heap + sizeof(alloc_t), kernel.ld hardco
 
 def do_name_bytes(stem: str) -> bytes:
     b = stem.encode('utf-8')
-    if len(stem) > FILENAME_LEN:
+    if len(stem) > FILENAME_LEN - 1: # account for null terminator fs needs
         return None
-    return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\x00')
+    return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\0')
 
 def do_size_bytes(size: int) -> bytes:
     return int(size).to_bytes(16, 'little')
@@ -105,7 +105,7 @@ total_bytes = 0
 valid_files = 0
 
 for f in files:
-    if(valid_files == DIR_SIZE)
+    if(valid_files == DIR_SIZE):
         break
     stem = os.path.splitext(f)[0]
     name_bytes = do_name_bytes(stem)

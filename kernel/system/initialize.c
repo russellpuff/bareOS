@@ -34,6 +34,6 @@ void initialize(void) {
 	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
 	mkfs();
 	mount_fs();
-	IMPORT_TEST(imp);
+	if(importer(imp) != 0) kprintf("The importer encountered an error and had to stop.\n");
 	free(imp); 
 }
