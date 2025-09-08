@@ -1,6 +1,19 @@
 #include <bareio.h>
 #include <barelib.h>
 
+/* Helper function for numbers. */
+void put_number(uint64 u) {
+    if(u == 0) { uart_putc('0'); return; }
+    char buff[20];
+    int16 i = 0;
+    while(u) {
+        uint64 r = u / 10;
+        buff[i++] = '0' + (char)(u - r * 10);
+        u = r;
+    }
+    while(i--) uart_putc(buff[i]);
+} 
+
 void kprintf(const char* format, ...) {
   va_list ap;
   va_start(ap, format);
@@ -9,43 +22,27 @@ void kprintf(const char* format, ...) {
     if(*format == '%') {
         switch(*(++format)) {
             case 'd':
-                int32 dec = va_arg(ap, int32);
-                if(dec == 0) { uart_putc('0'); break; }
-                if(dec < 0) 
-                { 
+                int32 d = va_arc(ap, int32);
+                if(d < 0) {
                     uart_putc('-');
-                    dec *= -1; 
-                }
+                    d *= -1;
 
-                int32 reversed = 0;
-                while(dec > 0) {
-                    int16 digit = dec % 10;
-                    reversed = (reversed * 10) + digit;
-                    dec /=10;
                 }
-                
-                while(reversed > 0) {
-                    int32 digit = reversed % 10;
-                    uart_putc(digit + '0');
-                    reversed /= 10;
-                }
+                put_number((uint64)(uint32)d);
+                break;
+            case 'u':
+                uint32 ud = va_arg(ap, uint32);
+                put_number((uint64)ud);
                 break;
             case 'l':
                 if(*(format + 1) == 'u') {
                     ++format;
                     uint64 ul = va_arg(ap, uint64);
-                    if(ul == 0) { uart_putc('0'); break; }
-                    char buff[20];
-                    int16 i = 0;
-                    while(ul) {
-                        uint64 u = ul / 10;
-                        buff[i++] = '0' + (char)(ul - u * 10);
-                        ul = u;
-                    }
-                    while(i--) uart_putc(buff[i]);
+                    put_number(ul);
                     break;
                 } else {
-
+                    int64 l = va_arg(ap, int64);
+                    put_number((uint64)l);
                 }
             case 'x':
                 uint32 hex = va_arg(ap, uint32);
