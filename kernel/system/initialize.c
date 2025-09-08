@@ -12,7 +12,7 @@
 #include <string.h>
 
 void display_welcome(void) {
-	kprintf("Welcome to bareOS alpha%d-%d.%d.%d\n\n", VERSION_ALPHA, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+	kprintf("Welcome to bareOS alpha%d-%d.%d.%d (qemu-system-riscv64)\n\n", VERSION_ALPHA, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	kprintf("  Kernel information as of Who Knows When\n\n");
 	kprintf("  Kernel start: %x\n  Kernel size: %d\n  Globals start: %x\n  Heap/Stack start: %x\n  Free Memory Available: %d\n\n",
 		(unsigned long)&text_start,
@@ -30,7 +30,6 @@ void display_welcome(void) {
 	read(fd, buffer, BUFFER_SIZE);
 	close(fd);
 	byte ok = 0;
-	byte* p = (byte*)buffer;
 	for (char *p = buffer; *p; ++p) { 
 		const char *s = p, *t = sentinel;
 		while (*t && *s == *t) { ++s; ++t; }

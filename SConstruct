@@ -160,15 +160,14 @@ m = re.match(r"alpha(\d+)-(\d+)\.(\d+)\.(\d+)", tag)
 alpha, major, minor, patch = (m.groups() if m else ("0", "0", "0", "0"))
 
 contents = f"""#ifndef VERSION_H
-            #define VERSION_H
+#define VERSION_H
 
-            #define VERSION_ALPHA {alpha}
-            #define VERSION_MAJOR {major}
-            #define VERSION_MINOR {minor}
-            #define VERSION_PATCH {patch}
+#define VERSION_ALPHA {alpha}
+#define VERSION_MAJOR {major}
+#define VERSION_MINOR {minor}
+#define VERSION_PATCH {patch}
 
-            #endif /* VERSION_H */
-            """
+#endif"""
 
 with open(header_path, "w") as vf:
     vf.write(contents)
