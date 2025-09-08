@@ -2,8 +2,7 @@
 #include <malloc.h>
 #include <barelib.h>
 #include <fs.h>
-
-void* memcpy(void*, void*, int);
+#include <string.h>
 
 static bdev_t ramdisk;             /* After initialization, contains metadata about the block device */
 static char* ramfs_blocks = NULL;  /* A pointer to the actual memory used as the block device        */
