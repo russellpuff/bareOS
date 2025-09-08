@@ -8,6 +8,7 @@
 
 char uart_putc(char);
 char uart_getc(void);
+void uart_write(const char*);
 void kprintf(const char*, ...);
 unsigned short get_line(char*, unsigned short);
 

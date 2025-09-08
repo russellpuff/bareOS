@@ -1,8 +1,6 @@
 #include <bareio.h>
 #include <barelib.h>
 
-#define ESC "\x1b["
-
 /* Helper function for numbers. */
 void put_number(uint64 u) {
     if(u == 0) { uart_putc('0'); return; }
@@ -16,10 +14,6 @@ void put_number(uint64 u) {
     while(i--) uart_putc(buff[i]);
 } 
 
-void uart_write(const char* s) {
-    while(*s) uart_putc(*s++);
-}
-
 void write_color_token(char t) {
     switch(t){
         case '0': uart_write("\x1b[0m");  break; // reset
@@ -30,6 +24,7 @@ void write_color_token(char t) {
         case 'm': uart_write("\x1b[35m"); break;
         case 'c': uart_write("\x1b[36m"); break;
         case 'w': uart_write("\x1b[37m"); break;
+        case 'x': uart_write("\x1b[01;32m"); break; // prompt bright green
         default:  uart_putc('&'); uart_putc(t); return; // literal
     }
 }
