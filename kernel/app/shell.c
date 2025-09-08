@@ -32,7 +32,7 @@ function_t get_command(const char* name) {
 byte shell(char* arg) {
     byte last_retval = 0;
     while (1) {
-        kprintf("%s", PROMPT);
+        kprintf("&g%s&0", PROMPT);
         char line[LINE_SIZE];
         uint32 chars_read = get_line(line, LINE_SIZE);
 
