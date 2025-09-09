@@ -13,7 +13,7 @@ int32 join_thread(uint32 threadid) {
   }
 
   if(thread_table[threadid].state != TH_DEFUNCT) {
-	wait_sem(&thread_table[threadid].sem);
+	  wait_sem(&thread_table[threadid].sem);
   }
   
   thread_table[threadid].state = TH_FREE;
