@@ -9,7 +9,7 @@ byte builtin_cat(char* arg) {
         kprintf("%s - File not found.\n", arg);
         return 1;
     }
-    uint16 BUFFER_SIZE = 1024;
+    const uint16 BUFFER_SIZE = 1024;
     char buffer[BUFFER_SIZE];
     read(fd, buffer, BUFFER_SIZE);
     close(fd);

@@ -13,6 +13,7 @@ byte builtin_echo(char*);
 byte builtin_hello(char*);
 byte builtin_cat(char*);
 byte builtin_shutdown(char*);
+byte builtin_clear(char*);
 function_t get_command(const char* name);
 
 extern command_t builtin_commands[];
