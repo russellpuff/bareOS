@@ -7,7 +7,7 @@ byte builtin_cat(char* arg) {
     int16 fd = open(arg);
     if(fd == -1) {
         kprintf("%s - File not found.\n", arg);
-        return -1;
+        return 1;
     }
     uint16 BUFFER_SIZE = 1024;
     char buffer[BUFFER_SIZE];

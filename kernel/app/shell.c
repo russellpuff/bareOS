@@ -5,8 +5,10 @@
 #include <thread.h>
 
 #define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
+/* Arbitrary limits. */
 #define LINE_SIZE 1024
-#define MAX_ARG0_SIZE 10
+#define MAX_ARG0_SIZE 128
+#define DIGITS(n) ((n) < 10 ? 1 : ((n) < 100 ? 2 : 3)) /* Swift way of discerning the char size of retval. */
 
 command_t builtin_commands[] = {
     { "hello", (function_t)builtin_hello },
@@ -46,58 +48,24 @@ byte shell(char* arg) {
         arg0[ctr] = '\0';
 
         /* Replace line placeholders with enviornment variables. */
-        bool rvRequest = false;
-        uint16 count = 0;
-        while (line[count] != '\0') {
-            if (line[count] == '$' && line[count + 1] == '?') {
-                char digits[3];
-                if(!rvRequest) {
-                    ctr = (last_retval < 10) ? 1 : (last_retval < 100) ? 2 : 3;
-                    if (last_retval == 0) { digits[0] = '0'; }
-                    else {
-                        for (uint16 q = ctr; q--; last_retval /= 10)
-                        {
-                            digits[q] = (last_retval % 10) + '0';
-                        }
-                    }
-                    rvRequest = true;
-                }
-
-                switch (ctr) { /* TODO: refactor this to be less stupid */
-                case 1:
-                    line[count] = digits[0];
-                    for (uint16 foo = ++count; line[foo] != '\0'; ++foo) {
-                        line[foo] = line[foo + 1];
-                    }
-                    break;
-                case 2:
-                    line[count++] = digits[0];
-                    line[count] = digits[1];
-                    break;
-                case 3:
-                    line[count++] = digits[0];
-                    line[count++] = digits[1];
-                    char waiting = digits[2];
-                    uint16 bar = count;
-                    for (; line[bar] != '\0'; ++bar) {
-                        char t = line[bar];
-                        line[bar] = waiting;
-                        waiting = t;
-                    }
-                    if (bar + 1 != LINE_SIZE) { /* If this causes the string to grow larger than line size, truncates the end on purpose. */
-                        line[bar++] = waiting;  /* Will fix some other time, write shorter prompts shitlord. */
-                    }
-                    line[bar] = '\0';
-                    break;
-                }
+        byte chSz = DIGITS(last_retval);
+        char prompt[LINE_SIZE + 64]; /* Arbitrary extra space. */
+        char* l_ptr = line;
+        char* p_ptr = prompt;
+        while (*l_ptr != '\0') {
+            if (*l_ptr == '$' && *(l_ptr + 1) == '?') {
+                ksprintf((byte*)p_ptr, "%u", last_retval);
+                p_ptr += chSz;
+                l_ptr += 2;
             }
-            else { ++count; }
+            else *p_ptr++ = *l_ptr++;
         }
+        *p_ptr = '\0';
 
         /* Try to run a built-in program. In the future, try calling a user-installed program too. */
         function_t func = get_command(arg0);
         if(func) {
-            uint32 fid = create_thread(func, line, chars_read);
+            uint32 fid = create_thread(func, prompt, chars_read);
             resume_thread(fid);
             last_retval = join_thread(fid);
         } else {
