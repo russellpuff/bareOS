@@ -5,19 +5,23 @@
 /* Gets a line from the UART / TTY and stores it into a buffer, converts the line into a C string. */
 /* Returns the number of characters read. */
 uint16 get_line(char* buffer, uint16 size) {
-    uint16 count = 0;
+    if(size == 0) return 0;
     char* ptr = buffer;
-    while(count < size - 1) {
+    char* end = buffer + size - 1;
+    while(1) {
         char ch = uart_getc();
-        if(ch == '\n') break;
-        if((ch == '\b' || ch == 0x7f) && count > 0) {
-            tty_bkspc();
-            --ptr; --count;
-        } else {
-            *ptr++ = ch;
-            ++count;
+        switch(ch) {
+            case '\r':
+            case '\n':
+                *ptr = '\0';
+                return (uint16)(ptr - buffer);
+            case '\b':
+            case 0x7f:
+                if (ptr > buffer) { tty_bkspc(); --ptr; }
+                break;
+            default: /* TODO: handle nonprint characters I don't want. */
+                if (ptr < end) *ptr++ = ch;
+                break;
         }
     }
-    *ptr = '\0';
-    return count;
 }
