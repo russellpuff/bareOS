@@ -18,6 +18,7 @@ extern ring_buffer_t tty_out;  /* Ring Buffer used for characters sent to the UA
 void init_tty(void);
 char tty_getc(void);
 void tty_putc(char);
+void tty_bkspc(void);
 
 void set_uart_interrupt(byte);
 

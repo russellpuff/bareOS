@@ -29,22 +29,29 @@ char tty_getc(void) {
 	return c;
 }
 
+/* Helper function bc I'm tired of rewriting this so many times. */
+void put_to_tail(char ch) {
+    wait_sem(&tty_out.sem);
+    uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
+    tty_out.buffer[tail] = ch;
+    ++tty_out.count;
+}
+
 /*  Place a character into the `tty_out` buffer and enable  *
  *  uart interrupts.   If the buffer is  full, wait on the  *
  *  semaphore  until notified  that there  space has  been  *
  *  made in the  buffer by the UART. */
 void tty_putc(char ch) {
-    if (ch == '\n') {
-        wait_sem(&tty_out.sem);
-        uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
-        tty_out.buffer[tail] = '\r';
-        ++tty_out.count;
-        uart_wake_tx();
-    }
+    if (ch == '\n') put_to_tail('\r');
+    put_to_tail(ch);
+    uart_wake_tx();
+}
 
-    wait_sem(&tty_out.sem);
-    uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
-    tty_out.buffer[tail] = ch;
-    ++tty_out.count;
+/* Enqueue the backspace erase sequence into the tty while only *
+ * waking the UART once for the whole sequence. Reducing lag.  */
+void tty_bkspc(void) {
+    put_to_tail('\b');
+    put_to_tail(' ');
+    put_to_tail('\b');
     uart_wake_tx();
 }

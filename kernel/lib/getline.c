@@ -1,5 +1,6 @@
 #include <barelib.h>
 #include <bareio.h>
+#include <tty.h>
 
 /* Gets a line from the UART / TTY and stores it into a buffer, converts the line into a C string. */
 /* Returns the number of characters read. */
@@ -9,8 +10,8 @@ uint16 get_line(char* buffer, uint16 size) {
     while(count < size - 1) {
         char ch = uart_getc();
         if(ch == '\n') break;
-        if(ch == '\b' && count > 0) {
-            uart_write("\b \b");
+        if((ch == '\b' || ch == 0x7f) && count > 0) {
+            tty_bkspc();
             --ptr; --count;
         } else {
             *ptr++ = ch;
