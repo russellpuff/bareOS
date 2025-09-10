@@ -16,6 +16,7 @@ command_t builtin_commands[] = {
     { "cat", (function_t)builtin_cat },
     { "shutdown", (function_t)builtin_shutdown },
     { "clear", (function_t)builtin_clear },
+    { "ls", (function_t)builtin_ls },
     { NULL, NULL }
 };
 

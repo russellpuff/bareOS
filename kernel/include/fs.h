@@ -94,8 +94,9 @@ uint32_t umount_fs(void);                         /* Clear the structures for th
 int32_t create(char*);                            /* Create a file and save it to the block device */
 int32_t open(char*);                              /* Open a file                                   */
 int32_t close(int32_t);                             /* Close a file                                  */
-int32_t write(uint32_t,char*,uint32_t);               /* Write to a file                               */
+int32_t write(uint32_t, char*, uint32_t);               /* Write to a file                               */
 int32_t read(uint32_t,char*,uint32_t);                /* Read from file                                */
+uint32_t get_filesize(uint32_t);
 
 extern fsystem_t* fsd;
 extern filetable_t oft[NUM_FD];

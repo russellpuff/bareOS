@@ -31,3 +31,8 @@ int32_t read(uint32_t fd, char* buff, uint32_t len) {
 	}
 	return bytes_read;
 }
+
+/* Takes a file descriptor index into the 'oft' and returns that file's size for reading. */
+uint32_t get_filesize(uint32_t fd) {
+	return oft[fd].inode.size;
+}
