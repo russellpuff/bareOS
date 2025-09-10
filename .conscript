@@ -50,7 +50,7 @@ try:
 except Exception as e:
 	print(f"[Warning] Failed to read linker map for heap prediction: {e}")
 
-# pseudo-constants for loading files, grabs from fs.h in case the ramdisk is changed
+# Get file load constants from the fs.h constants that defines the ramdisk. If ramdisk updates, so do these limits. 
 fs_header = File('#/kernel/include/fs.h').abspath
 with open(fs_header) as f:
     fs_src = f.read()
@@ -118,9 +118,11 @@ if START_ADDR > 24:
         # load header
         load_flags += f"-device loader,file={header_path},addr=0x{current:08x} "
         current += HEADER_SIZE
+
         # load file
         load_flags += f"-device loader,file={path},addr=0x{current:08x} "
         current += f_size
+
         total_bytes += HEADER_SIZE + f_size
         valid_files += 1
     load_flags += f"-device loader,addr={START_ADDR:#x},data={valid_files:#x},data-len=1 "

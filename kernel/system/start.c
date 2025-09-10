@@ -14,9 +14,9 @@ void display_welcome(void);
 static void sys_idle() { for(;;) { } }
 
 static void root_thread(void) {
-    uint32 idleTID = create_thread(&sys_idle, "", 0);
+    uint32_t idleTID = create_thread(&sys_idle, "", 0);
     resume_thread(idleTID);
-    uint32 sh = create_thread(&shell, "", 0);
+    uint32_t sh = create_thread(&shell, "", 0);
     resume_thread(sh);
     join_thread(sh);
     for(;;) { }

@@ -8,17 +8,17 @@ filetable_t oft[NUM_FD];
 
 void* memset(void*, int, int);
 
-void setmaskbit_fs(uint32 x) {                     /*                                           */
+void setmaskbit_fs(uint32_t x) {                     /*                                           */
   if (fsd == NULL) return;                         /*  Sets the block at index 'x' as used      */
   fsd->freemask[x / 8] |= 0x1 << (x % 8);          /*  in the free bitmask.                     */
 }                                                  /*                                           */
 
-void clearmaskbit_fs(uint32 x) {                   /*                                           */
+void clearmaskbit_fs(uint32_t x) {                   /*                                           */
   if (fsd == NULL) return;                         /*  Sets the block at index 'x' as unused    */
   fsd->freemask[x / 8] &= ~(0x1 << (x % 8));       /*  in the free bitmask.                     */
 }                                                  /*                                           */
 
-uint32 getmaskbit_fs(uint32 x) {                   /*                                           */
+uint32_t getmaskbit_fs(uint32_t x) {                   /*                                           */
   if (fsd == NULL) return -1;                      /*  Returns the current value of the         */
   return (fsd->freemask[x / 8] >> (x % 8)) & 0x1;  /*  'x'th block in the block device          */
 }                                                  /*  0 for unused 1 for used.                 */
@@ -29,7 +29,7 @@ uint32 getmaskbit_fs(uint32 x) {                   /*                           
 void mkfs(void) {
   fsystem_t fsd;
   bdev_t device = bs_getstats();
-  uint32 masksize, i;
+  uint32_t masksize, i;
   
   masksize = device.nblocks / 8;                          /*                                             */
   masksize += (device.nblocks % 8 ? 0 : 1);               /*  Construct the 'fsd' variable               */
@@ -59,7 +59,7 @@ void mkfs(void) {
 /*  Take an initialized block device containing a file system *
  *  and copies it into the 'fsd' to make it the active file   *
  *  system.                                                   */
-uint32 mount_fs(void) {
+uint32_t mount_fs(void) {
   int i;
 
   if ((fsd = (fsystem_t*)malloc(sizeof(fsystem_t))) == (fsystem_t*)-1) {  /*  Allocate space for the fsd  */
@@ -83,7 +83,7 @@ uint32 mount_fs(void) {
 
 /*  Write the current state of the file system to a block device and  *
  *  free the resources for the file system.                           */
-uint32 umount_fs(void) {
+uint32_t umount_fs(void) {
   write_bs(BM_BIT, 0, fsd->freemask, fsd->freemasksz);     /*  Write the bitmask and super blocks to  */
   write_bs(SB_BIT, 0, fsd, sizeof(fsystem_t));             /*  their respective block device blocks   */
 

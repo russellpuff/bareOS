@@ -10,10 +10,10 @@ extern filetable_t oft[NUM_FD];
  *  slot in the open file table and initialize it to the corresponding  *
  *  inode in the root directory.                                        *
  *  'head' is initialized to the start of the file.                     */
-int32 open(char* filename) {
+int32_t open(char* filename) {
 	/* Try to find the file by name. */
-	int16 slot = -1;
-	for(int16 i = 0; i < DIR_SIZE; ++i) {
+	int16_t slot = -1;
+	for(int16_t i = 0; i < DIR_SIZE; ++i) {
 		if(!fsd->root_dir.entry[i].name[0])  {
 			continue;
 		}
@@ -25,11 +25,11 @@ int32 open(char* filename) {
 	if(slot == -1) return -1;
 
 	/* Check if it's open. */
-	for (int16 i = 0; i < NUM_FD; ++i)
+	for (int16_t i = 0; i < NUM_FD; ++i)
 		if (oft[i].direntry == slot && oft[i].state == FSTATE_OPEN) return -1;
 
 	/* Look for available oft slot. */
-	int16 fd = -1;
+	int16_t fd = -1;
 	for(int i = 0; i < NUM_FD; ++i) {
 		if(oft[i].state == FSTATE_CLOSED) {
 			fd = i;

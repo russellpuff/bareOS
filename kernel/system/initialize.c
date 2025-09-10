@@ -23,8 +23,8 @@ void display_welcome(void) {
 	
 	/* Janky way of detecting importer status on boot. */
 	char sentinel[] = "Importer finished with no errors.";
-	int16 fd = open("importer.log");
-	uint16 BUFFER_SIZE = 1024;
+	int16_t fd = open("importer.log");
+	uint16_t BUFFER_SIZE = 1024;
 	char buffer[BUFFER_SIZE];
 	memset(buffer, '\0', BUFFER_SIZE);
 	read(fd, buffer, BUFFER_SIZE);

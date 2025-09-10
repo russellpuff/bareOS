@@ -78,7 +78,7 @@ void uart_handler(void) {
     if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
       char c = uart[UART0_RW_REG];
 
-      uint32 tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
+      uint32_t tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
       if (tty_in.count < TTY_BUFFLEN) {
           tty_in.buffer[tail] = c;
           tty_in.count++;
@@ -99,10 +99,10 @@ void uart_handler(void) {
  *  This function must be called to initially set up the UART hardware.
  */
 void init_uart(void) {
-  uint32* plic_prio_addr = (uint32*)UART_PRIO_ADDR;
-  uint32* plic_enabled_addr = (uint32*)EXTERNAL_ENABLED_ADDR;
+  uint32_t* plic_prio_addr = (uint32_t*)UART_PRIO_ADDR;
+  uint32_t* plic_enabled_addr = (uint32_t*)EXTERNAL_ENABLED_ADDR;
 
-  uint32 divisor = UART0_FREQ / (16 * UART0_BAUD);     /*  Calculate divisor factor for UART speed    */
+  uint32_t divisor = UART0_FREQ / (16 * UART0_BAUD);     /*  Calculate divisor factor for UART speed    */
   *plic_prio_addr = *plic_prio_addr | 0x7;                  /*                                   */
   *plic_enabled_addr = *plic_enabled_addr | UART_ENABLE;    /*    Enable the UART on the PLIC    */
 

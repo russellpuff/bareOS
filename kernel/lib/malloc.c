@@ -10,7 +10,7 @@ alloc_t* freelist;
 //--------- This function is complete --------------//
 void init_heap(void) {
   freelist = (alloc_t*)&mem_start;
-  freelist->size = (uint64)(get_stack(NTHREADS) - &mem_start - sizeof(alloc_t));
+  freelist->size = (uint64_t)(get_stack(NTHREADS) - &mem_start - sizeof(alloc_t));
   freelist->state = M_FREE;
   freelist->next = NULL;
 }
@@ -20,14 +20,14 @@ void init_heap(void) {
  *  block from the freelist and ensure the freelist       *
  *  contains the remaining free space on the heap.        *
  *  Returns a pointer to the newly created allocation     */
-void* malloc(uint64 size) {
+void* malloc(uint64_t size) {
 	if(size == 0 || freelist == NULL) return 0;
-	uint64 need = size + sizeof(alloc_t);
+	uint64_t need = size + sizeof(alloc_t);
 	/* Do walk free list for first-fit free memory. */
 	alloc_t* prev = NULL;
 	alloc_t* curr = freelist;
 	while(curr != NULL) {
-		uint64 block_total = curr->size + sizeof(alloc_t);
+		uint64_t block_total = curr->size + sizeof(alloc_t);
 		if(block_total >= need) break;
 		prev = curr;
 		curr = curr->next;
@@ -38,7 +38,7 @@ void* malloc(uint64 size) {
 	alloc_t* next;
 	if(curr->size + sizeof(alloc_t) - need >= MIN_BYTES + sizeof(alloc_t)) {
 		/* Do split. */
-		uint64 remaining_bytes = curr->size + sizeof(alloc_t) - need;
+		uint64_t remaining_bytes = curr->size + sizeof(alloc_t) - need;
 		alloc_t* remainder = (alloc_t*)((byte*)curr + need); /* Cast to get a pointer for arithmetic. */
 		remainder->size = remaining_bytes - sizeof(alloc_t);
 		remainder->state = M_FREE;

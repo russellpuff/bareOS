@@ -19,7 +19,7 @@ void uart_handler(void);
  *  from the Platform Local Interrupt Controller [PLIC] (see bootstrap.s)
  */
 void init_plic(void) {
-  uint32* plic_thresh_addr = (uint32*)EXTERNAL_THRESH_ADDR;
+  uint32_t* plic_thresh_addr = (uint32_t*)EXTERNAL_THRESH_ADDR;
   *plic_thresh_addr  = 0x0;
   set_interrupt(TRAP_EXTERNAL_ENABLE);
 }
@@ -30,7 +30,7 @@ void init_plic(void) {
  * event occurs.  (see '__traps' in bootstrap.s)
  */
 s_interrupt handle_plic(void) {
-  uint32* plic_pending_addr = (uint32*)EXTERNAL_PENDING_ADDR;
+  uint32_t* plic_pending_addr = (uint32_t*)EXTERNAL_PENDING_ADDR;
   if (*plic_pending_addr == 0x400)
       uart_handler();
   *plic_pending_addr = 0x0;

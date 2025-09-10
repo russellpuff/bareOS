@@ -9,8 +9,8 @@
  * followed immediately by another \n).
  */
 byte builtin_echo(char* arg) {
-  const uint16 LINE_SIZE = 1024;
-  uint16 char_cnt = 0;
+  const uint16_t LINE_SIZE = 1024;
+  uint16_t char_cnt = 0;
   if(!strcmp(arg, "echo") || !strcmp(arg, "echo ")) {
     while(1) { 
       char line[LINE_SIZE]; 

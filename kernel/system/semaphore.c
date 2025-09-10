@@ -8,7 +8,7 @@ static byte MUTEX_LOCK;
 /* This function is to avoid a possible pitfall involving
    threads with their own priorities being ordered wrongly
    in the semaphore queue. Currently assuming raw FIFO.   */
-int32 sem_enqueue(queue_t* queue, uint32 threadid) {
+int32_t sem_enqueue(queue_t* queue, uint32_t threadid) {
 	/* Init queue. */
 	if(queue->qnext == NULL) {
 		queue->qnext = queue->qprev = queue;
@@ -30,7 +30,7 @@ int32 sem_enqueue(queue_t* queue, uint32 threadid) {
 
 /*  Creates a semaphore_t structure and  initializes it to base  *
  *  values.  The count is assigned to the semaphore's key value  */
-semaphore_t create_sem(int32 count) {
+semaphore_t create_sem(int32_t count) {
 	semaphore_t sem;
 	sem.state = S_USED;
 	sem.queue.key = count;
@@ -39,7 +39,7 @@ semaphore_t create_sem(int32 count) {
 }
 
 /*  Marks a semaphore as free and release all waiting threads  */
-int32 free_sem(semaphore_t* sem) {
+int32_t free_sem(semaphore_t* sem) {
     lock_mutex(&MUTEX_LOCK);
     if(sem->state == S_FREE) {
         release_mutex(&MUTEX_LOCK);
@@ -47,7 +47,7 @@ int32 free_sem(semaphore_t* sem) {
     }
 	if(sem->queue.qnext != NULL) {
 		while(sem->queue.qnext != &sem->queue) {
-			int32 threadid = dequeue_thread(&sem->queue);
+			int32_t threadid = dequeue_thread(&sem->queue);
 			if(threadid >= 0) {
 				resume_thread(threadid);
 	        }
@@ -62,7 +62,7 @@ int32 free_sem(semaphore_t* sem) {
 /*  Decrements the given  semaphore if it is in use.  If  the semaphore  *
  *  is less than 0, marks the thread as waiting and switches to another  *
  *  another thread.                                                      */
-int32 wait_sem(semaphore_t* sem) {
+int32_t wait_sem(semaphore_t* sem) {
 	lock_mutex(&MUTEX_LOCK);
 	if(sem->state == S_FREE) {
 		release_mutex(&MUTEX_LOCK);
@@ -82,7 +82,7 @@ int32 wait_sem(semaphore_t* sem) {
 
 /*  Increments the given semaphore if it is in use.  Resume the next  *
  *  waiting thread (if any).                                          */
-int32 post_sem(semaphore_t* sem) {
+int32_t post_sem(semaphore_t* sem) {
 	lock_mutex(&MUTEX_LOCK);
 	if(sem->state == S_FREE) {
 		release_mutex(&MUTEX_LOCK);
@@ -90,7 +90,7 @@ int32 post_sem(semaphore_t* sem) {
 	}
 	++sem->queue.key;
 	if(sem->queue.key <= 0) {
-		int32 threadid = dequeue_thread(&sem->queue);
+		int32_t threadid = dequeue_thread(&sem->queue);
 		release_mutex(&MUTEX_LOCK);
 		resume_thread(threadid);
 	} else {

@@ -13,6 +13,6 @@ char uart_getc(void);
 void uart_write(const char*);
 void kprintf(const char*, ...);
 void ksprintf(byte*, const char*, ...);
-uint16 get_line(char*, uint16);
+uint16_t get_line(char*, uint16_t);
 
 #endif

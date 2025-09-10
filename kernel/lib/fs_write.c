@@ -2,9 +2,9 @@
 #include <fs.h>
 
 /* Helper function to find the first free block. */
-int32 find_free_block(void) {
+int32_t find_free_block(void) {
 	/* Start at 2 to skip super and bitmask blocks. */
-	for(uint16 b = 2; b < fsd->device.nblocks; ++b) {
+	for(uint16_t b = 2; b < fsd->device.nblocks; ++b) {
 		if(getmaskbit_fs(b) == 0) return b;
 	}
 	return -1;
@@ -21,23 +21,23 @@ int32 find_free_block(void) {
  *                                                                           *
  *  returns - 'fs_write' should return the number of bytes written to the    *
  *            file.                                                          */
-int32 write(uint32 fd, char* buff, uint32 len) {
+int32_t write(uint32_t fd, char* buff, uint32_t len) {
 	if(fd < 0 || fd >= NUM_FD || oft[fd].state == FSTATE_CLOSED) return -1;
 	inode_t* inode = &oft[fd].inode;
-	uint32 written = 0;
-	uint32 orig_size = inode->size;
+	uint32_t written = 0;
+	uint32_t orig_size = inode->size;
 	/* Get index and location. */
-	uint16 index = oft[fd].head / MDEV_BLOCK_SIZE;
-	uint16 offset = oft[fd].head % MDEV_BLOCK_SIZE;
+	uint16_t index = oft[fd].head / MDEV_BLOCK_SIZE;
+	uint16_t offset = oft[fd].head % MDEV_BLOCK_SIZE;
 	while(written < len) {
 		if(index >= INODE_BLOCKS) return -1; /* Out of blocks. */
 		if(inode->blocks[index] == EMPTY) { /* Block at index needs reserved. */
-			uint16 b = find_free_block();
+			uint16_t b = find_free_block();
 			if(b == -1) return -1; /* No free blocks. */
 			setmaskbit_fs(b);
 			inode->blocks[index] = b;
 		}
-		uint32 to_write = len - written < MDEV_BLOCK_SIZE - offset ? len - written : MDEV_BLOCK_SIZE - offset;
+		uint32_t to_write = len - written < MDEV_BLOCK_SIZE - offset ? len - written : MDEV_BLOCK_SIZE - offset;
 		write_bs(inode->blocks[index], offset, (buff + written), to_write);
 		written += to_write;
 		oft[fd].head += to_write;

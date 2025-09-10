@@ -14,10 +14,10 @@ typedef struct _sem {
 } semaphore_t;
 
 /*  Semaphore related prototypes */
-semaphore_t create_sem(int32);
-int32 free_sem(semaphore_t*);
-int32 wait_sem(semaphore_t*);
-int32 post_sem(semaphore_t*);
+semaphore_t create_sem(int32_t);
+int32_t free_sem(semaphore_t*);
+int32_t wait_sem(semaphore_t*);
+int32_t post_sem(semaphore_t*);
 
 void create_mutex(byte*);
 void lock_mutex(byte*);

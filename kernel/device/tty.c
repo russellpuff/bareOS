@@ -32,7 +32,7 @@ char tty_getc(void) {
 /* Helper function bc I'm tired of rewriting this so many times. */
 void put_to_tail(char ch) {
     wait_sem(&tty_out.sem);
-    uint32 tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
+    uint32_t tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
     tty_out.buffer[tail] = ch;
     ++tty_out.count;
 }

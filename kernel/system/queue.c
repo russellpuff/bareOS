@@ -32,16 +32,16 @@ void init_queues(void) {
  *  match. */
 
 /* These are wrapper functions because the test uses normal enqueue the "correct" way. */
-int32 enqueue_thread(queue_t* queue, uint32 threadid) {
+int32_t enqueue_thread(queue_t* queue, uint32_t threadid) {
 	return enqueue(queue, threadid, false);
 }
 
-int32 delta_enqueue(queue_t* queue, uint32 threadid) {
+int32_t delta_enqueue(queue_t* queue, uint32_t threadid) {
 	return enqueue(queue, threadid, true);
 }
 
 /* the real enqueue thread function */
-int32 enqueue(queue_t* queue, uint32 threadid, bool delta) {
+int32_t enqueue(queue_t* queue, uint32_t threadid, bool delta) {
 	if(threadid >= NTHREADS) return -1;
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev != NULL || node->qnext != NULL) return -1; /* In a queue already. */
@@ -54,7 +54,7 @@ int32 enqueue(queue_t* queue, uint32 threadid, bool delta) {
 	   it before that point. */
 	queue_t* curr = queue->qnext;
 	if(delta) { /* In delta mode, we sort by cumulative rather than absolute. */
-		uint32 delay = node->key;
+		uint32_t delay = node->key;
 			while (curr != queue && delay >= curr->key) {
 				delay -= curr->key;
 				curr = curr->qnext;
@@ -79,7 +79,7 @@ int32 enqueue(queue_t* queue, uint32 threadid, bool delta) {
  *  thread at the head of the queue and returns its the thread table index, ensuring that  *
  *  the queue maintains its structure and the head correctly points to the next thread  *
  *  (if any).                                                                              */
-int32 dequeue_thread(queue_t* queue) {
+int32_t dequeue_thread(queue_t* queue) {
 	if(queue->qprev == NULL || queue->qnext == NULL || 
 		queue->qnext == queue || queue->qprev == queue) 
 		return -1;
@@ -103,7 +103,7 @@ int32 dequeue_thread(queue_t* queue) {
 
 /* 'detach_thread' removes a thread from a queue regardless of where in the queue
     that thread actually is. Will fail if the thread isn't in a queue. */
-int32 detach_thread(uint32 threadid, bool delta) {
+int32_t detach_thread(uint32_t threadid, bool delta) {
 	if(threadid >= NTHREADS) return -1;
 	queue_t* node = &queue_table[threadid];
 	if(node->qprev == NULL || node->qnext == NULL) return -1;

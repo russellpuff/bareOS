@@ -12,17 +12,17 @@
  * returns - 'fs_read' should return the number of bytes read (either 'len' *
  *           or the  number of bytes  remaining in the file,  whichever is  *
  *           smaller).                                                      */
-int32 read(uint32 fd, char* buff, uint32 len) {
+int32_t read(uint32_t fd, char* buff, uint32_t len) {
 	if(fd < 0 || fd >= NUM_FD || oft[fd].state == FSTATE_CLOSED) return -1;
 	if(oft[fd].head == oft[fd].inode.size) return 0; /* Nothing left to read. */
 
-	int32 to_read = len < oft[fd].inode.size - oft[fd].head ? len : oft[fd].inode.size -  oft[fd].head;
-	int32 bytes_read = 0;
+	int32_t to_read = len < oft[fd].inode.size - oft[fd].head ? len : oft[fd].inode.size -  oft[fd].head;
+	int32_t bytes_read = 0;
 	while(bytes_read < to_read) {
 		/* Find position in block and figure out how much to transfer. */
-		int16 index = oft[fd].head / MDEV_BLOCK_SIZE;
-		int16 offset = oft[fd].head % MDEV_BLOCK_SIZE;
-		int16 transfer = to_read - bytes_read < MDEV_BLOCK_SIZE - offset ? 
+		int16_t index = oft[fd].head / MDEV_BLOCK_SIZE;
+		int16_t offset = oft[fd].head % MDEV_BLOCK_SIZE;
+		int16_t transfer = to_read - bytes_read < MDEV_BLOCK_SIZE - offset ? 
 			to_read - bytes_read : MDEV_BLOCK_SIZE - offset;
 		/* Read into buffer at offset bytes_read.*/
 		read_bs(oft[fd].inode.blocks[index], offset, (buff + bytes_read), transfer);

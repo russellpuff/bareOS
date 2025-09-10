@@ -26,27 +26,27 @@
 /*  These entries contain information about the thread                                             */
 typedef struct _thread {
   byte state;            /*  The current state of the thread                                         */
-  uint64* stackptr;      /*  A pointer to the lowest stack address for the thread                    */
-  uint32 parent;         /*  The index into the 'thread_table' of the thread's parent                */
+  uint64_t* stackptr;      /*  A pointer to the lowest stack address for the thread                    */
+  uint32_t parent;         /*  The index into the 'thread_table' of the thread's parent                */
   byte retval;           /*  The return value of the function (only valid when state == TH_DEFUNCT)  */
-  uint32 priority;       /*  Thread priority (0=highest MAX_UINT32=lowest)                           */
+  uint32_t priority;       /*  Thread priority (0=highest MAX_UINT32=lowest)                           */
   semaphore_t sem;       /*  Semaphore for the current thread                                        */
 } thread_t;
 
 extern thread_t thread_table[];
-extern uint32   current_thread;    /*  The currently running thread  */
+extern uint32_t   current_thread;    /*  The currently running thread  */
 
 
 /*  thread related prototypes  */
 void init_threads(void);
-int32 create_thread(void* proc, char* arg, uint32 arglen);
-int32 join_thread(uint32);
-int32 kill_thread(uint32);
-int32 suspend_thread(uint32);
-int32 resume_thread(uint32);
+int32_t create_thread(void* proc, char* arg, uint32_t arglen);
+int32_t join_thread(uint32_t);
+int32_t kill_thread(uint32_t);
+int32_t suspend_thread(uint32_t);
+int32_t resume_thread(uint32_t);
 
 void resched(void);
 
-void ctxsw(uint64**, uint64**);
+void ctxsw(uint64_t**, uint64_t**);
 
 #endif

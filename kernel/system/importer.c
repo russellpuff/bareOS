@@ -7,20 +7,20 @@
 #include <string.h>
 
 /* Mildly unsafe helper that reads the raw bytes from header to a uint16. */
-uint16 bytes_to_u16(const byte* ptr) { 
-	uint16 value = 0;
+uint16_t bytes_to_u16(const byte* ptr) { 
+	uint16_t value = 0;
 	for (int i = 0; i < 16; ++i) {
-        value |= ((uint16)ptr[i]) << (8 * i);
+        value |= ((uint16_t)ptr[i]) << (8 * i);
     }
     return value;
 }
 
 void* do_malloc_import(void) {
-	uint64 MAX_FS_CAPACITY = INODE_BLOCKS * MDEV_BLOCK_SIZE * DIR_SIZE;
-	uint64 HEAD_SIZE = 32;
-	uint64 TOTAL_HEAD_SIZE = HEAD_SIZE * DIR_SIZE;
-	uint64 MASTER_HEAD_SIZE = 2;
-	uint64 IMPORT_BYTES_NEEDED = MAX_FS_CAPACITY + TOTAL_HEAD_SIZE + MASTER_HEAD_SIZE;
+	uint64_t MAX_FS_CAPACITY = INODE_BLOCKS * MDEV_BLOCK_SIZE * DIR_SIZE;
+	uint64_t HEAD_SIZE = 32;
+	uint64_t TOTAL_HEAD_SIZE = HEAD_SIZE * DIR_SIZE;
+	uint64_t MASTER_HEAD_SIZE = 2;
+	uint64_t IMPORT_BYTES_NEEDED = MAX_FS_CAPACITY + TOTAL_HEAD_SIZE + MASTER_HEAD_SIZE;
 	return malloc(IMPORT_BYTES_NEEDED);
 }
 
@@ -32,7 +32,7 @@ byte* run_to_nc(byte* ptr) {
 
 byte importer(byte* ptr) {
 	byte status = 0;
-	const uint16 BUFFER_SIZE = 1024;
+	const uint16_t BUFFER_SIZE = 1024;
 	char buffer[BUFFER_SIZE];
 	byte* bptr = (byte*)buffer;
 	memset(buffer, '\0', BUFFER_SIZE);
@@ -47,13 +47,13 @@ byte importer(byte* ptr) {
 			if(name[j] == '\0') { ptr += (FILENAME_LEN - j - 1); break; }
 		}
 		/* Write to fd */
-		uint16 size = bytes_to_u16(ptr);
+		uint16_t size = bytes_to_u16(ptr);
 		ptr += 16;
 		if(create(name) == -1) {
 			status = -1;
 			break;
 		}
-		uint32 fd = open(name);
+		uint32_t fd = open(name);
 		write(fd, (char*)ptr, size);
 		close(fd);
 		ksprintf(bptr, "Importer wrote %s (%u bytes).\n", name, size);
@@ -67,7 +67,7 @@ byte importer(byte* ptr) {
 	
 	char n[] = "importer.log\0";
 	create(n);
-	uint32 nfd = open(n);
+	uint32_t nfd = open(n);
 	write(nfd, buffer, (bptr - (byte*)buffer) + 1);
 	close(nfd);
     return 0;

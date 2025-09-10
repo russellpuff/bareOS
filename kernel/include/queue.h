@@ -9,7 +9,7 @@
  *  list (see system/queue.c) which uses indices to point to  *
  *  the next and previous element in a given queue.           */
 typedef struct _queue {
-  int32 key;             /*  An arbitrary key value for the thread, meaning depends on which queue it is in  */
+  int32_t key;             /*  An arbitrary key value for the thread, meaning depends on which queue it is in  */
   struct _queue* qprev;  /*  The next element in the queue                                                   */
   struct _queue* qnext;  /*  The previous element in the queue                                               */
 } queue_t;
@@ -18,11 +18,11 @@ extern queue_t queue_table[];
 extern queue_t ready_list;
 
 /*  thread related prototypes  */
-int32 enqueue_thread(queue_t*, uint32);
-int32 delta_enqueue(queue_t*, uint32);
-int32 enqueue(queue_t*, uint32, bool);
-int32 dequeue_thread(queue_t*);
-int32 detach_thread(uint32, bool);
+int32_t enqueue_thread(queue_t*, uint32_t);
+int32_t delta_enqueue(queue_t*, uint32_t);
+int32_t enqueue(queue_t*, uint32_t, bool);
+int32_t dequeue_thread(queue_t*);
+int32_t detach_thread(uint32_t, bool);
 void init_queues(void);
 
 #endif

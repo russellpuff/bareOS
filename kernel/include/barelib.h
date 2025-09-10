@@ -15,14 +15,16 @@
 #define va_arg(va, type)        __builtin_va_arg(va, type)     /*  length arguments                    */
 #define va_end(va)              __builtin_va_end(va)           /*                                      */
 
-typedef unsigned char     byte;       /*                                            */
-typedef int               int32;      /*  Defines some clearer aliases for common   */
-typedef short             int16;      /*  data types to make bit-width unambiguous  */
-typedef unsigned int      uint32;     /*                                            */
-typedef unsigned short    uint16;     /*                                            */
-typedef long int          int64;      /*                                            */
-typedef unsigned long int uint64;     /*                                            */
-typedef __builtin_va_list va_list;    /*                                            */
+typedef unsigned char     byte;         /*                                            */
+typedef char              int8_t;       /*                                            */
+typedef unsigned char     uint8_t;      /*                                            */
+typedef int               int32_t;      /*  Defines some clearer aliases for common   */
+typedef short             int16_t;      /*  data types to make bit-width unambiguous  */
+typedef unsigned int      uint32_t;     /*                                            */
+typedef unsigned short    uint16_t;     /*                                            */
+typedef long int          int64_t;      /*                                            */
+typedef unsigned long int uint64_t;     /*  Always 8 bytes since RISCV64              */
+typedef __builtin_va_list va_list;      /*                                            */
 
 void init_uart(void);
 

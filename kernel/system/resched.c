@@ -8,9 +8,9 @@
  *  'current_thread'.  Finally,  'resched' uses 'ctxsw' to swap from  *
  *  the old thread to the new thread.                                 */
 void resched(void) {
-	uint32 new_thread = dequeue_thread(&ready_list);
+	uint32_t new_thread = dequeue_thread(&ready_list);
 	if(new_thread == -1) return;
-	uint32 old_thread = current_thread;
+	uint32_t old_thread = current_thread;
 	current_thread = new_thread;
 	thread_table[new_thread].state = TH_RUNNING;
         if(thread_table[old_thread].state == TH_RUNNING ||

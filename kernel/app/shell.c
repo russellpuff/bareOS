@@ -37,11 +37,11 @@ byte shell(char* arg) {
     while (1) {
         kprintf("&x%s&0", PROMPT);
         char line[LINE_SIZE];
-        uint32 chars_read = get_line(line, LINE_SIZE);
+        uint32_t chars_read = get_line(line, LINE_SIZE);
 
         /* Extract first argument (program name). */
         char arg0[MAX_ARG0_SIZE + 1]; /* factor in null character */
-        uint16 ctr = 0;
+        uint16_t ctr = 0;
         for (; ctr < MAX_ARG0_SIZE; ++ctr) {
             if (line[ctr] == ' ' || line[ctr] == '\0') { break; }
             arg0[ctr] = line[ctr];
@@ -66,7 +66,7 @@ byte shell(char* arg) {
         /* Try to run a built-in program. In the future, try calling a user-installed program too. */
         function_t func = get_command(arg0);
         if(func) {
-            uint32 fid = create_thread(func, prompt, chars_read);
+            uint32_t fid = create_thread(func, prompt, chars_read);
             resume_thread(fid);
             last_retval = join_thread(fid);
         } else {

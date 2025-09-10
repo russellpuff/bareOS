@@ -9,7 +9,7 @@
  *  ready  or running,  returns an error.  Otherwise, adds the thread to the ready list,  *
  *  sets  the thread's  state to  ready and raises a RESCHED  syscall to  schedule a new  *
  *  thread.  Returns the threadid to confirm resumption.                                  */
-int32 resume_thread(uint32 threadid) {
+int32_t resume_thread(uint32_t threadid) {
   if(threadid >= NTHREADS || (thread_table[threadid].state != TH_SUSPEND && thread_table[threadid].state != TH_WAITING))
     return -1;
     

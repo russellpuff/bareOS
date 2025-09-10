@@ -3,8 +3,8 @@
 
 #include <barelib.h>
 
-int16 strcmp(const char*, const char*);
-void* memset(void*, byte, int32);
-void* memcpy(void*, const void*, uint64);
+int16_t strcmp(const char*, const char*);
+void* memset(void*, byte, int32_t);
+void* memcpy(void*, const void*, uint64_t);
 
 #endif

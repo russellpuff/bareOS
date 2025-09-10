@@ -13,15 +13,15 @@ void (*syscall_table[]) (void) = {
   resched
 };
 
-extern int32 signum;
+extern int32_t signum;
 s_interrupt handle_syscall(void) {
-  int32 table_size = sizeof(syscall_table) / sizeof(int (*)(void));
+  int32_t table_size = sizeof(syscall_table) / sizeof(int (*)(void));
   if (signum < table_size)
     syscall_table[signum]();
 }
 
-extern volatile uint32* clint_timer_addr;
-extern const uint32 timer_interval;
+extern volatile uint32_t* clint_timer_addr;
+extern const uint32_t timer_interval;
 
 m_interrupt delegate_clk(void) {
     *clint_timer_addr += timer_interval;

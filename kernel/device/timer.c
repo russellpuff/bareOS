@@ -11,8 +11,8 @@
 
 #define TRAP_TIMER_ENABLE 0xa0
 
-volatile uint32* clint_timer_addr  = (uint32*)0x2004000;
-const uint32 timer_interval = 100000;
+volatile uint32_t* clint_timer_addr  = (uint32_t*)0x2004000;
+const uint32_t timer_interval = 100000;
 
 /*
  * This function is called as part of the bootstrapping sequence
@@ -31,7 +31,7 @@ s_interrupt handle_clk(void) {
   acknowledge_interrupt();
   sleep_list.qnext->key -= 10;
   while(sleep_list.qnext->key == 0) {
-	uint32 tid = dequeue_thread(&sleep_list);
+	uint32_t tid = dequeue_thread(&sleep_list);
 	if(tid == -1) continue;
 	unsleep_thread(tid);
   }

@@ -6,7 +6,7 @@
 
 /*  Takes an index into the thread_table.  If that thread is not free (in use),  *
  *  sets the thread to defunct and raises a RESCHED syscall.                     */
-int32 kill_thread(uint32 threadid) {
+int32_t kill_thread(uint32_t threadid) {
   if (threadid >= NTHREADS || thread_table[threadid].state == TH_FREE) /*                                                             */
     return -1;                                                         /*  Return if the requested thread is invalid or already free  */
 

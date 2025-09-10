@@ -10,7 +10,7 @@
 extern queue_t sleep_list;
 
 /*  sleep related prototypes */
-int32 sleep_thread(uint32, uint32);
-int32 unsleep_thread(uint32);
+int32_t sleep_thread(uint32_t, uint32_t);
+int32_t unsleep_thread(uint32_t);
 
 #endif

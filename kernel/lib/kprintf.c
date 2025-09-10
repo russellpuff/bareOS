@@ -14,12 +14,12 @@ byte* mode_put(char c, byte mode, byte* ptr) {
     return ptr;
 }
 
-byte* put_number(uint64 u, byte mode, byte* ptr) {
+byte* put_number(uint64_t u, byte mode, byte* ptr) {
     if(u == 0) { ptr = mode_put('0', mode, ptr); return ptr; }
     char buff[20];
-    int16 i = 0;
+    int16_t i = 0;
     while(u) {
-        uint64 r = u / 10;
+        uint64_t r = u / 10;
         buff[i++] = '0' + (char)(u - r * 10);
         u = r;
     }
@@ -52,34 +52,34 @@ void master_kprintf(byte mode, byte* ptr, const char* format, va_list ap) {
         if(*format == '%') {
             switch(*(++format)) {
                 case 'd':
-                    int32 d = va_arg(ap, int32);
+                    int32_t d = va_arg(ap, int32_t);
                     if(d < 0) {
                         ptr = mode_put('-', mode, ptr);
                         d *= -1;
                     }
-                    ptr = put_number((uint64)(uint32)d, mode, ptr);
+                    ptr = put_number((uint64_t)(uint32_t)d, mode, ptr);
                     break;
                 case 'u':
-                    uint32 ud = va_arg(ap, uint32);
-                    ptr = put_number((uint64)ud, mode, ptr);
+                    uint32_t ud = va_arg(ap, uint32_t);
+                    ptr = put_number((uint64_t)ud, mode, ptr);
                     break;
                 case 'l':
                     if(*(format + 1) == 'u') {
                         ++format;
-                        uint64 ul = va_arg(ap, uint64);
+                        uint64_t ul = va_arg(ap, uint64_t);
                         ptr = put_number(ul, mode, ptr);
                     } else {
-                        int64 l = va_arg(ap, int64);
-                        ptr = put_number((uint64)l, mode, ptr);
+                        int64_t l = va_arg(ap, int64_t);
+                        ptr = put_number((uint64_t)l, mode, ptr);
                     }
                     break;
                 case 'x':
-                    uint32 hex = va_arg(ap, uint32);
+                    uint32_t hex = va_arg(ap, uint32_t);
                     ptr = mode_put('0', mode, ptr); ptr = mode_put('x', mode, ptr);
                     if(hex == 0) { ptr = mode_put('0', mode, ptr); break; }
                     bool lead_zero = true; // Ignore leading zeroes.  
-                    for(uint32 i = 0, mask = 0xF0000000; i < 8; ++i, mask >>= 4) {
-                        uint32 num = (hex & mask) >> (28 - (i * 4)); 
+                    for(uint32_t i = 0, mask = 0xF0000000; i < 8; ++i, mask >>= 4) {
+                        uint32_t num = (hex & mask) >> (28 - (i * 4)); 
                         char c;
                         if(num < 10) { c = num + '0'; }
                         else { c = num + 'W'; }

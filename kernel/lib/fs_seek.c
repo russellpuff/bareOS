@@ -6,6 +6,6 @@
  *            offset, bounded by the size of the file.                       *
  *                                                                           *
  *  returns - 'fs_seek' should return the new position of the file head      */
-uint32 seek(uint32 fd, uint32 offset, uint32 relative) {
+uint32_t seek(uint32_t fd, uint32_t offset, uint32_t relative) {
   return 0;
 }
