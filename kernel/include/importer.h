@@ -4,7 +4,7 @@
 #include <barelib.h>
 
 void IMPORT_TEST(byte*);
-byte importer(byte*);
-void* do_malloc_import(void);
+byte generic_importer(byte*);
+void* malloc_loaded_range(void);
 
 #endif

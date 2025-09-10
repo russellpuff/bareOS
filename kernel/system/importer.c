@@ -15,7 +15,10 @@ uint16_t bytes_to_u16(const byte* ptr) {
     return value;
 }
 
-void* do_malloc_import(void) {
+/* Important helper functon that mallocs enough bytes to handle maxing out the  *
+ * ramdisk instantly. As long as this runs as the system's first call to malloc *
+ * the data injected by the generic loader is safe.                             */
+void* malloc_loaded_range(void) {
 	uint64_t MAX_FS_CAPACITY = INODE_BLOCKS * MDEV_BLOCK_SIZE * DIR_SIZE;
 	uint64_t HEAD_SIZE = 32;
 	uint64_t TOTAL_HEAD_SIZE = HEAD_SIZE * DIR_SIZE;
@@ -30,7 +33,10 @@ byte* run_to_nc(byte* ptr) {
 	return ptr;
 }
 
-byte importer(byte* ptr) {
+/* Generic importer, companion function to the QEMU generic loader. Reads the  *
+ * data injected into the top of the heap by the loader and writes it to the   *
+ * ramdisk.                                                                    */
+byte generic_importer(byte* ptr) {
 	byte status = 0;
 	const uint16_t BUFFER_SIZE = 1024;
 	char buffer[BUFFER_SIZE];
@@ -61,8 +67,8 @@ byte importer(byte* ptr) {
 		ptr += size;
 	}
 	
-	if(status == 0) { ksprintf(bptr, "Importer finished with no errors."); } 
-	else { ksprintf(bptr, "The importer had an error and had to stop: couldn't create one of the files."); }
+	if(status == 0) { ksprintf(bptr, "Importer finished with no errors.\n"); } 
+	else { ksprintf(bptr, "The importer had an error and had to stop: couldn't create one of the files.\n"); }
 	bptr = run_to_nc(bptr);
 	
 	char n[] = "importer.log\0";

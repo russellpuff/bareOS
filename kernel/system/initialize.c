@@ -52,10 +52,10 @@ void initialize(void) {
 	init_threads();
 	init_queues();
 	init_heap();
-	byte* imp = do_malloc_import(); /* QEMU loader injects at top of freelist. So we steal it asap. */
+	byte* imp = malloc_loaded_range(); /* QEMU loader injects at top of freelist. So we steal it asap. */
 	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
 	mkfs();
 	mount_fs();
-	if(importer(imp) != 0) kprintf("The importer encountered an error and had to stop.\n");
+	if(generic_importer(imp) != 0) kprintf("The importer encountered an error and had to stop.\n");
 	free(imp); 
 }
