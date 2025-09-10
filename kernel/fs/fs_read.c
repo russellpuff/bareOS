@@ -1,5 +1,5 @@
-#include <barelib.h>
-#include <fs.h>
+#include <lib/barelib.h>
+#include <fs/fs.h>
 
 /* fs_read - Takes a file descriptor index into the 'oft', a  pointer to a  *
  *           buffer that the function writes data to and a number of bytes  *

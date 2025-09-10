@@ -1,8 +1,8 @@
 #ifndef H_THREAD
 #define H_THREAD
 
-#include <barelib.h>
-#include <semaphore.h>
+#include <lib/barelib.h>
+#include <system/semaphore.h>
 
 #define NTHREADS 20    /*  Maximum number of running threads  */
 

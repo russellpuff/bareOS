@@ -1,5 +1,5 @@
-#include <barelib.h>
-#include <string.h>
+#include <lib/barelib.h>
+#include <lib/string.h>
 
 int16_t strcmp(const char* str1, const char* str2) {
   for(; *str1 == *str2; str1++, str2++) {

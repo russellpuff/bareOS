@@ -1,5 +1,5 @@
-#include <bareio.h>
-#include <barelib.h>
+#include <lib/bareio.h>
+#include <lib/barelib.h>
 
 #define MODE_REGULAR 0
 #define MODE_BUFFER 1

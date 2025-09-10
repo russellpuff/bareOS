@@ -1,7 +1,7 @@
 #ifndef H_IMPORTER
 #define H_IMPORTER
 
-#include <barelib.h>
+#include <lib/barelib.h>
 
 void IMPORT_TEST(byte*);
 byte generic_importer(byte*);

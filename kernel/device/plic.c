@@ -5,8 +5,8 @@
  *  to the interrupt vector (see '__traps' in bootstrap.s).
  */
 
-#include <barelib.h>
-#include <interrupts.h>
+#include <lib/barelib.h>
+#include <system/interrupts.h>
 
 #define TRAP_EXTERNAL_ENABLE 0x200
 #define EXTERNAL_PENDING_ADDR 0xc001000

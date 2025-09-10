@@ -1,7 +1,7 @@
 #ifndef H_INTERRUPT
 #define H_INTERRUPT
 
-#include <barelib.h>
+#include <lib/barelib.h>
 
 void init_interrupts(void);        /*  Set up supervisor mode interrupt vector     */
 uint32_t set_interrupt(uint32_t);      /*  Turn on an interrupt for a specific signal  */

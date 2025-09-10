@@ -1,8 +1,9 @@
-#include <interrupts.h>
-#include <malloc.h>
-#include <barelib.h>
-#include <fs.h>
-#include <string.h>
+#include <system/interrupts.h>
+#include <lib/barelib.h>
+#include <lib/string.h>
+#include <mm/malloc.h>
+#include <fs/fs.h>
+
 
 static bdev_t ramdisk;             /* After initialization, contains metadata about the block device */
 static char* ramfs_blocks = NULL;  /* A pointer to the actual memory used as the block device        */

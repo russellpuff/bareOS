@@ -66,7 +66,7 @@ GDB    = "-".join([arch, "gdb"])
 
 # Generate version.h -----------------------------------------------------------------------------------
 
-header_path = os.path.join("kernel", "include", "version.h")
+header_path = os.path.join("kernel", "include", "app", "version.h")
 try:
     rev = subprocess.check_output([
         "git", "rev-list", "--tags", "--max-count=1"
@@ -88,7 +88,9 @@ contents = f"""#ifndef VERSION_H
 #define VERSION_MINOR {minor}
 #define VERSION_PATCH {patch}
 
-#endif"""
+#endif
+
+"""
 
 with open(header_path, "w") as vf:
     vf.write(contents)

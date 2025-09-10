@@ -1,7 +1,7 @@
-#include <barelib.h>
-#include <thread.h>
-#include <interrupts.h>
-#include <semaphore.h>
+#include <lib/barelib.h>
+#include <system/thread.h>
+#include <system/interrupts.h>
+#include <system/semaphore.h>
 
 static void trampoline(void) {
   asm volatile("sret");

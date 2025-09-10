@@ -1,7 +1,7 @@
 #ifndef H_STRING
 #define H_STRING
 
-#include <barelib.h>
+#include <lib/barelib.h>
 
 int16_t strcmp(const char*, const char*);
 void* memset(void*, byte, int32_t);

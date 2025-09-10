@@ -1,6 +1,6 @@
-#include <barelib.h>
-#include <thread.h>
-#include <queue.h>
+#include <lib/barelib.h>
+#include <system/thread.h>
+#include <system/queue.h>
 
 /*  'resched' places the current running thread into the ready state  *
  *  and  places it onto  the tail of the  ready queue.  Then it gets  *

@@ -1,6 +1,6 @@
-#include <barelib.h>
-#include <bareio.h>
-#include <tty.h>
+#include <lib/barelib.h>
+#include <lib/bareio.h>
+#include <device/tty.h>
 
 /* Gets a line from the UART / TTY and stores it into a buffer, converts the line into a C string. */
 /* Returns the number of characters read. */

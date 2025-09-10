@@ -1,5 +1,5 @@
-#include <barelib.h>
-#include <fs.h>
+#include <lib/barelib.h>
+#include <fs/fs.h>
 
 extern fsystem_t* fsd;
 extern filetable_t oft[NUM_FD];

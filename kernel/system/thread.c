@@ -1,5 +1,5 @@
-#include <barelib.h>
-#include <thread.h>
+#include <lib/barelib.h>
+#include <system/thread.h>
 
 /*
  *  'thread_init' sets up the thread table so that each thread is

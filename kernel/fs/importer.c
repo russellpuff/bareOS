@@ -1,10 +1,9 @@
-#include <importer.h>
-#include <barelib.h>
-#include <bareio.h>
-#include <malloc.h>
-#include <fs.h>
-#include <bareio.h>
-#include <string.h>
+#include <fs/fs.h>
+#include <fs/importer.h>
+#include <lib/barelib.h>
+#include <lib/bareio.h>
+#include <lib/string.h>
+#include <mm/malloc.h>
 
 /* Mildly unsafe helper that reads the raw bytes from header to a uint16. */
 uint16_t bytes_to_u16(const byte* ptr) { 

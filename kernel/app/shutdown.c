@@ -1,6 +1,5 @@
-#include <bareio.h>
-#include <barelib.h>
-#include <shell.h>
+#include <lib/bareio.h>
+#include <app/shell.h>
 
 
 /* 'builtin_shutdown' prints a shutdown message and then loops forever. *

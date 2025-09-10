@@ -1,6 +1,6 @@
-#include <thread.h>
-#include <queue.h>
-#include <sleep.h>
+#include <system/thread.h>
+#include <system/queue.h>
+#include <system/sleep.h>
 
 /*  Queues entries in bareOS are contained in the 'queue_table' array.  Each queue has a "root"
  *  that contains  pointers to  the first  and last  elements in that respective queue.  These

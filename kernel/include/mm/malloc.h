@@ -1,7 +1,7 @@
 #ifndef H_MALLOC
 #define H_MALLOC
 
-#include <barelib.h>
+#include <lib/barelib.h>
 
 #define M_FREE 0  /*  Macros for indicating if a block of  */
 #define M_USED 1  /*  memory is free or used               */

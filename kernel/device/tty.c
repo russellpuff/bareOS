@@ -1,7 +1,7 @@
-#include <barelib.h>
-#include <semaphore.h>
-#include <interrupts.h>
-#include <tty.h>
+#include <lib/barelib.h>
+#include <system/semaphore.h>
+#include <system/interrupts.h>
+#include <device/tty.h>
 
 ring_buffer_t tty_in;
 ring_buffer_t tty_out;

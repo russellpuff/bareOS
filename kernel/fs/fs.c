@@ -1,7 +1,7 @@
-#include <barelib.h>
-#include <malloc.h>
-#include <interrupts.h>
-#include <fs.h>
+#include <lib/barelib.h>
+#include <system/interrupts.h>
+#include <mm/malloc.h>
+#include <fs/fs.h>
 
 fsystem_t* fsd = NULL;
 filetable_t oft[NUM_FD];

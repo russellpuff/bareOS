@@ -1,9 +1,9 @@
-#include <barelib.h>
-#include <interrupts.h>
-#include <syscall.h>
-#include <thread.h>
-#include <queue.h>
-#include <semaphore.h>
+#include <lib/barelib.h>
+#include <system/interrupts.h>
+#include <system/syscall.h>
+#include <system/thread.h>
+#include <system/queue.h>
+#include <system/semaphore.h>
 
 /*  Takes a index into the thread table of a thread to resume.  If the thread is already  *
  *  ready  or running,  returns an error.  Otherwise, adds the thread to the ready list,  *

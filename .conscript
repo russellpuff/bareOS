@@ -7,8 +7,13 @@ img_file      = "bareOS.img"
 def error(code, msg):
     print(msg)
     Exit(code)
-dirs = ("system", "device", "app", "lib")
-kernel_files  = [Glob(os.path.join("kernel", d, "*.[cs]")) for d in dirs]
+# auto get src directories
+kernel_dirs = [
+    d
+    for d in os.listdir("kernel")
+    if os.path.isdir(os.path.join("kernel", d)) and d != "include"
+]
+kernel_files  = [Glob(os.path.join("kernel", d, "*.[cs]")) for d in kernel_dirs]
 def do_gdb(target, source, env):
     gdb_file = img_file
     os.system(f'{env["GDB"]} -ex "file {gdb_file}" -ex "target remote :{env["port"]}"')
@@ -51,7 +56,7 @@ except Exception as e:
 	print(f"[Warning] Failed to read linker map for heap prediction: {e}")
 
 # Get file load constants from the fs.h constants that defines the ramdisk. If ramdisk updates, so do these limits. 
-fs_header = File('#/kernel/include/fs.h').abspath
+fs_header = File('#/kernel/include/fs/fs.h').abspath
 with open(fs_header) as f:
     fs_src = f.read()
 

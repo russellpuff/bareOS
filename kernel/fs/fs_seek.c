@@ -1,5 +1,5 @@
-#include <barelib.h>
-#include <fs.h>
+#include <lib/barelib.h>
+#include <fs/fs.h>
 
 /* fs_write - Takes a file descriptor index  into the 'oft' and an  integer  *
  *            offset.  'fs_seek' moves the current head to match the given   *

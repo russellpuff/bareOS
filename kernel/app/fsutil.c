@@ -1,8 +1,8 @@
 /* File contains definitions for all shell based filesystem utility commands. */
-#include <bareio.h>
-#include <barelib.h>
-#include <malloc.h>
-#include <fs.h>
+#include <lib/bareio.h>
+#include <lib/barelib.h>
+#include <mm/malloc.h>
+#include <fs/fs.h>
 
 /* builtin_cat takes a file name and attempts to print its contents. *
  * It just assumes the files is in the current directory right now.  */
@@ -17,6 +17,7 @@ byte builtin_cat(char* arg) {
     char* buffer = malloc(++size);
     read(fd, buffer, size);
     close(fd);
+    free(buffer);
     buffer[size] = '\0';
     kprintf("%s", buffer);
     return 0;

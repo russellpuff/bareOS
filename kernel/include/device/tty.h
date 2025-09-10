@@ -1,7 +1,7 @@
 #ifndef H_TTY
 #define H_TTY
 
-#include <semaphore.h>
+#include <system/semaphore.h>
 
 #define TTY_BUFFLEN 128
 

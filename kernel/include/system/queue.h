@@ -1,7 +1,7 @@
 #ifndef H_QUEUE
 #define H_QUEUE
 
-#include <barelib.h>
+#include <lib/barelib.h>
 
 /*  Certain  OS  features  require  threads  to  be  queued.  *
  *  Because each  thread can  only belong  to one queue at a  *

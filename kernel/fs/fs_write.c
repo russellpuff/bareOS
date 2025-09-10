@@ -1,5 +1,5 @@
-#include <barelib.h>
-#include <fs.h>
+#include <lib/barelib.h>
+#include <fs/fs.h>
 
 /* Helper function to find the first free block. */
 int32_t find_free_block(void) {

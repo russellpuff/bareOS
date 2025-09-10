@@ -1,6 +1,7 @@
-#include <bareio.h>
-#include <barelib.h>
-#include <string.h>
+#include <lib/bareio.h>
+#include <lib/barelib.h>
+#include <lib/string.h>
+#include <app/shell.h>
 
 /*
  * 'builtin_hello' prints "Hello, <text>!\n" where <text> is the contents 

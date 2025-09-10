@@ -3,11 +3,11 @@
  *  from the hardware timer.
  */
 
-#include <barelib.h>
-#include <interrupts.h>
-#include <syscall.h>
-#include <queue.h>
-#include <sleep.h>
+#include <lib/barelib.h>
+#include <system/interrupts.h>
+#include <system/syscall.h>
+#include <system/queue.h>
+#include <system/sleep.h>
 
 #define TRAP_TIMER_ENABLE 0xa0
 

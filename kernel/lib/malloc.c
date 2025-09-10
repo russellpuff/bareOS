@@ -1,6 +1,6 @@
-#include <barelib.h>
-#include <malloc.h>
-#include <thread.h>
+#include <lib/barelib.h>
+#include <system/thread.h>
+#include <mm/malloc.h>
 
 alloc_t* freelist;
 

@@ -1,8 +1,8 @@
-#include <bareio.h>
-#include <barelib.h>
-#include <shell.h>
-#include <string.h>
-#include <thread.h>
+#include <lib/bareio.h>
+#include <lib/barelib.h>
+#include <lib/string.h>
+#include <system/thread.h>
+#include <app/shell.h>
 
 #define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
 /* Arbitrary limits. */

@@ -1,9 +1,9 @@
 #ifndef H_SLEEP
 #define H_SLEEP
 
-#include <barelib.h>
-#include <thread.h>
-#include <queue.h>
+#include <lib/barelib.h>
+#include <system/thread.h>
+#include <system/queue.h>
 
 #define TH_SLEEP (TH_QUEUED | TH_PAUSED | TH_TIMED)
 

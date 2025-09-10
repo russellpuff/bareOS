@@ -1,7 +1,7 @@
-#include <interrupts.h>
-#include <queue.h>
-#include <semaphore.h>
-#include <syscall.h>
+#include <system/interrupts.h>
+#include <system/queue.h>
+#include <system/semaphore.h>
+#include <system/syscall.h>
 
 static byte MUTEX_LOCK;
 

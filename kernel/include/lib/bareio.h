@@ -1,7 +1,7 @@
 #ifndef H_BAREIO
 #define H_BAREIO
 
-#include <barelib.h>
+#include <lib/barelib.h>
 
 /*
  *  This header includes function prototypes for IO procedures

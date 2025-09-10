@@ -1,6 +1,6 @@
-#include <barelib.h>
-#include <fs.h>
-#include <string.h>
+#include <lib/barelib.h>
+#include <lib/string.h>
+#include <fs/fs.h>
 
 extern fsystem_t* fsd;
 

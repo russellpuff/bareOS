@@ -1,5 +1,5 @@
-#include <barelib.h>
-#include <thread.h>
+#include <lib/barelib.h>
+#include <system/thread.h>
 
 /*
  *  This file contains code for handling exceptions generated

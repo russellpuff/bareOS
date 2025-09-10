@@ -8,4 +8,4 @@ load/
 *.dblite
 .msfile
 clean
-kernel/include/version.h
+kernel/include/app/version.h

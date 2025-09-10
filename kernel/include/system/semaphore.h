@@ -1,7 +1,7 @@
 #ifndef H_SEM
 #define H_SEM
 
-#include <queue.h>
+#include <system/queue.h>
 
 #define S_FREE 0  /*  Macros for indicating if a semaphore entry is  */
 #define S_USED 1  /*  free or currently in use.                      */
@@ -23,7 +23,7 @@ void create_mutex(byte*);
 void lock_mutex(byte*);
 void release_mutex(byte*);
 
-#include <thread.h>
+#include <system/thread.h>
 #define TH_WAITING (TH_QUEUED | TH_PAUSED)
 
 #endif

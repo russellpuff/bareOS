@@ -1,8 +1,8 @@
-#include <barelib.h>
-#include <queue.h>
-#include <thread.h>
-#include <syscall.h>
-#include <sleep.h>
+#include <lib/barelib.h>
+#include <system/queue.h>
+#include <system/thread.h>
+#include <system/syscall.h>
+#include <system/sleep.h>
 
 queue_t sleep_list;
 
