@@ -3,6 +3,7 @@ from SCons.Script import File
 Import("env")
 
 img_file      = "bareOS.img"
+HEAD_DIR = Dir('load').abspath
 
 def error(code, msg):
     print(msg)
@@ -90,10 +91,11 @@ def prepare_generic_loader(env):
         LOAD_DIR = Dir('#/load').abspath
         if not os.path.exists(LOAD_DIR):
             os.makedirs(LOAD_DIR)
+        if not os.path.exists(HEAD_DIR):
+            os.makedirs(HEAD_DIR)
         files = sorted(
             f for f in os.listdir(LOAD_DIR)
             if os.path.isfile(os.path.join(LOAD_DIR, f))
-            and not f.endswith('.header')
         )
 
         total_bytes = 0
@@ -112,7 +114,7 @@ def prepare_generic_loader(env):
             if f_size > MAX_FILE_SIZE:
                 continue
 
-            header_path = os.path.join(LOAD_DIR, stem + ".header")
+            header_path = os.path.join(HEAD_DIR, stem + ".gih")
 
             # Force rewrite header.
             header = name_bytes + do_size_bytes(f_size)
@@ -192,4 +194,5 @@ env.Alias("run", run)
 # --------------------  Environment Management  ----------------------
 
 env.Clean(img, env["memmap"])
+env.Clean(img, HEAD_DIR)
 env.Clean(img, f"#{img_file}")

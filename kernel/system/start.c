@@ -12,6 +12,12 @@
 #include <fs/importer.h>
 
 /*
+ *  This file contains the C code entry point executed by the kernel.
+ *  It is called by the bootstrap sequence once the hardware is configured.
+ *  (see bootstrap.s)
+ */
+
+/*
  *  This function calls any initialization functions to set up
  *  devices and other systems.
  */
@@ -26,7 +32,7 @@ void initialize(void) {
 	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
 	mkfs();
 	mount_fs();
-	if(generic_importer(imp) != 0) kprintf("The importer encountered an error and had to stop.\n");
+	generic_importer(imp);
 	free(imp); 
 }
 
@@ -61,13 +67,7 @@ void display_welcome(void) {
 	kprintf("%s Check importer.log for more details.\n\n", result);
 }
 
-/*
- *  This file contains the C code entry point executed by the kernel.
- *  It is called by the bootstrap sequence once the hardware is configured.
- *      (see bootstrap.s)
- */
-
-static void sys_idle() { for(;;) { } }
+static void sys_idle() { while(1); }
 
 static void root_thread(void) {
     uint32_t idleTID = create_thread(&sys_idle, "", 0);
@@ -75,7 +75,7 @@ static void root_thread(void) {
     uint32_t sh = create_thread(&shell, "", 0);
     resume_thread(sh);
     join_thread(sh);
-    for(;;) { }
+    while(1);
 }
 
 /*
