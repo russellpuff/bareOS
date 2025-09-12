@@ -10,33 +10,18 @@ bareOS is a small RISC-V operating system that began at Indiana University and n
 ## Getting Started
 
 ### Prerequisites
-On a Debian/Ubuntu system the following commands install the required toolchain and dependencies:
+On a Debian/Ubuntu system the following commands install the required toolchain and dependencies. The absolute ideal is to build your own cross compiler tools, but unknown-elf should work to achieve the intended bare-metal approach. 
 
 ```sh
-sudo apt-get update
 sudo apt-get install -y --no-install-recommends \
-  build-essential python3 python3-pip git ca-certificates \
-  qemu-system-riscv64 \
-  gcc-riscv64-linux-gnu g++-riscv64-linux-gnu \
-  binutils-riscv64-linux-gnu \
-  gdb-multiarch
-
+     qemu-system-riscv64 \
+     gcc-riscv64-unknown-elf \
+     gdb-multiarch
+     
 pip install scons
 ```
 
-The build scripts expect the cross compiler tools to use the `riscv64-unknown-linux-gnu-*` prefix. The snippet below creates the necessary symbolic links and ensures `~/.local/bin` is on your `PATH`:
-
-```sh
-mkdir -p /usr/local/bin
-for t in gcc g++ ld as ar ranlib objcopy objdump strip nm readelf; do
-  if command -v "riscv64-linux-gnu-$t" >/dev/null 2>&1; then
-    sudo ln -sf "$(command -v riscv64-linux-gnu-$t)" "/usr/local/bin/riscv64-unknown-linux-gnu-$t"
-  fi
-done
-
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.profile
-source ~/.profile
-```
+The build scripts automatically locate an available RISC-V cross compiler, if you installed the unknown-elf tollchain earlier, then that will be used by default. If multiple toolchains are installed you can select one explicitly with `scons arch=<prefix>` (for example, `scons arch=riscv64-linux-gnu`).
 
 ### Building and Running
 

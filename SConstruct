@@ -1,4 +1,4 @@
-import os, random, shutil, re, subprocess
+import os, shutil, re, subprocess
 
 # Disable out of date targets --------------------------------------------------------------------------
 
@@ -36,21 +36,31 @@ Commands:
     description: (Disabled) Relied on obsolete testutils.c.
 
   run
-    usage: scons run [debug] [port=PORT]
+    usage: scons run [debug]
 
-    options:
-      PORT   When running `debug`, use port=PORT to specify a different port.
 """)
 
-has_gnu = shutil.which("riscv64-unknown-linux-gnu-gcc")
-arch   = ARGUMENTS.get('arch', "riscv64-unknown-linux-gnu" if has_gnu is not None else "riscv64-unknown-elf")
-builder   = ".conscript"
+arch = ARGUMENTS.get('arch')
+if not arch:
+    for candidate in [
+        "riscv64-unknown-elf",
+        "riscv64-unknown-linux-gnu",
+        "riscv64-linux-gnu",
+    ]:
+        if shutil.which(f"{candidate}-gcc"):
+            arch = candidate
+            break
+if not arch:
+    print("[Error] no RISC-V cross compiler found on PATH")
+    Exit(1)
+
+builder   = "SConscript.py"
 build_dir = ".build"
 inc_dir   = os.path.join("kernel", "include")
 ld_file   = os.path.join("kernel", "kernel.ld")
 map_file  = File(os.path.join(build_dir, "kernel.map"))
 
-PORT = ARGUMENTS.get("port", random.Random(os.environ["USER"]).randint(5570, 7000))
+PORT = 6999
 logfile = ARGUMENTS.get("logfile", "")
 logfile = f",logfile={logfile}" if logfile else ""
 

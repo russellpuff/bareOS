@@ -1,11 +1,14 @@
 .vscode/
 .build/
 .vs/
+bin/
 obj/
-*.img
-*.sh
 load/
 *.dblite
+*.img
+*.elf
+*.sh
+*.sln
+*.vcxproj*
 .msfile
-clean
 kernel/include/app/version.h

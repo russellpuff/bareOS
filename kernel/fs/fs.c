@@ -2,11 +2,10 @@
 #include <system/interrupts.h>
 #include <mm/malloc.h>
 #include <fs/fs.h>
+#include <lib/string.h>
 
 fsystem_t* fsd = NULL;
 filetable_t oft[NUM_FD];
-
-void* memset(void*, int, int);
 
 void setmaskbit_fs(uint32_t x) {                     /*                                           */
   if (fsd == NULL) return;                         /*  Sets the block at index 'x' as used      */

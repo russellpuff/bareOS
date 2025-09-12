@@ -4,6 +4,10 @@
 #include <mm/malloc.h>
 #include <fs/fs.h>
 
+byte redirect_file(char* arg, char* filename) {
+    return 0;
+}
+
 /* builtin_cat takes a file name and attempts to print its contents. *
  * It just assumes the files is in the current directory right now.  */
 byte builtin_cat(char* arg) {
@@ -33,5 +37,17 @@ byte builtin_ls(char* arg) {
         kprintf("&x%s%0  ", fsd->root_dir.entry[i].name);
     }
     kprintf("\n");
+    return 0;
+}
+
+byte builtin_cd(char* arg) {
+    return 0;
+}
+
+byte builtin_mkdir(char* arg) {
+    return 0;
+}
+
+byte buintin_rmdir(char* arg) {
     return 0;
 }

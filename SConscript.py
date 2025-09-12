@@ -1,8 +1,8 @@
-import os, shutil, sys, subprocess, select, signal, termios, tty, re
+import os, sys, subprocess, select, signal, termios, tty, re
 from SCons.Script import File
 Import("env")
 
-img_file      = "bareOS.img"
+img_file      = "bareOS.elf"
 HEAD_DIR = Dir('load').abspath
 
 def error(code, msg):
@@ -31,8 +31,8 @@ env["BUILDERS"]["Qemu"] = bld_qemu
 
 # ----------------------  Build OS Image  ----------------------------
 objs   = env.Object(kernel_files)
-img    = env.Program(img_file, objs)
-img    = env.Command(None, img, Copy(img_file, "$SOURCE"))
+elf    = env.Program(img_file, objs)
+elf    = env.Command(None, elf, Copy(img_file, "$SOURCE"))
 env.Alias("gdb", objs)
 
 # ------------------- Do External File Load  -------------------------
@@ -135,7 +135,7 @@ def prepare_generic_loader(env):
         load_flags += f"-device loader,addr={START_ADDR:#x},data={valid_files:#x},data-len=1 "
         return load_flags
 
-env.Alias("build", img)
+env.Alias("build", elf)
 # ----------------------  Virtualization  ----------------------------
 if "debug" in COMMAND_LINE_TARGETS:
     env['qflags'] += f" -S -gdb tcp::{env['port']}"
@@ -188,11 +188,11 @@ def run_qemu(target, source, env):
     return 0
 
 run = env.Command(target="run_cmd", source=img_file, action=run_qemu)
-env.Depends(run, img)
+env.Depends(run, elf)
 env.Alias("run", run)
 
 # --------------------  Environment Management  ----------------------
 
-env.Clean(img, env["memmap"])
-env.Clean(img, HEAD_DIR)
-env.Clean(img, f"#{img_file}")
+env.Clean(elf, env["memmap"])
+env.Clean(elf, HEAD_DIR)
+env.Clean(elf, f"#{img_file}")
