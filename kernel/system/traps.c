@@ -20,8 +20,8 @@ s_interrupt handle_syscall(void) {
     syscall_table[signum]();
 }
 
-extern volatile uint32_t* clint_timer_addr;
-extern const uint32_t timer_interval;
+extern volatile uint64_t* clint_timer_addr;
+extern const uint64_t timer_interval;
 
 m_interrupt delegate_clk(void) {
     *clint_timer_addr += timer_interval;

@@ -11,7 +11,7 @@
 
 #define TRAP_TIMER_ENABLE 0xa0
 
-volatile uint32_t* clint_timer_addr  = (uint32_t*)0x2004000;
+volatile uint64_t* clint_timer_addr  = (uint64_t*)0x2004000;
 const uint32_t timer_interval = 100000;
 
 /*
