@@ -2,10 +2,6 @@
 #include <lib/string.h>
 #include <fs/fs.h>
 
-
-extern fsystem_t* fsd;
-extern filetable_t oft[NUM_FD];
-
 /*  Search for a filename  in the directory, if the file doesn't exist  *
  *  or it is  already  open, return  an error.   Otherwise find a free  *
  *  slot in the open file table and initialize it to the corresponding  *

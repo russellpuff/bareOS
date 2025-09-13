@@ -1,5 +1,7 @@
 #include <lib/barelib.h>
 #include <system/thread.h>
+#include <system/interrupts.h>
+#include <device/timer.h>
 
 /*
  *  This file contains code for handling exceptions generated
@@ -13,15 +15,11 @@ void (*syscall_table[]) (void) = {
   resched
 };
 
-extern int32_t signum;
 s_interrupt handle_syscall(void) {
   int32_t table_size = sizeof(syscall_table) / sizeof(int (*)(void));
   if (signum < table_size)
     syscall_table[signum]();
 }
-
-extern volatile uint64_t* clint_timer_addr;
-extern const uint64_t timer_interval;
 
 m_interrupt delegate_clk(void) {
     *clint_timer_addr += timer_interval;

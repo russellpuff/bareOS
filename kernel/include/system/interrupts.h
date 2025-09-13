@@ -9,5 +9,6 @@ uint32_t disable_interrupts(void);   /*  Turn off all interrupts                
 void restore_interrupts(uint32_t);   /*  Return the interrupts to a given state      */
 void acknowledge_interrupt(void);  /*  Reset a triggered interrupt                 */
 void uart_wake_tx(void);
+extern int32_t signum;
 
 #endif
