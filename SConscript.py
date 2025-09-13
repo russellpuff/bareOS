@@ -1,4 +1,4 @@
-import os, sys, subprocess, select, signal, termios, tty, re
+import os, subprocess, re
 from SCons.Script import File
 Import("env")
 
@@ -149,43 +149,7 @@ def run_qemu(target, source, env):
         print(load_flags)
 
     args = [env['QEMU'], '-kernel', str(source[0])] + env['qflags'].split()
-    proc = subprocess.Popen(
-        args,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        bufsize=0,
-    )
-    shutdown_msg = b"The system will shut down now."
-    buf = b""
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    tty.setcbreak(fd)
-    try:
-        while True:
-            rlist, _, _ = select.select([proc.stdout, sys.stdin], [], [])
-            if proc.stdout in rlist:
-                data = os.read(proc.stdout.fileno(), 1024)
-                if not data:
-                    break
-                os.write(sys.stdout.fileno(), data)
-                buf += data
-                if shutdown_msg in buf:
-                    proc.terminate()
-                buf = buf[-len(shutdown_msg):]
-            if sys.stdin in rlist:
-                inp = os.read(fd, 1024)
-                if not inp:
-                    break
-                os.write(proc.stdin.fileno(), inp)
-            if proc.poll() is not None:
-                break
-    except KeyboardInterrupt:
-        proc.send_signal(signal.SIGINT)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
-        proc.wait()
-    return 0
+    return subprocess.call(args)
 
 run = env.Command(target="run_cmd", source=img_file, action=run_qemu)
 env.Depends(run, elf)

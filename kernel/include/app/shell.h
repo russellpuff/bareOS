@@ -1,6 +1,8 @@
 #ifndef H_SHELL
 #define H_SHELL
 
+#include <lib/barelib.h>
+
 typedef byte (*function_t)(char*);
 
 typedef struct {
@@ -13,6 +15,7 @@ byte builtin_echo(char*);
 byte builtin_hello(char*);
 byte builtin_cat(char*);
 byte builtin_shutdown(char*);
+byte builtin_reboot(char*);
 byte builtin_clear(char*);
 byte builtin_ls(char*);
 function_t get_command(const char* name);
