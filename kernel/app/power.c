@@ -22,6 +22,7 @@ byte builtin_shutdown(char* arg) {
     return 0; /* Unreachable */
 }
 
+/* This function doesn't work right now and is not registered as a shell command. */
 byte builtin_reboot(char* arg) {
     signal_syscon(SYSCON_REBOOT);
     return 0; /* Unreachable */
