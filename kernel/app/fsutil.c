@@ -4,6 +4,8 @@
 #include <mm/malloc.h>
 #include <fs/fs.h>
 
+/* 'redirect_file' handles writing the output of a program to a file *
+ * when > is used in the shell.                                      */
 byte redirect_file(char* arg, char* filename) {
     return 0;
 }
@@ -11,14 +13,14 @@ byte redirect_file(char* arg, char* filename) {
 /* builtin_cat takes a file name and attempts to print its contents. *
  * It just assumes the files is in the current directory right now.  */
 byte builtin_cat(char* arg) {
-    if(arg[0] == 'c' && arg[1] == 'a' && arg[2] == 't' && arg[3] == ' ') arg += 4; /* Hotfix, deal with later. */
+    arg += 4; /* Jump past arg0. TODO: This is very unsafe if you just type "cat". */
     int16_t fd = open(arg);
     if(fd == -1) {
         kprintf("%s - File not found.\n", arg);
         return 1;
     }
     uint32_t size = get_filesize(fd);
-    char* buffer = malloc(++size);
+    char* buffer = malloc(size);
     read(fd, buffer, size);
     close(fd);
     free(buffer);

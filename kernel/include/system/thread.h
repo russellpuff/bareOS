@@ -17,6 +17,8 @@
 #define TH_READY   (TH_RUNNABLE | TH_QUEUED | TH_PAUSED)  /*  This list will be extended as we add features  */
 #define TH_SUSPEND TH_PAUSED                              /*                                                 */
 #define TH_DEFUNCT TH_DEAD                                /*                                                 */
+#define TH_SLEEP (TH_QUEUED | TH_PAUSED | TH_TIMED)       /*                                                 */
+#define TH_WAITING (TH_QUEUED | TH_PAUSED)
 
 #define THREAD_STACK_SZ (((&mem_end - &mem_start) / 2) / NTHREADS)  /*  Macro calculates the size of a thread stack  */
 #define get_stack(n) (&mem_end - (n * THREAD_STACK_SZ))             /*  Macro gets start of stack by thread index    */
@@ -35,6 +37,7 @@ typedef struct _thread {
 
 extern thread_t thread_table[];
 extern uint32_t   current_thread;    /*  The currently running thread  */
+extern queue_t sleep_list;
 
 
 /*  thread related prototypes  */
@@ -44,6 +47,8 @@ int32_t join_thread(uint32_t);
 int32_t kill_thread(uint32_t);
 int32_t suspend_thread(uint32_t);
 int32_t resume_thread(uint32_t);
+int32_t sleep_thread(uint32_t, uint32_t);
+int32_t unsleep_thread(uint32_t);
 
 void resched(void);
 

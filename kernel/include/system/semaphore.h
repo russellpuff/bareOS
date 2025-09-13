@@ -23,7 +23,4 @@ void create_mutex(byte*);
 void lock_mutex(byte*);
 void release_mutex(byte*);
 
-#include <system/thread.h>
-#define TH_WAITING (TH_QUEUED | TH_PAUSED)
-
 #endif

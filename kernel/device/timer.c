@@ -2,7 +2,7 @@
 #include <system/interrupts.h>
 #include <system/syscall.h>
 #include <system/queue.h>
-#include <system/sleep.h>
+#include <system/thread.h>
 #include <device/timer.h>
 
 /*

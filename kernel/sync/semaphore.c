@@ -2,6 +2,7 @@
 #include <system/queue.h>
 #include <system/semaphore.h>
 #include <system/syscall.h>
+#include <system/thread.h>
 
 static byte MUTEX_LOCK;
 

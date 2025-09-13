@@ -1,6 +1,13 @@
 #ifndef H_BARELIB
 #define H_BARELIB
 
+/* Intellisense override for VS22 to suppress errors relating to bad clang support. */
+#ifdef IS_OVERRIDE 
+#define bool  _Bool
+#define true  1
+#define false 0
+#endif
+
 /*
  *  This header contains typedefs for common utility types and functions
  *  used by the kernel.
