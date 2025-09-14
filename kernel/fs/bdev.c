@@ -6,7 +6,8 @@
 
 
 static bdev_t ramdisk;             /* After initialization, contains metadata about the block device */
-static char* ramfs_blocks = NULL;  /* A pointer to the actual memory used as the block device        */
+static byte* ramfs_blocks = NULL;  /* A pointer to the actual memory used as the block device        */
+
 
 uint32_t mk_ramdisk(uint32_t blocksize, uint32_t numblocks) {                       /*                               */
   ramdisk.blocksz = (blocksize == NULL ? MDEV_BLOCK_SIZE : blocksize);        /*  Initialize the block device  */ 
@@ -16,7 +17,7 @@ uint32_t mk_ramdisk(uint32_t blocksize, uint32_t numblocks) {                   
   return (ramfs_blocks == (void*)-1 ? -1 : 0);                                /*  the memory  for the  device  */
 }                                                                             /*  itself.                      */
 
-bdev_t bs_getstats(void) {   /*                                                            */
+bdev_t bdev_getstats(void) {   /*                                                            */
   return ramdisk;         /*  External accessor function for the block device metadata  */
 }                         /*                                                            */
 
@@ -28,7 +29,7 @@ uint32_t free_ramdisk(void) {     /*                                        */
   return 0;                     /*                                        */
 }
 
-uint32_t read_bs(uint32_t block, uint32_t offset, void* buf, uint32_t len) {    /*                                   */
+uint32_t read_bdev(uint32_t block, uint32_t offset, void* buf, uint32_t len) {    /*                                   */
   if (offset < 0 || offset + len > ramdisk.blocksz ||                   /*  Check if the block is valid      */
       block < 0 || block >= ramdisk.nblocks ||                          /*  if not valid, restore interrupts */
       ramfs_blocks == NULL) {                                           /*  and return error.                */
@@ -38,7 +39,7 @@ uint32_t read_bs(uint32_t block, uint32_t offset, void* buf, uint32_t len) {    
   return 0;                                                             /*  the output buffer.               */
 }                                                                       /*                                   */
 
-uint32_t write_bs(uint32_t block, uint32_t offset, void* buf, uint32_t len) {   /*                                   */
+uint32_t write_bdev(uint32_t block, uint32_t offset, void* buf, uint32_t len) {   /*                                   */
   if (offset < 0 || offset + len > ramdisk.blocksz ||                   /*  Check if the block is valid      */
       block < 0 || block >= ramdisk.nblocks ||                          /*  if not valid, restore interrupts */
       ramfs_blocks == NULL) {                                           /*  and return error.                */

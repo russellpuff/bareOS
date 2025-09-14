@@ -39,13 +39,13 @@ int32_t create(char* filename) {
 	inode.size = 0;
 	for (uint16_t i = 0; i < INODE_BLOCKS; ++i)
 		inode.blocks[i] = EMPTY;
-	if (write_bs(b, 0, &inode, sizeof(inode_t)) == -1) return -1;
+	if (write_bdev(b, 0, &inode, sizeof(inode_t)) == -1) return -1;
 
 	++fsd->root_dir.numentries;
 	setmaskbit_fs(b);
 
-	if (write_bs(BM_BIT, 0, fsd->freemask, fsd->freemasksz) == -1) return -1; /* write back */
-	if (write_bs(SB_BIT, 0, fsd, sizeof(fsystem_t)) == -1) return -1; /* write super */
+	if (write_bdev(BM_BIT, 0, fsd->freemask, fsd->freemasksz) == -1) return -1; /* write back */
+	if (write_bdev(SB_BIT, 0, fsd, sizeof(fsystem_t)) == -1) return -1; /* write super */
 	return 0;
 }
 
@@ -84,7 +84,7 @@ int32_t open(char* filename) {
 
 	/* Read inode. */
 	inode_t inode;
-	if (read_bs(fsd->root_dir.entry[slot].inode_block, 0, &inode, sizeof(inode_t)) == -1) return -1;
+	if (read_bdev(fsd->root_dir.entry[slot].inode_block, 0, &inode, sizeof(inode_t)) == -1) return -1;
 
 	/* Populate oft slot with info. */
 	oft[fd].state = FSTATE_OPEN;
@@ -105,7 +105,7 @@ int32_t close(int32_t fd) {
 
 	/* Write back inode. */
 	int16_t b = fsd->root_dir.entry[oft[fd].direntry].inode_block;
-	if (write_bs(b, 0, &oft[fd].inode, sizeof(inode_t)) == -1) return -1;
+	if (write_bdev(b, 0, &oft[fd].inode, sizeof(inode_t)) == -1) return -1;
 
 	/* Clear the entry and set status to close. */
 	oft[fd].state = FSTATE_CLOSED;

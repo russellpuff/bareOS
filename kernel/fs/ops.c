@@ -24,7 +24,7 @@ int32_t read(uint32_t fd, char* buff, uint32_t len) {
 		int16_t transfer = to_read - bytes_read < MDEV_BLOCK_SIZE - offset ?
 			to_read - bytes_read : MDEV_BLOCK_SIZE - offset;
 		/* Read into buffer at offset bytes_read.*/
-		read_bs(oft[fd].inode.blocks[index], offset, (buff + bytes_read), transfer);
+		read_bdev(oft[fd].inode.blocks[index], offset, (buff + bytes_read), transfer);
 		oft[fd].head += transfer;
 		bytes_read += transfer;
 	}
@@ -73,7 +73,7 @@ int32_t write(uint32_t fd, char* buff, uint32_t len) {
 			inode->blocks[index] = b;
 		}
 		uint32_t to_write = len - written < MDEV_BLOCK_SIZE - offset ? len - written : MDEV_BLOCK_SIZE - offset;
-		write_bs(inode->blocks[index], offset, (buff + written), to_write);
+		write_bdev(inode->blocks[index], offset, (buff + written), to_write);
 		written += to_write;
 		oft[fd].head += to_write;
 		++index;
@@ -81,9 +81,9 @@ int32_t write(uint32_t fd, char* buff, uint32_t len) {
 	}
 
 	inode->size = oft[fd].head > orig_size ? oft[fd].head : orig_size; /* Overwrites don't add size. */
-	write_bs(inode->id, 0, inode, sizeof(inode_t)); /* write inode */
-	write_bs(BM_BIT, 0, fsd->freemask, fsd->freemasksz); /* write back */
-	write_bs(SB_BIT, 0, fsd, sizeof(*fsd)); /* write super */
+	write_bdev(inode->id, 0, inode, sizeof(inode_t)); /* write inode */
+	write_bdev(BM_BIT, 0, fsd->freemask, fsd->freemasksz); /* write back */
+	write_bdev(SB_BIT, 0, fsd, sizeof(*fsd)); /* write super */
 	return written;
 }
 
