@@ -7,8 +7,11 @@
 #define FS_VERSION 2
 
 #define FILENAME_LEN 32         /* Arbitrary maximum length of a filename in the FS */
-#define MDEV_BLOCK_SIZE 512     /* Size of each block in bytes                      */
-#define MDEV_NUM_BLOCKS 4096    /* Number of blocks in the block device             */
+#define BDEV_BLOCK_SIZE 512     /* Size of each block in bytes                      */
+#define BDEV_NUM_BLOCKS 4096    /* Number of blocks in the block device             */
+
+#define INODE_SIZE sizeof(inode_t)     /* Size of an inode in the inode table in bytes. */
+#define FAT_ITEM_SIZE sizeof(int16_t) /* Size of an entry in the FAT table in bytes. */
 
 #define MAX_INTABLE_BLOCKS 128  /* Completely arbitrary. TODO: Replace array.       */
 #define OFT_MAX 32              /* Also arbitrary.                                  */

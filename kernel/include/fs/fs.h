@@ -9,12 +9,17 @@
 #define SB_BIT 0        /* Alias for the super block index                            */
 #define BM_BIT 1        /* Alias for the bitmask block index                          */
 
-#define SEEK_START 0    /* Used in `seek`, count from start of file                   */
-#define SEEK_END   1    /* Used in `seek`, count down from the end of the file        */
-#define SEEK_HEAD  2    /* Used in `seek`, move head relative to the current head     */
+/* SEEK_START: count from start of file                   */
+/* SEEK_END:   count down from the end of the file        */
+/* SEEK_HEAD:  move head relative to the current head     */
+typedef enum { SEEK_START, SEEK_END, SEEK_HEAD } SEEK_POS;
+/* FAT_FREE: the block is unused                          */
+/* FAT_END: this is the last block in a fat chain         */
+/* FAT_RSVD: this block is reserved for kernel use        */
+/* FAT_BAD: returned when an invalid request was made     */
+typedef enum { FAT_FREE = 0, FAT_END = -1, FAT_RSVD = -2, FAT_BAD = -3 } FAT_FLAG;
 
 /* Function prototypes used in the file system */
-bdev_t bdev_getstats(void);                               /* Retreive the embedded block dev info        */
 uint32_t mk_ramdisk(uint32_t, uint32_t);                  /* Build the block device                      */
 uint32_t free_ramdisk(void);                              /* Free resources associated with block device */
 uint32_t read_bdev(uint32_t, uint32_t, void*, uint32_t);  /* Read a block from the block device          */
@@ -27,6 +32,9 @@ uint32_t getmaskbit_fs(uint32_t); /* Get the state of a block  */
 void mkfs(void);          /* Save the super block and bitmask for the FS */
 uint32_t mount_fs(void);  /* Build the structures for the file system    */
 uint32_t umount_fs(void); /* Clear the structures for the file system    */
+
+int16_t fat_getnext(int16_t); /* Get the next FAT index at the current block. */
+int16_t fat_set(int16_t, int16_t); /* Set a value to the specified index. */
 
 int32_t create(char*);                    /* Create a file and save it to the block device */
 int32_t open(char*);                      /* Open a file                                   */
