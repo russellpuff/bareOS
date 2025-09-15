@@ -9,14 +9,19 @@
 #define FILENAME_LEN 32         /* Arbitrary maximum length of a filename in the FS */
 #define BDEV_BLOCK_SIZE 512     /* Size of each block in bytes                      */
 #define BDEV_NUM_BLOCKS 4096    /* Number of blocks in the block device             */
+#define SB_BIT 0   /* Alias for the super block index                               */
+#define BM_BIT 1   /* Alias for the bitmask block index                             */
+#define FT_BIT 2   /* Alias for the start of the fat table block index              */
+#define FT_LEN 16  /* Length of the fat table in blocks                             */
+#define IN_BIT 3   /* Alias for the index of the default first intable block index. */
 
-#define INODE_SIZE sizeof(inode_t)     /* Size of an inode in the inode table in bytes. */
 #define FAT_ITEM_SIZE sizeof(int16_t) /* Size of an entry in the FAT table in bytes. */
 
 #define MAX_INTABLE_BLOCKS 128  /* Completely arbitrary. TODO: Replace array.       */
 #define OFT_MAX 32              /* Also arbitrary.                                  */
+#define IN_ERR 0 /* Returned when a new inode cannot be created. */
 
-typedef enum { FREE, FILE, DIR } EN_TYPE;
+typedef enum { FREE, BUSY, FILE, DIR } EN_TYPE;
 typedef enum { CLOSED, OPEN } FSTATE;
 typedef enum { RD_ONLY, WR_ONLY, RDWR, APPEND } FMODE;
 
@@ -64,8 +69,6 @@ typedef struct {
  * data required to remake the fs after a reboot. Many of its values are necessary for  *
  * the in-RAM filesystem_t to function.                                                 */
 typedef struct {
-	uint32_t blk_count;    /* Number of blocks available for the filesystem to write to */
-	uint32_t blk_size;     /* The size of each block in bytes                           */
 	uint32_t magic;        /* Magic number used to identify the type of filesystem      */
 	byte version;          /* The filesystem's version                                  */
 	uint16_t fat_head;     /* Index of the first FAT table block                        */

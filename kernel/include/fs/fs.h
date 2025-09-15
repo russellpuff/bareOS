@@ -6,9 +6,6 @@
 
 #define EMPTY -1        /* Used in FS whenever a field's state is undefined or unused */
 
-#define SB_BIT 0        /* Alias for the super block index                            */
-#define BM_BIT 1        /* Alias for the bitmask block index                          */
-
 /* SEEK_START: count from start of file                   */
 /* SEEK_END:   count down from the end of the file        */
 /* SEEK_HEAD:  move head relative to the current head     */
@@ -24,18 +21,22 @@ uint32_t mk_ramdisk(uint32_t, uint32_t);                  /* Build the block dev
 uint32_t free_ramdisk(void);                              /* Free resources associated with block device */
 uint32_t read_bdev(uint32_t, uint32_t, void*, uint32_t);  /* Read a block from the block device          */
 uint32_t write_bdev(uint32_t, uint32_t, void*, uint32_t); /* Write a block to the block device           */
+uint32_t write_super(void);
 
 void bm_set(uint32_t);   /* Mark a block as used      */
 void bm_clear(uint32_t); /* Mark a block as unused    */
 byte bm_get(uint32_t); /* Get the state of a block  */
 int32_t bm_findfree(void); /* Find a free block. */
 
-void mkfs(void);          /* Save the super block and bitmask for the FS */
-uint32_t mount_fs(void);  /* Build the structures for the file system    */
-uint32_t umount_fs(void); /* Clear the structures for the file system    */
+void mkfs(uint32_t, uint32_t); /* Create a blank file system               */
+uint32_t mount_fs(void);       /* Build the structures for the file system */
+uint32_t umount_fs(void);      /* Clear the structures for the file system */
 
-int16_t fat_get(int16_t); /* Get the next FAT index at the current block. */
-int16_t fat_set(int16_t, int16_t); /* Set a value to the specified index. */
+int16_t fat_get(int16_t);          /* Get the next FAT index at the current block. */
+int16_t fat_set(int16_t, int16_t); /* Set a value to the specified index.          */
+
+uint16_t in_find_free(void);          /* Find a free entry in the inode table  */
+byte write_inode(inode_t*, uint16_t); /* Write an in-memory inode to the table */
 
 int32_t create(char*);                    /* Create a file and save it to the block device */
 int32_t open(char*);                      /* Open a file                                   */
