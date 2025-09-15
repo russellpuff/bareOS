@@ -25,15 +25,16 @@ uint32_t free_ramdisk(void);                              /* Free resources asso
 uint32_t read_bdev(uint32_t, uint32_t, void*, uint32_t);  /* Read a block from the block device          */
 uint32_t write_bdev(uint32_t, uint32_t, void*, uint32_t); /* Write a block to the block device           */
 
-void   setmaskbit_fs(uint32_t);   /* Mark a block as used      */
-void   clearmaskbit_fs(uint32_t); /* Mark a block as unused    */
-uint32_t getmaskbit_fs(uint32_t); /* Get the state of a block  */
+void bm_set(uint32_t);   /* Mark a block as used      */
+void bm_clear(uint32_t); /* Mark a block as unused    */
+byte bm_get(uint32_t); /* Get the state of a block  */
+int32_t bm_findfree(void); /* Find a free block. */
 
 void mkfs(void);          /* Save the super block and bitmask for the FS */
 uint32_t mount_fs(void);  /* Build the structures for the file system    */
 uint32_t umount_fs(void); /* Clear the structures for the file system    */
 
-int16_t fat_getnext(int16_t); /* Get the next FAT index at the current block. */
+int16_t fat_get(int16_t); /* Get the next FAT index at the current block. */
 int16_t fat_set(int16_t, int16_t); /* Set a value to the specified index. */
 
 int32_t create(char*);                    /* Create a file and save it to the block device */
