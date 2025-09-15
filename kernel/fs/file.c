@@ -20,7 +20,7 @@ int32_t create(char* filename) {
 	/* Find bit to use. */
 	uint32_t b = 0;
 	for (; b < fsd->device.nblocks; ++b)
-		if (!getmaskbit_fs(b)) break;
+		if (!bm_get(b)) break;
 	if (b == fsd->device.nblocks) return -1;
 
 	/* Copy in filename. */
@@ -42,7 +42,7 @@ int32_t create(char* filename) {
 	if (write_bdev(b, 0, &inode, sizeof(inode_t)) == -1) return -1;
 
 	++fsd->root_dir.numentries;
-	setmaskbit_fs(b);
+	bm_set(b);
 
 	if (write_bdev(BM_BIT, 0, fsd->freemask, fsd->freemasksz) == -1) return -1; /* write back */
 	if (write_bdev(SB_BIT, 0, fsd, sizeof(fsystem_t)) == -1) return -1; /* write super */
@@ -113,4 +113,10 @@ int32_t close(int32_t fd) {
 	oft[fd].direntry = EMPTY;
 
 	return 0;
+}
+
+dirent_t mk_dir(char* name) {
+	dirent_t dir;
+	dir.type = DIR;
+	dir.inode = 
 }

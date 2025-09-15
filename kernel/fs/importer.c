@@ -18,7 +18,7 @@ uint16_t bytes_to_u16(const byte* ptr) {
  * ramdisk instantly. As long as this runs as the system's first call to malloc *
  * the data injected by the generic loader is safe.                             */
 void* malloc_loaded_range(void) {
-	uint64_t MAX_FS_CAPACITY = INODE_BLOCKS * MDEV_BLOCK_SIZE * DIR_SIZE;
+	uint64_t MAX_FS_CAPACITY = INODE_BLOCKS * BDEV_BLOCK_SIZE * DIR_SIZE;
 	uint64_t HEAD_SIZE = 32;
 	uint64_t TOTAL_HEAD_SIZE = HEAD_SIZE * DIR_SIZE;
 	uint64_t MASTER_HEAD_SIZE = 2;

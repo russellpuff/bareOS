@@ -29,7 +29,7 @@ void initialize(void) {
 	init_queues();
 	init_heap();
 	byte* imp = malloc_loaded_range(); /* QEMU loader injects at top of freelist. So we steal it asap. */
-	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
+	mk_ramdisk(BDEV_BLOCK_SIZE, BDEV_NUM_BLOCKS);
 	mkfs();
 	mount_fs();
 	generic_importer(imp);
