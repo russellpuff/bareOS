@@ -46,3 +46,10 @@ byte write_inode(inode_t* inode, uint16_t index) {
 	block[offset] = *inode;
 	return 0;
 }
+
+inode_t get_inode(uint16_t index) {
+	uint16_t tbl_idx = index / IN_PER_BLOCK;
+	uint16_t offset = index % IN_PER_BLOCK;
+	inode_t* block = (inode_t*)get_block(fsd->super.intable_blocks[tbl_idx]);
+	return block[offset];
+}

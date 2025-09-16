@@ -29,7 +29,7 @@ int32_t create(char* filename) {
 	while (ncopy < (FILENAME_LEN - 1) && filename[ncopy] != '\0') ++ncopy;
 	memcpy(fsd->root_dir.entry[slot].name, filename, ncopy);
 
-	for (int n = 0; filename[n] && n < FILENAME_LEN - 1; ++n)
+	for (byte n = 0; filename[n] && n < FILENAME_LEN - 1; ++n)
 		fsd->root_dir.entry[slot].name[n] = filename[n];
 
 	fsd->root_dir.entry[slot].inode_block = b;
@@ -74,7 +74,7 @@ int32_t open(char* filename) {
 
 	/* Look for available oft slot. */
 	int16_t fd = -1;
-	for (int i = 0; i < NUM_FD; ++i) {
+	for (byte i = 0; i < NUM_FD; ++i) {
 		if (oft[i].state == FSTATE_CLOSED) {
 			fd = i;
 			break;
@@ -115,8 +115,49 @@ int32_t close(int32_t fd) {
 	return 0;
 }
 
-dirent_t mk_dir(char* name) {
+dirent_t get_dot_entry(uint16_t inode, const char* name) {
+	dirent_t dot;
+	dot.inode = inode;
+	uint32_t len = strlen(name);
+	memcpy(dot.name, name, len);
+	dot.name[len] = '\0';
+	dot.type = DIR;
+	return dot;
+}
+
+dirent_t mk_dir(char* name, uint16_t parent) {
+	/* Make dirent */
 	dirent_t dir;
 	dir.type = DIR;
-	dir.inode = 
+	dir.inode = in_find_free(); /* TODO: Check for invalid. */
+	uint32_t len = strlen(name);
+	memcpy(&dir.name, name, len);
+	dir.name[len] = '\0';
+
+	/* Make inode */
+	inode_t ino;
+	ino.head = bm_findfree();
+	bm_set(ino.head);
+	fat_set(ino.head, FAT_END);
+	bdev_zero_blocks(&fsd->device, ino.head, 1);
+	ino.parent = parent;
+	ino.type = DIR;
+	ino.size = sizeof(dirent_t) * 2;
+	ino.modified = 0; // Unused for now.
+	write_inode(&ino, dir.inode); /* TODO: Check for invalid. */
+
+	/* Make default subdirectories */
+	dirent_t self_dot = get_dot_entry(dir.inode, ".");
+	dirent_t parent_dot = get_dot_entry(parent, "..");
+	write_bdev(ino.head, 0, &self_dot, sizeof(dirent_t));
+	write_bdev(ino.head, sizeof(dirent_t), &parent_dot, sizeof(dirent_t));
+
+	if (dir.inode != ino.parent) {
+		/* Write dirent to parent if self isn't parent. */
+		inode_t p_ino = get_inode(parent);
+		inode_write(&p_ino, &dir, p_ino.size, sizeof(dir)); /* TODO: if this returns a value not equal to sizeof(dir), we're out of blocks. */
+		write_inode(&p_ino, parent);
+	}
+
+	return dir;
 }

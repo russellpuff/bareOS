@@ -8,7 +8,7 @@
 /* Mildly unsafe helper that reads the raw bytes from header to a uint16. */
 uint16_t bytes_to_u16(const byte* ptr) { 
 	uint16_t value = 0;
-	for (int i = 0; i < 16; ++i) {
+	for (byte i = 0; i < 16; ++i) {
         value |= ((uint16_t)ptr[i]) << (8 * i);
     }
     return value;
@@ -46,7 +46,7 @@ byte generic_importer(byte* ptr) {
 	bptr = run_to_nc(bptr);
 	for(byte i = 0; i < num_files; ++i) {
 		char name[FILENAME_LEN]; /* Read the file's name. */
-		for(int j = 0; j < FILENAME_LEN; ++j) {
+		for(byte j = 0; j < FILENAME_LEN; ++j) {
 			name[j] = *ptr;
 			++ptr;
 			if(name[j] == '\0') { ptr += (FILENAME_LEN - j - 1); break; }

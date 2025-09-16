@@ -26,9 +26,9 @@ byte bm_get(uint32_t x) {
 /* Finds the next free block in the block device. */
 int32_t bm_findfree(void) {
 	byte* b = bm_base();
-	for (int i = 0; i < fsd->device.block_size; ++i) {
+	for (uint16_t i = 0; i < fsd->device.block_size; ++i) {
 		if (b[i] != 0xFF) {
-			for (int j = 0; j < 8; ++j) {
+			for (byte j = 0; j < 8; ++j) {
 				if (((b[i] >> j) & 0x1) == 0x0) {
 					return (i * 8) + j;
 				}

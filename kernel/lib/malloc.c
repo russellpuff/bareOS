@@ -32,7 +32,7 @@ void* malloc(uint64_t size) {
 		prev = curr;
 		curr = curr->next;
 	}
-	if(curr == NULL) return 0;
+	if(curr == NULL) return NULL;
 
 	const byte MIN_BYTES = 8;
 	alloc_t* next;

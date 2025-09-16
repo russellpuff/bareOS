@@ -17,19 +17,20 @@ typedef enum { SEEK_START, SEEK_END, SEEK_HEAD } SEEK_POS;
 typedef enum { FAT_FREE = 0, FAT_END = -1, FAT_RSVD = -2, FAT_BAD = -3 } FAT_FLAG;
 
 /* Function prototypes used in the file system */
-uint32_t mk_ramdisk(uint32_t, uint32_t);                  /* Build the block device                      */
+uint32_t mk_ramdisk(uint32_t, uint32_t, fsystem_t*);      /* Build the block device                      */
 uint32_t free_ramdisk(void);                              /* Free resources associated with block device */
 uint32_t read_bdev(uint32_t, uint32_t, void*, uint32_t);  /* Read a block from the block device          */
 uint32_t write_bdev(uint32_t, uint32_t, void*, uint32_t); /* Write a block to the block device           */
 uint32_t write_super(void);
+void bdev_zero_blocks(uint16_t, uint16_t);
 
 void bm_set(uint32_t);   /* Mark a block as used      */
 void bm_clear(uint32_t); /* Mark a block as unused    */
 byte bm_get(uint32_t); /* Get the state of a block  */
 int32_t bm_findfree(void); /* Find a free block. */
 
-void mkfs(uint32_t, uint32_t); /* Create a blank file system               */
-uint32_t mount_fs(void);       /* Build the structures for the file system */
+bdev_t mkfs(uint32_t, uint32_t); /* Create a blank file system               */
+uint32_t mount_fs(bdev_t);       /* Build the structures for the file system */
 uint32_t umount_fs(void);      /* Clear the structures for the file system */
 
 int16_t fat_get(int16_t);          /* Get the next FAT index at the current block. */
@@ -37,13 +38,16 @@ int16_t fat_set(int16_t, int16_t); /* Set a value to the specified index.       
 
 uint16_t in_find_free(void);          /* Find a free entry in the inode table  */
 byte write_inode(inode_t*, uint16_t); /* Write an in-memory inode to the table */
+inode_t get_inode(uint16_t);          /* Get a live copy of the inode at index */
 
 int32_t create(char*);                    /* Create a file and save it to the block device */
 int32_t open(char*);                      /* Open a file                                   */
 int32_t close(int32_t);                   /* Close a file                                  */
+int32_t inode_write(inode_t*, char*, uint32_t, uint32_t); /* Write to an inode's blocks    */
 int32_t write(uint32_t, char*, uint32_t); /* Write to a file                               */
 int32_t read(uint32_t,char*,uint32_t);    /* Read from file                                */
 uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
+dirent_t mk_dir(char*, uint16_t);         /* Create an empty directory                     */
 
 extern fsystem_t* fsd;
 

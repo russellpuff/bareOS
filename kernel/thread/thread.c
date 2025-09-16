@@ -11,7 +11,7 @@ queue_t sleep_list;
  *  the 'start'  function) to be  running as the  current  thread.
  */
 void init_threads(void) {
-    for (int i = 0; i < NTHREADS; i++) {
+    for (byte i = 0; i < NTHREADS; i++) {
         thread_table[i].state = TH_FREE;
         thread_table[i].parent = NTHREADS;
         thread_table[i].priority = 0;
@@ -92,7 +92,7 @@ int32_t kill_thread(uint32_t threadid) {
     if (threadid >= NTHREADS || thread_table[threadid].state == TH_FREE) /*                                                             */
         return -1;                                                         /*  Return if the requested thread is invalid or already free  */
 
-    for (int i = 0; i < NTHREADS; i++) {          /*                                        */
+    for (byte i = 0; i < NTHREADS; i++) {          /*                                        */
         if (thread_table[i].parent == threadid) /*  Identify all children of the thread   */
             thread_table[i].state = TH_FREE;      /*  Reap running children threads         */
     }
