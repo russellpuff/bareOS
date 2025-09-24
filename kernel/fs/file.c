@@ -7,32 +7,32 @@
  *  unused  block in the block  device and  assign it to  *
  *  the new file.                                         */
 int32_t create(char* filename) {
-	if (fsd->root_dir.numentries == DIR_SIZE) return -1;
+	if (boot_fsd->root_dir.numentries == DIR_SIZE) return -1;
 
 	/* Try to find a slot. */
-	for (uint32_t i = 0; i < fsd->root_dir.numentries; ++i) {
-		if (!strcmp(filename, fsd->root_dir.entry[i].name))
+	for (uint32_t i = 0; i < boot_fsd->root_dir.numentries; ++i) {
+		if (!strcmp(filename, boot_fsd->root_dir.entry[i].name))
 			return -1;
 	}
 	/* Use next available slot (no way to delete files so whatever). */
-	int32_t slot = fsd->root_dir.numentries;
+	int32_t slot = boot_fsd->root_dir.numentries;
 
 	/* Find bit to use. */
 	uint32_t b = 0;
-	for (; b < fsd->device.nblocks; ++b)
+	for (; b < boot_fsd->device.nblocks; ++b)
 		if (!bm_get(b)) break;
-	if (b == fsd->device.nblocks) return -1;
+	if (b == boot_fsd->device.nblocks) return -1;
 
 	/* Copy in filename. */
-	memset(fsd->root_dir.entry[slot].name, '\0', (uint64_t)FILENAME_LEN);
+	memset(boot_fsd->root_dir.entry[slot].name, '\0', (uint64_t)FILENAME_LEN);
 	byte ncopy = 0;
 	while (ncopy < (FILENAME_LEN - 1) && filename[ncopy] != '\0') ++ncopy;
-	memcpy(fsd->root_dir.entry[slot].name, filename, ncopy);
+	memcpy(boot_fsd->root_dir.entry[slot].name, filename, ncopy);
 
 	for (byte n = 0; filename[n] && n < FILENAME_LEN - 1; ++n)
-		fsd->root_dir.entry[slot].name[n] = filename[n];
+		boot_fsd->root_dir.entry[slot].name[n] = filename[n];
 
-	fsd->root_dir.entry[slot].inode_block = b;
+	boot_fsd->root_dir.entry[slot].inode_block = b;
 	/* Construct inode. */
 	inode_t inode;
 	inode.id = b;
@@ -41,11 +41,11 @@ int32_t create(char* filename) {
 		inode.blocks[i] = EMPTY;
 	if (write_bdev(b, 0, &inode, sizeof(inode_t)) == -1) return -1;
 
-	++fsd->root_dir.numentries;
+	++boot_fsd->root_dir.numentries;
 	bm_set(b);
 
-	if (write_bdev(BM_BIT, 0, fsd->freemask, fsd->freemasksz) == -1) return -1; /* write back */
-	if (write_bdev(SB_BIT, 0, fsd, sizeof(fsystem_t)) == -1) return -1; /* write super */
+	if (write_bdev(BM_BIT, 0, boot_fsd->freemask, boot_fsd->freemasksz) == -1) return -1; /* write back */
+	if (write_bdev(SB_BIT, 0, boot_fsd, sizeof(fsystem_t)) == -1) return -1; /* write super */
 	return 0;
 }
 
@@ -58,10 +58,10 @@ int32_t open(char* filename) {
 	/* Try to find the file by name. */
 	int16_t slot = -1;
 	for (int16_t i = 0; i < DIR_SIZE; ++i) {
-		if (!fsd->root_dir.entry[i].name[0]) {
+		if (!boot_fsd->root_dir.entry[i].name[0]) {
 			continue;
 		}
-		if (!strcmp(filename, fsd->root_dir.entry[i].name)) {
+		if (!strcmp(filename, boot_fsd->root_dir.entry[i].name)) {
 			slot = i;
 			break;
 		}
@@ -84,7 +84,7 @@ int32_t open(char* filename) {
 
 	/* Read inode. */
 	inode_t inode;
-	if (read_bdev(fsd->root_dir.entry[slot].inode_block, 0, &inode, sizeof(inode_t)) == -1) return -1;
+	if (read_bdev(boot_fsd->root_dir.entry[slot].inode_block, 0, &inode, sizeof(inode_t)) == -1) return -1;
 
 	/* Populate oft slot with info. */
 	oft[fd].state = FSTATE_OPEN;
@@ -104,7 +104,7 @@ int32_t close(int32_t fd) {
 	if (oft[fd].state == FSTATE_CLOSED) return -1;
 
 	/* Write back inode. */
-	int16_t b = fsd->root_dir.entry[oft[fd].direntry].inode_block;
+	int16_t b = boot_fsd->root_dir.entry[oft[fd].direntry].inode_block;
 	if (write_bdev(b, 0, &oft[fd].inode, sizeof(inode_t)) == -1) return -1;
 
 	/* Clear the entry and set status to close. */
@@ -139,7 +139,7 @@ dirent_t mk_dir(char* name, uint16_t parent) {
 	ino.head = bm_findfree();
 	bm_set(ino.head);
 	fat_set(ino.head, FAT_END);
-	bdev_zero_blocks(&fsd->device, ino.head, 1);
+	bdev_zero_blocks(&boot_fsd->device, ino.head, 1);
 	ino.parent = parent;
 	ino.type = DIR;
 	ino.size = sizeof(dirent_t) * 2;

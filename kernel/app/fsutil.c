@@ -35,8 +35,8 @@ byte builtin_cat(char* arg) {
 byte builtin_ls(char* arg) {
     /* Probably not a good idea to operate straight on the fs, TODO: fs wrappers and helper functions. */
     /* TODO: handle listing subdirectories. */
-    for(byte i = 0; i < fsd->root_dir.numentries; ++i) {
-        kprintf("&x%s%0  ", fsd->root_dir.entry[i].name);
+    for(byte i = 0; i < boot_fsd->root_dir.numentries; ++i) {
+        kprintf("&x%s%0  ", boot_fsd->root_dir.entry[i].name);
     }
     kprintf("\n");
     return 0;

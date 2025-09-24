@@ -6,16 +6,16 @@
 #define FS_MAGIC 0x62726673 /* 'brfs' - bare ram filesystem */
 #define FS_VERSION 2
 
-#define FILENAME_LEN 32         /* Arbitrary maximum length of a filename in the FS */
+/* The current value of FILENAME_LEN is chosen to pad out dirent_t to 64 bytes for simple iterating. */
+#define FILENAME_LEN 56         /* Arbitrary maximum length of a filename in the FS */
 #define BDEV_BLOCK_SIZE 512     /* Size of each block in bytes                      */
 #define BDEV_NUM_BLOCKS 4096    /* Number of blocks in the block device             */
 #define SB_BIT 0   /* Alias for the super block index                               */
 #define BM_BIT 1   /* Alias for the bitmask block index                             */
 #define FT_BIT 2   /* Alias for the start of the fat table block index              */
-#define FT_LEN 16  /* Length of the fat table in blocks                             */
-#define IN_BIT 3   /* Alias for the index of the default first intable block index. */
-
-#define FAT_ITEM_SIZE sizeof(int16_t) /* Size of an entry in the FAT table in bytes. */
+#define FAT_ITEM_SIZE (sizeof(int16_t)) /* Size of an entry in the FAT table in bytes. */
+#define FT_LEN ((BDEV_NUM_BLOCKS * FAT_ITEM_SIZE) / BDEV_BLOCK_SIZE) /* Length of the fat table in blocks */
+#define IN_BIT (FT_BIT + FT_LEN) /* Alias for the index of the default first intable block index. */
 
 #define MAX_INTABLE_BLOCKS 128  /* Completely arbitrary. TODO: Replace array.       */
 #define OFT_MAX 32              /* Also arbitrary.                                  */
@@ -62,11 +62,12 @@ typedef struct {
 	uint16_t curr_block; /* The FAT index of the current block being looked at by ops           */
 	uint16_t curr_index; /* Which MDEV_BLOCK_SIZE-sized chunk in the file curr_block represents */
 	inode_t inode;       /* In-memory copy of the inode.                                        */
+	uint16_t in_index;   /* Index of file's inode                                               */
 	bool in_dirty;       /* A flag saying whether the inode copy has to be written back         */
 } filetable_t;
 
 /* 'fsuper_t' represents serializable data stored in the super block, it contains key   *
- * data required to remake the fs after a reboot. Many of its values are necessary for  *
+ * data required to remake the fs after a remount. Many of its values are necessary for *
  * the in-RAM filesystem_t to function.                                                 */
 typedef struct {
 	uint32_t magic;        /* Magic number used to identify the type of filesystem      */
@@ -80,12 +81,36 @@ typedef struct {
 	byte intable_numblks;  /* Number of blocks ACTUALLY used by the inode table         */
 } fsuper_t;
 
-/* 'fsystem_t' is the combined overarching master record of all the information about the *
- * ramdisk fs. In bareOS, there is only one 'fsystem_t' instance in memory called fsd.    */
+/* 'fsystem_t' is the combined overarching master record of all the information about a *
+ * ramdisk fs. It contains a pointer to the block device, a cached super, and an open   *
+ * file table                                                                           */
 typedef struct {
-	bdev_t device;
+	bdev_t* device;
 	fsuper_t super;
 	filetable_t oft[OFT_MAX];
 } fsystem_t;
+
+/* 'drive_t' is the master authority of a block device. If unmounted, it frees fsd resource while keeping *
+ * the bdev intact. If the drive is mounted again later, the fsd is remade from the bdev's super block.   */
+typedef struct {
+	byte id;
+	bdev_t bdev;
+	fsystem_t* fsd;
+	bool mounted;
+} drive_t;
+
+/* 'drv_reg' is a simple linked list of registered drives, once discovered and registered, * 
+ * a drive becomes available for mount                                                     */
+typedef struct drv_reg {
+	drive_t drive;
+	drv_reg* next;
+} drv_reg;
+
+/* 'mount_t' is a simple linked list of actively mounted drives that exposes their fsd and mount point (mp) */
+typedef struct mount {
+	fsystem_t* fsd;
+	const char* mp;
+	mount_t* next;
+} mount_t;
 
 #endif

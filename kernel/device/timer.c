@@ -13,7 +13,7 @@
 #define TRAP_TIMER_ENABLE 0xa0
 
 volatile uint64_t* clint_timer_addr  = (uint64_t*)0x2004000;
-const uint64_t timer_interval = 100000;
+const uint64_t timer_interval = 100000; /* 10ns, maybe slow this down one day. */
 
 /*
  * This function is called as part of the bootstrapping sequence

@@ -36,13 +36,11 @@ uint32_t get_filesize(uint32_t fd) {
 	return oft[fd].inode.size;
 }
 
-/* Helper function to find the first free block. */
-int32_t find_free_block(void) {
-	/* Start at 2 to skip super and bitmask blocks. */
-	for (uint16_t b = 2; b < fsd->device.nblocks; ++b) {
-		if (getmaskbit_fs(b) == 0) return b;
-	}
-	return -1;
+/* 'inode_write' takes an inode and writes to its blocks directly, used in  * 
+ * cases where you only have an inode and not a dirent_t name to open the   * 
+ * file with. When writing to directories you know the name of, use 'write' */
+int32_t inode_write(inode_t* inode, char* buff, uint32_t offset, uint32_t len) {
+
 }
 
 /* fs_write - Takes a file descriptor index into the 'oft', a  pointer to a  *
@@ -82,8 +80,8 @@ int32_t write(uint32_t fd, char* buff, uint32_t len) {
 
 	inode->size = oft[fd].head > orig_size ? oft[fd].head : orig_size; /* Overwrites don't add size. */
 	write_bdev(inode->id, 0, inode, sizeof(inode_t)); /* write inode */
-	write_bdev(BM_BIT, 0, fsd->freemask, fsd->freemasksz); /* write back */
-	write_bdev(SB_BIT, 0, fsd, sizeof(*fsd)); /* write super */
+	write_bdev(BM_BIT, 0, boot_fsd->freemask, boot_fsd->freemasksz); /* write back */
+	write_bdev(SB_BIT, 0, boot_fsd, sizeof(*boot_fsd)); /* write super */
 	return written;
 }
 

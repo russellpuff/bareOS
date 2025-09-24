@@ -30,7 +30,8 @@ byte bm_get(uint32_t); /* Get the state of a block  */
 int32_t bm_findfree(void); /* Find a free block. */
 
 bdev_t mkfs(uint32_t, uint32_t); /* Create a blank file system               */
-uint32_t mount_fs(bdev_t);       /* Build the structures for the file system */
+byte discover_drive(byte*); /* Try to discover a drive from a ramdisk in memory */
+uint32_t mount_fs(drive_t*);       /* Build the structures for the file system */
 uint32_t umount_fs(void);      /* Clear the structures for the file system */
 
 int16_t fat_get(int16_t);          /* Get the next FAT index at the current block. */
@@ -49,6 +50,8 @@ int32_t read(uint32_t,char*,uint32_t);    /* Read from file                     
 uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
 dirent_t mk_dir(char*, uint16_t);         /* Create an empty directory                     */
 
-extern fsystem_t* fsd;
+extern fsystem_t* boot_fsd;
+static drv_reg* reg_drives = NULL;
+static mount_t* mounted = NULL;
 
 #endif
