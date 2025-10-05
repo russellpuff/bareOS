@@ -28,7 +28,7 @@ typedef struct {
 } pte_t;
 
 void init_pages(void);
-uint64_t alloc_page(prequest, uint64_t*, byte, byte, byte, byte, byte);
+uint64_t alloc_page(prequest, uint64_t*, uint64_t*);
 
 extern uint64_t kernel_root_ppn;
 

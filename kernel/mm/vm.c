@@ -198,7 +198,7 @@ void init_pages(void) {
  * get the start of the leaf ppn (for threads, etc.)                           */
 /* Implicitly enforces alignment... for now. Need MVP, will worry later        */
 /* No ASID explicitly set, ASID = thread ID into the static thread table.      */
-uint64_t alloc_page(prequest req_type, uint64_t* start, byte R, byte W, byte X, byte G, byte U) {
+uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 	int64_t leaf_ppn;
 	int64_t root_ppn = NULL;
 	if (req_type != ALLOC_PROC && req_type != ALLOC_IDLE) return NULL; // Other allocations unsupported for now because no context exists where they're used.
@@ -216,14 +216,16 @@ uint64_t alloc_page(prequest req_type, uint64_t* start, byte R, byte W, byte X, 
 			set_megapage(leaf2_ppn);
 			map_2m(root_ppn, 0x0UL, PPN_TO_ADDR(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
 			map_2m(root_ppn, 0x200000UL, PPN_TO_ADDR(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
-			*start = PPN_TO_ADDR(leaf_ppn);
+			*exec = PPN_TO_ADDR(leaf_ppn);
+			*stack = PPN_TO_ADDR(leaf2_ppn);
 			return root_ppn;
 		case ALLOC_IDLE:
 			leaf_ppn = pfm_findfree_4k();
 			pfm_set(leaf_ppn);
 			clean_page(leaf_ppn);
 			map_4k(kernel_root_ppn, 0x81200000UL, PPN_TO_ADDR(leaf_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/0);
-			*start = PPN_TO_ADDR(leaf_ppn);
+			*exec = PPN_TO_ADDR(leaf_ppn);
+			*stack = NULL; /* for now */
 			return kernel_root_ppn;
 	}
 	return NULL;
