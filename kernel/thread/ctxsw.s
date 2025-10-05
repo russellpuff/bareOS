@@ -9,6 +9,13 @@ _sys_thread_loaded:
 #  `ctxsw`  takes two arguments, a source  thread and destination thread.  It
 #  saves the current  state of the CPU into the  source thread's  table entry
 #  then restores the state of the destination thread onto the CPU and returns
+
+# thread_t offsets per IDE-reported memory layout
+    .equ THREAD_STACKPTR, 0
+    .equ THREAD_ROOTPPN,  8
+    .equ THREAD_ASID,     24
+	.equ SATP_MODE_SV39,  (8 << 60)
+
 .globl ctxsw
 ctxsw:
 	sd ra,  -1*REGSZ(sp)  # --
@@ -41,9 +48,18 @@ ctxsw:
 	sd t0, -29*REGSZ(sp)  #  |
 	csrr t0, sepc         #  |
 	sd t0, -3*REGSZ(sp)   # --  
-	sd sp, 0(a1)          # --  Store the current stack pointer to the thread table (argument 1)
+	sd sp, THREAD_STACKPTR(a1)  # --  Store the current stack pointer to old thread -> stackptr
+
+	lhu t1, THREAD_ASID(a0)     # -- Load new thread ASID
+	ld t2, THREAD_ROOTPPN(a0)   # -- Load new thread root ppn
+	sll t1, t1, 44              # -- Shift ASID left into place
+	or t0, t1, t2               # -- Combine ASID and ppn
+	li t3, SATP_MODE_SV39       # -- Get mode (8 for Sv39, will never change, pre-shifted)
+	or t0, t0, t3               # -- Combine all
+	csrw satp, t0               # -- Write to satp register
+	sfence.vma x0, x0           # -- Flush TLB entries
 	
-	ld sp, 0(a0)          # --  Load the new stack pointer from the thread table  (argument 0)
+	ld sp, THREAD_STACKPTR(a0)  # --  Load the new stack pointer from the thread table  (argument 0)
 	ld ra,  -1*REGSZ(sp)  # --
 	ld a0,  -2*REGSZ(sp)  #  |
 	ld t0,  -3*REGSZ(sp)  #  |

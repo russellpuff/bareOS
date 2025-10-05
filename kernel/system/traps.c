@@ -1,6 +1,7 @@
 #include <lib/barelib.h>
 #include <system/thread.h>
 #include <system/interrupts.h>
+#include <system/syscall.h>
 #include <device/timer.h>
 
 /*
@@ -28,13 +29,28 @@ m_interrupt delegate_clk(void) {
 		  "csrs mie, t0\n");
 }
 
-/*
- *  This function is a placeholder for implementing handler behavior for
- *  exceptions (such as Load Access Fault or Illegal Instruction exceptions)
- *  Initially, bareOS ignores any non-ECALL exceptions, and the behavior
- *  of attempting an instruction that triggers such a fault is undefined.
- */
+/* Rudimentary exception handler, will handle more exceptions as time goes on. */
 m_interrupt handle_exception(void) {
-  
+    uint64_t cause, tval;
+    asm volatile("csrr %0, scause" : "=r"(cause)); /* Get why trap occurred */
+    asm volatile("csrr %0, stval" : "=r"(tval));   /* Get faulting virtual address (not all exceptions use this) */
+
+    if ((cause & (1ULL << 63)) == 0) { /* Synchronous exception */
+        uint64_t code = cause & 0xfffULL; /* Get exception code */
+        /* Placeholder for handling basic page faults without a crash */
+        /* 12 = instruction page fault */
+        /* 13 = load page fault        */
+        /* 15 = store page fault */
+        if (code == 12 || code == 13 || code == 15) {
+            /* No handler. Just kill the thread. */
+            kprintf("Thread %u faulted at 0x%x on code %u\n", current_thread, (uint32_t)tval, code);
+            kill_thread(current_thread);
+            raise_syscall(RESCHED);
+            return;
+        }
+    }
+
+    kprintf("Unhandled exception: scause=0x%lu stval=0x%lu\n", cause, tval);
+    while (1);
 }
 

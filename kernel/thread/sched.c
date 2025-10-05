@@ -18,7 +18,7 @@ void resched(void) {
         queue_table[old_thread].key = thread_table[old_thread].priority;
         enqueue_thread(&ready_list, old_thread);
     }
-    ctxsw(&(thread_table[new_thread].stackptr), &(thread_table[old_thread].stackptr));
+    ctxsw(&thread_table[new_thread], &thread_table[old_thread]);
     return;
 }
 

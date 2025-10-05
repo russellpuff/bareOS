@@ -20,23 +20,23 @@
 #define TH_SLEEP (TH_QUEUED | TH_PAUSED | TH_TIMED)       /*                                                 */
 #define TH_WAITING (TH_QUEUED | TH_PAUSED)
 
-#define THREAD_STACK_SZ (((&mem_end - &mem_start) / 2) / NTHREADS)  /*  Macro calculates the size of a thread stack  */
-#define get_stack(n) (&mem_end - (n * THREAD_STACK_SZ))             /*  Macro gets start of stack by thread index    */
-
 
 /*  Each thread has a corresponding 'thread_t' record in the 'thread_table' (see system/create.c)  */
 /*  These entries contain information about the thread                                             */
 typedef struct _thread {
-  byte state;            /*  The current state of the thread                                         */
-  uint64_t* stackptr;      /*  A pointer to the lowest stack address for the thread                    */
-  uint32_t parent;         /*  The index into the 'thread_table' of the thread's parent                */
-  byte retval;           /*  The return value of the function (only valid when state == TH_DEFUNCT)  */
-  uint32_t priority;       /*  Thread priority (0=highest MAX_UINT32=lowest)                           */
-  semaphore_t sem;       /*  Semaphore for the current thread                                        */
+	uint64_t* stackptr; /* A pointer to the lowest stack address for the thread                    */
+	uint64_t root_ppn;  /* Physical page number of this thread's root page                         */
+	uint32_t priority;  /* Thread priority (0=highest MAX_UINT32=lowest)                           */
+	uint32_t parent;    /* The index into the 'thread_table' of the thread's parent                */
+	uint16_t asid;      /* Address space identifier for this thread. For now, it's just the ID     */
+	byte state;         /* The current state of the thread                                         */
+	byte retval;        /* The return value of the function (only valid when state == TH_DEFUNCT)  */
+	uint32_t _rsv1;     /* Reserved for furture use (padding)                                      */
+	semaphore_t sem;    /* Semaphore for the current thread                                        */
 } thread_t;
 
 extern thread_t thread_table[];
-extern uint32_t   current_thread;    /*  The currently running thread  */
+extern uint32_t current_thread;    /*  The currently running thread  */
 extern queue_t sleep_list;
 
 
@@ -52,6 +52,7 @@ int32_t unsleep_thread(uint32_t);
 
 void resched(void);
 
-void ctxsw(uint64_t**, uint64_t**);
+void ctxsw(thread_t*, thread_t*);
+void ctxload(thread_t*);
 
 #endif

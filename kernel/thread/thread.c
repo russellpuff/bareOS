@@ -1,7 +1,7 @@
 #include <system/thread.h>
 #include <system/interrupts.h>
 
-thread_t thread_table[NTHREADS];  /*  Create a table of threads (one extra for the EMPTY proc */
+thread_t thread_table[NTHREADS];  /*  Create a table of threads  */
 uint32_t current_thread = 0;        /*  Set the initial thread id to 0                          */
 queue_t sleep_list;
 
@@ -15,7 +15,7 @@ void init_threads(void) {
         thread_table[i].state = TH_FREE;
         thread_table[i].parent = NTHREADS;
         thread_table[i].priority = 0;
-        thread_table[i].stackptr = (uint64_t*)get_stack(i);
+        thread_table[i].stackptr = NULL;
         thread_table[i].sem = create_sem(0);
     }
     current_thread = 0;
