@@ -7,6 +7,7 @@
 #include <system/interrupts.h>
 #include <system/queue.h>
 #include <mm/malloc.h>
+#include <mm/vm.h>
 #include <device/tty.h>
 #include <fs/fs.h>
 #include <fs/importer.h>
@@ -33,7 +34,8 @@ void initialize(void) {
 	mkfs();
 	mount_fs();
 	generic_importer(imp);
-	free(imp); 
+	free(imp);
+	init_pages();
 }
 
 /* This function displays the welcome screen when the system and shell boot. */
@@ -41,11 +43,11 @@ void display_welcome(void) {
 	kprintf("Welcome to bareOS alpha%d-%d.%d.%d (qemu-system-riscv64)\n\n", VERSION_ALPHA, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	kprintf("  Kernel information as of Who Knows When\n\n");
 	kprintf("  Kernel start: %x\n  Kernel size: %d\n  Globals start: %x\n  Heap/Stack start: %x\n  Free Memory Available: %d\n\n",
-		(unsigned long)&text_start,
-		(unsigned long)(&data_start - &text_start),
-		(unsigned long)&data_start,
-		(unsigned long)&mem_start,
-		(unsigned long)(&mem_end - &mem_start));
+		(uint64_t)&text_start,
+		(uint64_t)(&data_start - &text_start),
+		(uint64_t)&data_start,
+		(uint64_t)&mem_start,
+		(uint64_t)(&mem_end - &mem_start));
 	
 	/* Janky way of detecting importer status on boot. */
 	char sentinel[] = "Importer finished with no errors.";

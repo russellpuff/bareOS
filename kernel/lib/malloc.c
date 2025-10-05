@@ -1,16 +1,16 @@
 #include <lib/barelib.h>
 #include <system/thread.h>
 #include <mm/malloc.h>
+#include <mm/vm.h>
 
 alloc_t* freelist;
 
-/*  Sets the 'freelist' to 'mem_start' and creates  *
- *  a free allocation at that location for the      *
- *  entire heap.                                    */
-//--------- This function is complete --------------//
+/* While the freelist is still fixed and kernel malloc isn't page-aware, we limit its size manually */
+#define FREELIST_MAX 16 * 1024 * 1024
+
 void init_heap(void) {
-  freelist = (alloc_t*)&mem_start;
-  freelist->size = (uint64_t)(get_stack(NTHREADS) - &mem_start - sizeof(alloc_t));
+  freelist = (alloc_t*)ALIGN_UP_2M(&mem_start);
+  freelist->size = FREELIST_MAX;
   freelist->state = M_FREE;
   freelist->next = NULL;
 }
