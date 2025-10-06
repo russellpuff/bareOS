@@ -44,9 +44,8 @@ void wrapper(byte(*proc)(char*)) {
  *  configures this  entry to represent a newly  created thread running the  *
  *  entry point function and places it in the suspended state.               */
 int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
-    uint64_t i, j, pad;
+    uint64_t i, pad;
     byte* stkptr_pa;
-    uint64_t* ctxptr;
 
     for (i = 0; i < NTHREADS && thread_table[i].state != TH_FREE; i++); /*  Find the first TH_FREE entry in the thread table    */
     if (i == NTHREADS)                                                  /*                                                      */

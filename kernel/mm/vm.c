@@ -24,11 +24,12 @@ static void pfm_set(uint64_t ppn) {
 	page_freemask[x / 8] |= 0x1 << (x % 8);
 }
 
-/* Returns whether a ppn is used (1) or free (0) */
-static byte pfm_get(uint64_t ppn) {
-	uint64_t x = PPN_TO_IDX(ppn);
-	return (page_freemask[x / 8] >> (x % 8)) & 0x1;
-}
+/* Unused for now, removed bc -Wall -Werror */
+// /* Returns whether a ppn is used (1) or free (0) */
+// static byte pfm_get(uint64_t ppn) {
+// 	uint64_t x = PPN_TO_IDX(ppn);
+// 	return (page_freemask[x / 8] >> (x % 8)) & 0x1;
+// }
 
 /* Sets a ppn as unused */
 static void pfm_clear(uint64_t ppn) {
@@ -84,8 +85,8 @@ static void clear_megapage(uint64_t x) {
 // Page operators
 //
 /* Zeroes out a page */
-static void clean_page(uint64_t x) {
-	byte* page = PPN_TO_ADDR(x);
+static void clean_page(uint64_t ppn) {
+	byte* page = (byte*)PPN_TO_KVA(ppn);
 	memset(page, 0, PAGE_SIZE);
 }
 
@@ -112,7 +113,7 @@ static pte_t make_leaf(uint64_t leaf_ppn, bool R, bool W, bool X, bool G, bool U
 
 /* Checks if there's an L1 that exists for this L2. */
 static pte_t* ensure_l1(uint64_t root_l2_ppn, uint64_t va) {
-	pte_t* l2_page = (pte_t*)PPN_TO_ADDR(root_l2_ppn);
+	pte_t* l2_page = (pte_t*)PPN_TO_KVA(root_l2_ppn);
 	uint64_t idx = va_vpn2(va);
 	if (!l2_page[idx].v) {
 		uint64_t l1_ppn = pfm_findfree_4k(); 
@@ -120,7 +121,7 @@ static pte_t* ensure_l1(uint64_t root_l2_ppn, uint64_t va) {
 		clean_page(l1_ppn);
 		l2_page[idx] = make_nonleaf(l1_ppn);
 	}
-	return (pte_t*)PPN_TO_ADDR(l2_page[idx].ppn);
+	return (pte_t*)PPN_TO_KVA(l2_page[idx].ppn);
 }
 
 /* These mapping functions assume alignment. Kernel is always aligned *
@@ -145,19 +146,19 @@ static void map_4k(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 		clean_page(l0_ppn);
 		l1_page[l1_idx] = make_nonleaf(l0_ppn);
 	}
-	pte_t* l0 = (pte_t*)PPN_TO_ADDR(l1_page[l1_idx].ppn);
+	pte_t* l0 = (pte_t*)PPN_TO_KVA(l1_page[l1_idx].ppn);
 	uint64_t i0 = va_vpn0(virt_addr);
 	l0[i0] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
 }
 
 static void clone_kernel_map(uint64_t new_root_ppn) {
-	byte* dst = PPN_TO_ADDR(new_root_ppn);
-	void* src = PPN_TO_ADDR(kernel_root_ppn);
+	byte* dst = (byte*)PPN_TO_KVA(new_root_ppn);
+	byte* src = (byte*)PPN_TO_KVA(kernel_root_ppn);
 	memcpy(dst, src, PAGE_SIZE);
 }
 
 static void free_l0(uint64_t l0_ppn) {
-	pte_t* l0 = (pte_t*)PPN_TO_ADDR(l0_ppn);
+	pte_t* l0 = (pte_t*)PPN_TO_KVA(l0_ppn);
 	for (uint16_t i = 0; i < 512; ++i) {
 		if (!l0[i].v) continue;
 		pfm_clear(l0[i].ppn);
@@ -168,7 +169,7 @@ static void free_l0(uint64_t l0_ppn) {
 }
 
 static void free_l1(uint64_t l1_ppn) {
-	pte_t* l1 = (pte_t*)PPN_TO_ADDR(l1_ppn);
+	pte_t* l1 = (pte_t*)PPN_TO_KVA(l1_ppn);
 	for (uint16_t i = 0; i < 512; ++i) {
 		if (!l1[i].v) continue;
 		if (l1[i].r || l1[i].w || l1[i].x) clear_megapage(l1[i].ppn);
@@ -200,20 +201,28 @@ void init_pages(void) {
 	pfm_set(kernel_root_ppn);
 	clean_page(kernel_root_ppn);
 
+	/* Map all of ram virtual-style */
+	uint64_t pa = (uint64_t)&text_start & ~((1ULL << 21) - 1);
+	uint64_t end = ((uint64_t)&mem_end + ((1ULL << 21) - 1)) & ~((1ULL << 21) - 1);
+	for (; pa < end; pa += (1UL << 21)) {
+		uint64_t va = KDM_BASE + pa;
+		map_2m(kernel_root_ppn, va, pa, /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	}
+
 	/* Map kernel (identity-map style) */
 	uint64_t k_virt_addr = (uint64_t)&text_start;
-	uint64_t p_page_addr = PPN_TO_ADDR(kernel_leaf_ppn);
+	uint64_t p_page_addr = (uint64_t)PPN_TO_KVA(kernel_leaf_ppn);
 	map_2m(kernel_root_ppn, k_virt_addr, p_page_addr,/*R*/1,/*W*/1,/*X*/1,/*G*/1,/*U*/0);
 
 	/* Map kernel-heap to kernel root */
 	for (uint64_t i = 0; i < 8; ++i) {
 		uint64_t hva = k_virt_addr + 0x200000UL * (i + 1);
-		uint64_t hpa = PPN_TO_ADDR(heap_leaf0_ppn) + (0x200000UL * i);
+		uint64_t hpa = (uint64_t)PPN_TO_KVA(heap_leaf0_ppn) + (0x200000UL * i);
 		map_2m(kernel_root_ppn, hva, hpa, /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
 	}
 
 	/* Map whole ass MMIO to kernel. Why not? */
-	pte_t* l2 = (pte_t*)(PPN_TO_ADDR(kernel_root_ppn));
+	pte_t* l2 = (pte_t*)(PPN_TO_KVA(kernel_root_ppn));
 	/* L2 index for 1 GiB slices */
 	const uint64_t pa0 = 0x00000000UL;
 	const uint64_t pa1 = 0x40000000UL;
@@ -243,18 +252,18 @@ uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 			set_megapage(leaf_ppn);
 			int64_t leaf2_ppn = pfm_findfree_2m();
 			set_megapage(leaf2_ppn);
-			map_2m(root_ppn, 0x0UL, PPN_TO_ADDR(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
-			map_2m(root_ppn, 0x200000UL, PPN_TO_ADDR(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
-			*exec = PPN_TO_ADDR(leaf_ppn);
-			*stack = PPN_TO_ADDR(leaf2_ppn);
+			map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_KVA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
+			map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_KVA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
+			*exec = (uint64_t)PPN_TO_KVA(leaf_ppn);
+			*stack = (uint64_t)PPN_TO_KVA(leaf2_ppn);
 			return root_ppn;
 		case ALLOC_IDLE:
 			leaf_ppn = pfm_findfree_4k();
 			pfm_set(leaf_ppn);
 			clean_page(leaf_ppn);
-			map_4k(kernel_root_ppn, 0x81200000UL, PPN_TO_ADDR(leaf_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/0);
-			*exec = PPN_TO_ADDR(leaf_ppn);
-			*stack = NULL; /* for now */
+			map_4k(kernel_root_ppn, 0x81200000UL, (uint64_t)PPN_TO_KVA(leaf_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/0);
+			*exec = (uint64_t)PPN_TO_KVA(leaf_ppn);
+			*stack = (uint64_t)NULL; /* for now */
 			return kernel_root_ppn;
 	}
 	return NULL;
@@ -264,9 +273,7 @@ uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 /* Cannot clear a gigapage. We don't have any non-kernel gigapages so who cares. */
 void free_pages(uint64_t root_ppn) {
 	if (root_ppn == kernel_root_ppn) return;
-
-	pte_t* root = (pte_t*)PPN_TO_ADDR(root_ppn);
-	pte_t* kernel_root = (pte_t*)PPN_TO_ADDR(kernel_root_ppn);
+	pte_t* root = (pte_t*)PPN_TO_KVA(root_ppn);
 
 	for (uint16_t i = 0; i < 512; ++i) {
 		if (!root[i].v) continue;

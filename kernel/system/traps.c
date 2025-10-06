@@ -1,4 +1,5 @@
 #include <lib/barelib.h>
+#include <lib/bareio.h>
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/syscall.h>
