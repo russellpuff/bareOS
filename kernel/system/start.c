@@ -72,6 +72,7 @@ void display_welcome(void) {
 static void sys_idle() { while(1); }
 
 static void root_thread(void) {
+	MMU_ENABLED = true;
 	display_welcome();
 	uint32_t idle_tid = create_thread(&sys_idle, "", 0);
 	resume_thread(idle_tid);

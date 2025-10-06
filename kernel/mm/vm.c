@@ -14,6 +14,7 @@ static inline uint64_t va_vpn0(uint64_t va) { return (va >> 12) & 0x1ff; }
 
 byte* page_freemask;
 uint64_t kernel_root_ppn;
+bool MMU_ENABLED;
 
 //
 // Bitmask operators
@@ -185,6 +186,8 @@ static void free_l1(uint64_t l1_ppn) {
 
 /* TODO: panic if any ppn is -1 */
 void init_pages(void) {
+	MMU_ENABLED = false;
+
 	page_freemask = malloc(FREEMASK_SZ);
 	memset(page_freemask, 0, FREEMASK_SZ);
 
