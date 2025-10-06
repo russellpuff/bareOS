@@ -14,10 +14,11 @@ queue_t sleep_list;
  */
 void init_threads(void) {
     for (int i = 0; i < NTHREADS; i++) {
-        thread_table[i].state = TH_FREE;
-        thread_table[i].parent = NTHREADS;
-        thread_table[i].priority = 0;
         thread_table[i].stackptr = NULL;
+        thread_table[i].priority = 0;
+        thread_table[i].parent = NTHREADS;
+        thread_table[i].asid = i;
+        thread_table[i].state = TH_FREE;
         thread_table[i].sem = create_sem(0);
     }
     current_thread = 0;
@@ -107,11 +108,14 @@ int32_t kill_thread(uint32_t threadid) {
     if (threadid >= NTHREADS || thread_table[threadid].state == TH_FREE) /*                                                             */
         return -1;                                                         /*  Return if the requested thread is invalid or already free  */
 
-    for (int i = 0; i < NTHREADS; i++) {          /*                                        */
-        if (thread_table[i].parent == threadid) /*  Identify all children of the thread   */
-            thread_table[i].state = TH_FREE;      /*  Reap running children threads         */
+    for (int i = 0; i < NTHREADS; i++) {               /*                                        */
+        if (thread_table[i].parent == threadid)        /*  Identify all children of the thread   */
+            thread_table[i].state = TH_FREE;           /*  Reap running children threads         */
     }
-    thread_table[threadid].state = TH_DEFUNCT; /*  Set the thread's state to TH_DEFUNCT  */
+    thread_table[threadid].state = TH_DEFUNCT;         /*  Set the thread's state to TH_DEFUNCT  */
+    if (thread_table[threadid].root_ppn != kernel_root_ppn) {
+        free_pages(thread_table[threadid].root_ppn);   /*  Free pages associated with thread     */
+    }
     post_sem(&thread_table[threadid].sem); /* Notify waiting threads. */
     free_sem(&thread_table[threadid].sem); /* Calls resched after dumping children. */
     return 0;
