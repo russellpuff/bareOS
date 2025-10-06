@@ -72,12 +72,12 @@ void display_welcome(void) {
 static void sys_idle() { while(1); }
 
 static void root_thread(void) {
-    uint32_t idleTID = create_thread(&sys_idle, "", 0);
-    resume_thread(idleTID);
-    uint32_t sh = create_thread(&shell, "", 0);
-    resume_thread(sh);
-    join_thread(sh);
-    while(1);
+	display_welcome();
+	uint32_t idle_tid = create_thread(&sys_idle, "", 0);
+	resume_thread(idle_tid);
+    uint32_t shell_tid = create_thread(&shell, "", 0);
+    resume_thread(shell_tid);
+    join_thread(shell_tid);
 }
 
 /*
@@ -86,7 +86,9 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
   initialize();
-  display_welcome();
-  root_thread();
+  uint32_t root_tid = create_thread(&root_thread, "", 0);
+  current_thread = (uint32_t)root_tid;
+  thread_table[current_thread].state = TH_RUNNING;
+  ctxload(&thread_table[current_thread]);
 }
 

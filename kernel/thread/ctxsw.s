@@ -16,10 +16,14 @@ _sys_thread_loaded:
     .equ THREAD_ASID,     24
 	.equ SATP_MODE_SV39,  (8 << 60)
 
+	.equ CTX_BYTES, (29*REGSZ)
+	.extern kernel_root_ppn
+
 .globl ctxsw
 ctxsw:
 	sd ra,  -1*REGSZ(sp)  # --
 	sd a0,  -2*REGSZ(sp)  #  |
+	csrr t0, sepc         #  |
 	sd t1,  -4*REGSZ(sp)  #  |
 	sd t2,  -5*REGSZ(sp)  #  |
 	sd s0,  -6*REGSZ(sp)  #  |
@@ -44,9 +48,8 @@ ctxsw:
 	sd t3, -25*REGSZ(sp)  #  |
 	sd t4, -26*REGSZ(sp)  #  |
 	sd t5, -27*REGSZ(sp)  #  |
-	sd s6, -28*REGSZ(sp)  #  |
+	sd t6, -28*REGSZ(sp)  #  |
 	sd t0, -29*REGSZ(sp)  #  |
-	csrr t0, sepc         #  |
 	sd t0, -3*REGSZ(sp)   # --  
 	sd sp, THREAD_STACKPTR(a1)  # --  Store the current stack pointer to old thread -> stackptr
 
@@ -88,8 +91,9 @@ ctxsw:
 	ld t3, -25*REGSZ(sp)  #  |
 	ld t4, -26*REGSZ(sp)  #  |
 	ld t5, -27*REGSZ(sp)  #  |
-	ld s6, -28*REGSZ(sp)  #  |
+	ld t6, -28*REGSZ(sp)  #  |
 	ld t0, -29*REGSZ(sp)  # --
+	addi sp, sp, CTX_BYTES
 	ret
 
 #  `ctxload` loads a thread  onto the CPU without a  source thread.  This
@@ -97,9 +101,16 @@ ctxsw:
 #  bootstrap into the OS's steady state.
 .globl ctxload
 ctxload:                            # --
-	ld sp, 0(a0)                #  | Set the stack pointer to a provided memory address (first argument)
-	ld a0, -2*REGSZ(sp)         #  | Load the entry point procedure's address from the stack
-	ld ra, -3*REGSZ(sp)         #  | Load the wrapper's address from the stack
-	li t0, 0x1                  #  |
-	sw t0,_sys_thread_loaded,t1 #  | Mark the thread as loaded (for validation)
-	ret                         # --
+	ld sp, THREAD_STACKPTR(a0)  #  | Set the stack pointer to the new thread's stack
+    la t0, kernel_root_ppn      #  |
+    ld t0, 0(t0)                #  | Load the kernel root PPN
+    li t1, SATP_MODE_SV39       #  |
+    or t0, t0, t1               #  | Combine root PPN with mode to enable Sv39
+    csrw satp, t0               #  | Program satp with kernel root
+    sfence.vma x0, x0           #  | Flush TLB before using the new address space
+    ld a0, -2*REGSZ(sp)         #  | Load the entry point procedure's address from the stack
+    ld ra, -3*REGSZ(sp)         #  | Load the wrapper's address from the stack
+    li t0, 0x1                  #  |
+    la t1, _sys_thread_loaded   #  |
+    sw t0, 0(t1)                #  | Mark the thread as loaded (for validation)
+    ret                         # --
