@@ -1,4 +1,5 @@
 import os, shutil, re, subprocess
+from SCons.Script import GetOption
 
 # Disable out of date targets --------------------------------------------------------------------------
 
@@ -59,6 +60,24 @@ build_dir = ".build"
 inc_dir   = os.path.join("kernel", "include")
 ld_file   = os.path.join("kernel", "kernel.ld")
 map_file  = File(os.path.join(build_dir, "kernel.map"))
+
+
+def _safe_remove(path: str) -> None:
+    #Remove build artifacts while handling any cleanup errors gracefully.
+    try:
+        if os.path.isdir(path):
+            print(f"scons: Removing build directory: {path}")
+            shutil.rmtree(path)
+        elif os.path.isfile(path):
+            print(f"scons: Removing build artifact: {path}")
+            os.remove(path)
+    except OSError as exc:
+        print(f"scons: Failed to remove {path}: {exc}")
+
+
+if GetOption("clean"):
+    _safe_remove(build_dir)
+    _safe_remove(".sconsign.dblite")
 
 PORT = 6999
 logfile = ARGUMENTS.get("logfile", "")
