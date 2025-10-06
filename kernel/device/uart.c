@@ -4,14 +4,14 @@
 #include <device/tty.h>
 #include <mm/vm.h>
 
-#define UART_PRIO_ADDR (0xc000028 + (MMU_ENABLED ? KVM_BASE : 0))         /*  These  values and  addresses  are used to  setup  */
+#define UART_PRIO_ADDR (0xc000028 + (1 ? KVM_BASE : 0))         /*  These  values and  addresses  are used to  setup  */
 #define UART_ENABLE 0x400                                                 /*  the UART on the PLIC.  The addresses must be set  */
-#define EXTERNAL_ENABLED_ADDR (0xc002080 + (MMU_ENABLED ? KVM_BASE : 0))  /*  to certain  values to enable the UART  hardware.  */
+#define EXTERNAL_ENABLED_ADDR (0xc002080 + (1 ? KVM_BASE : 0))  /*  to certain  values to enable the UART  hardware.  */
 
 #define UART0_BAUD 115200                 /* Configuration parameters for the UART.  BAUD and   */
 #define UART0_FREQ 1843200                /* FREQ are factors for the rate to send characters   */
 
-#define UART0_CFG_REG (0x10000000 + (MMU_ENABLED ? KVM_BASE : 0))         /*  This addresses are for the NS16550  UART module  */
+#define UART0_CFG_REG (0x10000000 + (1 ? KVM_BASE : 0))         /*  This addresses are for the NS16550  UART module  */
 #define UART0_RW_REG   0x0                                                /*  Each device on the PLIC has dedicated addresses  */
 #define UART0_INTR_REG 0x1                                                /*  tied to hardware registers.  These are the ones  */
 #define UART0_RW_H_REG 0x2                                                 /*  used by the UART.                                */
@@ -66,8 +66,9 @@ char uart_getc(void) {
  *  It is NOT modifying the behavior of the OS level interrupt handling.  This will *
  *  not - for instance - disable timer interrupts, only UART TX interrupts          */
 void set_uart_interrupt(byte enabled) {
-  byte state = uart[UART0_INTR_REG];
-  uart[UART0_INTR_REG] = (enabled ? (state | UART_TX_ON) : (state & ~UART_TX_ON));  /*  Set the "write ready" interrupt on the UART  */
+    if (!MMU_ENABLED) return;
+    byte state = uart[UART0_INTR_REG];
+    uart[UART0_INTR_REG] = (enabled ? (state | UART_TX_ON) : (state & ~UART_TX_ON));  /*  Set the "write ready" interrupt on the UART  */
 }
 
 /*

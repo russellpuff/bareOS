@@ -88,13 +88,9 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
   initialize();
-  dump_root_page("kernel", kernel_root_ppn);
   uint32_t root_tid = create_thread(&root_thread, "", 0);
   current_thread = (uint32_t)root_tid;
   thread_table[current_thread].state = TH_RUNNING;
-  kprintf("stkptr: %x\nroot_ppn: %d\nasid: %d\n\n",
-	  thread_table[current_thread].stackptr, thread_table[current_thread].root_ppn, thread_table[current_thread].asid);
-  dump_root_page("root_thread", thread_table[current_thread].root_ppn);
   ctxload(&thread_table[current_thread]);
 }
 

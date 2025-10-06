@@ -12,9 +12,29 @@ static inline uint64_t va_vpn2(uint64_t va) { return (va >> 30) & 0x1ff; }
 static inline uint64_t va_vpn1(uint64_t va) { return (va >> 21) & 0x1ff; }
 static inline uint64_t va_vpn0(uint64_t va) { return (va >> 12) & 0x1ff; }
 
+#define PTE_V (1UL << 0)
+#define PTE_R (1UL << 1)
+#define PTE_W (1UL << 2)
+#define PTE_X (1UL << 3)
+#define PTE_U (1UL << 4)
+#define PTE_G (1UL << 5)
+#define PTE_A (1UL << 6)
+#define PTE_D (1UL << 7)
+#define PTE_PPN_SHIFT 10
+#define PTE_PPN(x) ((uint64_t)(x) << PTE_PPN_SHIFT)
+
 byte* page_freemask;
 uint64_t kernel_root_ppn;
-bool MMU_ENABLED;
+volatile byte MMU_ENABLED;
+
+void mmu_wait_ready(void) {
+	/* Busy-wait until ctxload flips the flag */
+	while (MMU_ENABLED == 0) {
+		__asm__ __volatile__("nop");
+	}
+	/* Prevent the compiler from reordering loads past the check */
+	__asm__ __volatile__("" ::: "memory");
+}
 
 //
 // Bitmask operators
@@ -91,14 +111,15 @@ static void clean_page(uint64_t ppn) {
 	memset(page, 0, PAGE_SIZE);
 }
 
-static pte_t make_nonleaf(uint64_t next_ppn) {
+
+static uint64_t make_nonleaf(uint64_t next_ppn) {
 	pte_t nl = { 0 }; /* Leave rest as 0 R/W/X */
 	nl.ppn = next_ppn;
 	nl.v = 1; /* Set as valid */
-	return nl;
+	return nl.bits;
 }
 
-static pte_t make_leaf(uint64_t leaf_ppn, bool R, bool W, bool X, bool G, bool U) {
+static uint64_t make_leaf(uint64_t leaf_ppn, bool R, bool W, bool X, bool G, bool U) {
 	pte_t leaf = { 0 };
 	leaf.ppn = leaf_ppn;
 	leaf.a = 1;
@@ -109,21 +130,23 @@ static pte_t make_leaf(uint64_t leaf_ppn, bool R, bool W, bool X, bool G, bool U
 	leaf.g = !!G;
 	leaf.u = !!U;
 	leaf.v = 1;
-	return leaf;
+	return leaf.bits;
 }
 
 /* Checks if there's an L1 that exists for this L2, if not create it */
 static pte_t* ensure_l1(uint64_t root_l2_ppn, uint64_t va) {
-	pte_t* l2_page = (pte_t*)PPN_TO_KVA(root_l2_ppn);
+	pte_t* l2_page = (pte_t*)PPN_TO_KVA(root_l2_ppn);;
 	uint64_t idx = va_vpn2(va);
 	bool is_leaf = l2_page[idx].v && (l2_page[idx].r || l2_page[idx].w || l2_page[idx].x);
+
 	if (!l2_page[idx].v || is_leaf) {
 		if (is_leaf) l2_page[idx] = (pte_t){ 0 };
 		uint64_t l1_ppn = pfm_findfree_4k();
 		pfm_set(l1_ppn);
 		clean_page(l1_ppn);
-		l2_page[idx] = make_nonleaf(l1_ppn);
+		l2_page[idx].bits = make_nonleaf(l1_ppn);
 	}
+
 	return (pte_t*)PPN_TO_KVA(l2_page[idx].ppn);
 }
 
@@ -135,7 +158,7 @@ static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 	int R, int W, int X, int G, int U) {
 	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
 	uint64_t idx = va_vpn1(virt_addr);
-	l1_page[idx] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
+	l1_page[idx].bits = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
 }
 
 /* Maps a regular 4K page assuming you already have it */
@@ -147,18 +170,41 @@ static void map_4k(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 		uint64_t l0_ppn = pfm_findfree_4k(); 
 		pfm_set(l0_ppn); 
 		clean_page(l0_ppn);
-		l1_page[l1_idx] = make_nonleaf(l0_ppn);
+		l1_page[l1_idx].bits = make_nonleaf(l0_ppn);
 	}
 	pte_t* l0 = (pte_t*)PPN_TO_KVA(l1_page[l1_idx].ppn);
 	uint64_t i0 = va_vpn0(virt_addr);
-	l0[i0] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
+	l0[i0].bits = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
 }
 
+static void clone_page_tables(uint64_t dst_ppn, uint64_t src_ppn, byte level) {
+	byte* dst = (byte*)PPN_TO_KVA(dst_ppn);
+	byte* src = (byte*)PPN_TO_KVA(src_ppn);
+
+	memcpy(dst, src, PAGE_SIZE);
+
+	if (level == 0) return;
+
+	pte_t* dst_entries = (pte_t*)dst;
+	pte_t* src_entries = (pte_t*)src;
+
+	for (uint16_t i = 0; i < 512; ++i) {
+		if (!src_entries[i].v) continue;
+
+		bool is_leaf = src_entries[i].r || src_entries[i].w || src_entries[i].x;
+		if (is_leaf) continue;
+
+		int64_t child_dst_ppn = pfm_findfree_4k();
+		if (child_dst_ppn < 0) return; /* TODO: handle OOM */
+
+		pfm_set(child_dst_ppn);
+		clone_page_tables(child_dst_ppn, src_entries[i].ppn, level - 1);
+		dst_entries[i].ppn = child_dst_ppn;
+	}
+}
 /* TODO: Don't clone kernel identity map */
 static void clone_kernel_map(uint64_t new_root_ppn) {
-	byte* dst = (byte*)PPN_TO_KVA(new_root_ppn);
-	byte* src = (byte*)PPN_TO_KVA(kernel_root_ppn);
-	memcpy(dst, src, PAGE_SIZE);
+	clone_page_tables(new_root_ppn, kernel_root_ppn, 2);
 }
 
 static void free_l0(uint64_t l0_ppn) {
@@ -233,8 +279,8 @@ void init_pages(void) {
 	const uint64_t pa0 = 0x00000000UL;
 	const uint64_t pa1 = 0x40000000UL;
 	/* Yeah sure write anywhere to MMIO */
-	l2[0] = make_leaf(ADDR_TO_PPN(pa0), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
-	l2[1] = make_leaf(ADDR_TO_PPN(pa1), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[0].bits = make_leaf(ADDR_TO_PPN(pa0), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[1].bits = make_leaf(ADDR_TO_PPN(pa1), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
 }
 
 /* Rudimentary page allocator, allocates a static number of pages and returns  *
@@ -260,15 +306,15 @@ uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 			set_megapage(leaf2_ppn);
 			map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
 			map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_PA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
-			*exec = (uint64_t)PPN_TO_KVA(leaf_ppn);
-			*stack = (uint64_t)PPN_TO_KVA(leaf2_ppn);
+			*exec = (uint64_t)PPN_TO_PA(leaf_ppn);
+			*stack = (uint64_t)PPN_TO_PA(leaf2_ppn);
 			return root_ppn;
 		case ALLOC_IDLE:
 			leaf_ppn = pfm_findfree_4k();
 			pfm_set(leaf_ppn);
 			clean_page(leaf_ppn);
-			map_4k(kernel_root_ppn, 0x81200000UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/0);
-			*exec = (uint64_t)PPN_TO_KVA(leaf_ppn);
+			map_4k(kernel_root_ppn, 0x81200000UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/0);
+			*exec = (uint64_t)PPN_TO_PA(leaf_ppn);
 			*stack = (uint64_t)NULL; /* for now */
 			return kernel_root_ppn;
 	}
