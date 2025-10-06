@@ -304,8 +304,8 @@ uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 			set_megapage(leaf_ppn);
 			int64_t leaf2_ppn = pfm_findfree_2m();
 			set_megapage(leaf2_ppn);
-			map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
-			map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_PA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
+			map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/0);
+			map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_PA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/0);
 			*exec = (uint64_t)PPN_TO_PA(leaf_ppn);
 			*stack = (uint64_t)PPN_TO_PA(leaf2_ppn);
 			return root_ppn;

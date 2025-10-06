@@ -4,14 +4,14 @@
 #include <device/tty.h>
 #include <mm/vm.h>
 
-#define UART_PRIO_ADDR (0xc000028 + (1 ? KVM_BASE : 0))         /*  These  values and  addresses  are used to  setup  */
+#define UART_PRIO_ADDR (0xc000028 + KVM_BASE)         /*  These  values and  addresses  are used to  setup  */
 #define UART_ENABLE 0x400                                                 /*  the UART on the PLIC.  The addresses must be set  */
-#define EXTERNAL_ENABLED_ADDR (0xc002080 + (1 ? KVM_BASE : 0))  /*  to certain  values to enable the UART  hardware.  */
+#define EXTERNAL_ENABLED_ADDR (0xc002080 + KVM_BASE)  /*  to certain  values to enable the UART  hardware.  */
 
 #define UART0_BAUD 115200                 /* Configuration parameters for the UART.  BAUD and   */
 #define UART0_FREQ 1843200                /* FREQ are factors for the rate to send characters   */
 
-#define UART0_CFG_REG (0x10000000 + (1 ? KVM_BASE : 0))         /*  This addresses are for the NS16550  UART module  */
+#define UART0_CFG_REG (0x10000000 + KVM_BASE)         /*  This addresses are for the NS16550  UART module  */
 #define UART0_RW_REG   0x0                                                /*  Each device on the PLIC has dedicated addresses  */
 #define UART0_INTR_REG 0x1                                                /*  tied to hardware registers.  These are the ones  */
 #define UART0_RW_H_REG 0x2                                                 /*  used by the UART.                                */
@@ -98,17 +98,17 @@ void uart_handler(void) {
 }
 
 /*
- *  This function must be called to initially set up the UART hardware.
+ *  This function sets up uart hardware. It runs before MMU turns on, so we must subtract KVM base.
  */
 void init_uart(void) {
-  uint32_t* plic_prio_addr = (uint32_t*)UART_PRIO_ADDR;
-  uint32_t* plic_enabled_addr = (uint32_t*)EXTERNAL_ENABLED_ADDR;
+  uint32_t* plic_prio_addr = (uint32_t*)(UART_PRIO_ADDR - KVM_BASE);
+  uint32_t* plic_enabled_addr = (uint32_t*)(EXTERNAL_ENABLED_ADDR - KVM_BASE);
 
   uint32_t divisor = UART0_FREQ / (16 * UART0_BAUD);     /*  Calculate divisor factor for UART speed    */
   *plic_prio_addr = *plic_prio_addr | 0x7;                  /*                                   */
   *plic_enabled_addr = *plic_enabled_addr | UART_ENABLE;    /*    Enable the UART on the PLIC    */
 
-  uart = (byte*)UART0_CFG_REG;                         /*  Set the location of the UART in memory     */
+  uart = (byte*)(UART0_CFG_REG - KVM_BASE);            /*  Set the location of the UART in memory     */
   uart[UART0_CTRL_REG] = UART_CFG_ON;                  /*  Switch  UART  to  configuration   mode     */
   uart[UART0_RW_REG]   = divisor & 0xff;               /*  Set the UART speed to the high and low     */
   uart[UART0_RW_H_REG] = (divisor >> 8) & 0xff;        /*  registers.                                 */
