@@ -20,3 +20,14 @@ void* memcpy(void* dst, const void* src, uint64_t n) {
     while (n--) *d++ = *s++;
     return dst;
 }
+
+int16_t memcmp(const void* s1, const void* s2, uint64_t n) {
+    const byte* p1 = (const byte*)s1;
+    const byte* p2 = (const byte*)s2;
+    for (; n > 0; --n, ++p1, ++p2) {
+        if (*p1 != *p2) {
+            return (int16_t)*p1 - (int16_t)*p2;
+        }
+    }
+    return 0;
+}
