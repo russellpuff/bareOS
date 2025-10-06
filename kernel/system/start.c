@@ -72,7 +72,6 @@ void display_welcome(void) {
 static void sys_idle() { while(1); }
 
 static void root_thread(void) {
-	MMU_ENABLED = true;
 	display_welcome();
 	uint32_t idle_tid = create_thread(&sys_idle, "", 0);
 	resume_thread(idle_tid);
@@ -87,10 +86,13 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
   initialize();
+  kprintf("Address of root_thread: %x\n", &root_thread);
   uint32_t root_tid = create_thread(&root_thread, "", 0);
   current_thread = (uint32_t)root_tid;
   thread_table[current_thread].state = TH_RUNNING;
   kprintf("about to context load...\n");
+  kprintf("stkptr: %x\nroot_ppn: %d\nasid: %d",
+	  thread_table[current_thread].stackptr, thread_table[current_thread].root_ppn, thread_table[current_thread].asid);
   ctxload(&thread_table[current_thread]);
 }
 

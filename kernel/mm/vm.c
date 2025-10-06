@@ -154,6 +154,7 @@ static void map_4k(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 	l0[i0] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
 }
 
+/* TODO: Don't clone kernel identity map */
 static void clone_kernel_map(uint64_t new_root_ppn) {
 	byte* dst = (byte*)PPN_TO_KVA(new_root_ppn);
 	byte* src = (byte*)PPN_TO_KVA(kernel_root_ppn);
@@ -210,7 +211,7 @@ void init_pages(void) {
 	uint64_t pa = (uint64_t)&text_start & ~((1ULL << 21) - 1);
 	uint64_t end = ((uint64_t)&mem_end + ((1ULL << 21) - 1)) & ~((1ULL << 21) - 1);
 	for (; pa < end; pa += (1UL << 21)) {
-		uint64_t va = KDM_BASE + pa;
+		uint64_t va = KVM_BASE + pa;
 		map_2m(kernel_root_ppn, va, pa, /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
 	}
 

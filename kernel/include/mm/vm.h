@@ -5,15 +5,14 @@
 
 extern bool MMU_ENABLED;
 
-#define KDM_BASE 0xFFFFFFC000000000UL
+#define KVM_BASE 0xFFFFFFC000000000UL
 #define PAGE_SIZE 0x1000UL
 #define PAGE_SHIFT 12
 
 #define ALIGN_UP_4K(addr) ((void*)((((uint64_t)(addr)) + 0xFFFUL) & ~0xFFFUL))
 #define ALIGN_UP_2M(addr) ((void*)((((uint64_t)(addr)) + ((1ULL<<21) - 1)) & ~((1ULL<<21) - 1)))
 #define ADDR_TO_PPN(a) ((uint64_t)(a) >> PAGE_SHIFT)
-#define PA_TO_KVA(pa) ((void*)((uint64_t)(pa) + (MMU_ENABLED ? KDM_BASE : 0)))
-//#define KVA_TO_PA(kva) ((uint64_t)((uint64_t)(kva) - KDM_BASE))
+#define PA_TO_KVA(pa) ((void*)((uint64_t)(pa) + (MMU_ENABLED ? KVM_BASE : 0)))
 #define PPN_TO_PA(ppn) ((uint64_t)(ppn) << PAGE_SHIFT)
 #define PPN_TO_KVA(ppn) PA_TO_KVA(PPN_TO_PA(ppn))
 

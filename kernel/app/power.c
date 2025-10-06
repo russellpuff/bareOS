@@ -1,7 +1,8 @@
 #include <lib/bareio.h>
 #include <app/shell.h>
+#include <mm/vm.h>
 
-#define SYSCON_ADDR 0x100000
+#define SYSCON_ADDR (0x100000 + (MMU_ENABLED ? KVM_BASE : 0))
 #define SYSCON_SHUTDOWN 0x5555
 #define SYSCON_REBOOT 0x7777
 

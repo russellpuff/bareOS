@@ -24,7 +24,7 @@
 /*  Each thread has a corresponding 'thread_t' record in the 'thread_table' (see system/create.c)  */
 /*  These entries contain information about the thread                                             */
 typedef struct _thread {
-	uint64_t* stackptr; /* A pointer to the lowest stack address for the thread                    */
+	uint64_t* stackptr; /* A pointer to the highest stack address for the thread                   */
 	uint64_t root_ppn;  /* Physical page number of this thread's root page                         */
 	uint32_t priority;  /* Thread priority (0=highest MAX_UINT32=lowest)                           */
 	uint32_t parent;    /* The index into the 'thread_table' of the thread's parent                */

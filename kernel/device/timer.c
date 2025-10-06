@@ -4,6 +4,7 @@
 #include <system/queue.h>
 #include <system/thread.h>
 #include <device/timer.h>
+#include <mm/vm.h>
 
 /*
  *  This file contains functions for initializing and handling interrupts
@@ -11,8 +12,6 @@
  */
 
 #define TRAP_TIMER_ENABLE 0xa0
-
-volatile uint64_t* clint_timer_addr  = (uint64_t*)0x2004000;
 const uint64_t timer_interval = 100000;
 
 /*
@@ -20,7 +19,7 @@ const uint64_t timer_interval = 100000;
  * to enable the timer. (see bootstrap.s)
  */
 void init_clk(void) {
-  *clint_timer_addr = timer_interval;
+  *(uint64_t*)CLINT_TIMER_ADDR = timer_interval;
   set_interrupt(TRAP_TIMER_ENABLE);
 }
 

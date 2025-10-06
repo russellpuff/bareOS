@@ -7,10 +7,11 @@
 
 #include <lib/barelib.h>
 #include <system/interrupts.h>
+#include <mm/vm.h>
 
 #define TRAP_EXTERNAL_ENABLE 0x200
-#define EXTERNAL_PENDING_ADDR 0xc001000
-#define EXTERNAL_THRESH_ADDR  0xc201000
+#define EXTERNAL_PENDING_ADDR (0xc001000 + (MMU_ENABLED ? KVM_BASE : 0)) 
+#define EXTERNAL_THRESH_ADDR  (0xc201000 + (MMU_ENABLED ? KVM_BASE : 0)) 
 
 void uart_handler(void);
 

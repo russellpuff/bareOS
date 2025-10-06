@@ -4,6 +4,7 @@
 #include <system/interrupts.h>
 #include <system/syscall.h>
 #include <device/timer.h>
+#include <mm/vm.h>
 
 /*
  *  This file contains code for handling exceptions generated
@@ -24,7 +25,7 @@ s_interrupt handle_syscall(void) {
 }
 
 m_interrupt delegate_clk(void) {
-    *clint_timer_addr += timer_interval;
+    *(uint64_t*)CLINT_TIMER_ADDR += timer_interval;
     asm volatile ("li t0, 0x20\n"
 		  "csrs mip, t0\n"
 		  "csrs mie, t0\n");

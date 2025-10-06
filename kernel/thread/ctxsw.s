@@ -2,10 +2,6 @@
 	.option arch, +zicsr
 	.equ REGSZ, 8
 
-	.globl _sys_thread_loaded
-_sys_thread_loaded:
-	.word 0
-
 #  `ctxsw`  takes two arguments, a source  thread and destination thread.  It
 #  saves the current  state of the CPU into the  source thread's  table entry
 #  then restores the state of the destination thread onto the CPU and returns
@@ -17,7 +13,6 @@ _sys_thread_loaded:
 	.equ SATP_MODE_SV39,  (8 << 60)
 
 	.equ CTX_BYTES, (29*REGSZ)
-	.extern kernel_root_ppn
 
 .globl ctxsw
 ctxsw:
@@ -55,7 +50,7 @@ ctxsw:
 
 	lhu t1, THREAD_ASID(a0)     # -- Load new thread ASID
 	ld t2, THREAD_ROOTPPN(a0)   # -- Load new thread root ppn
-	sll t1, t1, 44              # -- Shift ASID left into place
+	slli t1, t1, 44             # -- Shift ASID left into place
 	or t0, t1, t2               # -- Combine ASID and ppn
 	li t3, SATP_MODE_SV39       # -- Get mode (8 for Sv39, will never change, pre-shifted)
 	or t0, t0, t3               # -- Combine all
@@ -100,17 +95,22 @@ ctxsw:
 #  is used during initialization to load the FIRST thread and switch from
 #  bootstrap into the OS's steady state.
 .globl ctxload
-ctxload:                            # --
-	ld sp, THREAD_STACKPTR(a0)  #  | Set the stack pointer to the new thread's stack
-    la t0, kernel_root_ppn      #  |
-    ld t0, 0(t0)                #  | Load the kernel root PPN
-    li t1, SATP_MODE_SV39       #  |
-    or t0, t0, t1               #  | Combine root PPN with mode to enable Sv39
-    csrw satp, t0               #  | Program satp with kernel root
-    sfence.vma x0, x0           #  | Flush TLB before using the new address space
-    ld a0, -2*REGSZ(sp)         #  | Load the entry point procedure's address from the stack
-    ld ra, -3*REGSZ(sp)         #  | Load the wrapper's address from the stack
-    li t0, 0x1                  #  |
-    la t1, _sys_thread_loaded   #  |
-    sw t0, 0(t1)                #  | Mark the thread as loaded (for validation)
-    ret                         # --
+ctxload:
+    ld sp, THREAD_STACKPTR(a0)  #-- Load stack pointer
+    ld t0, THREAD_ROOTPPN(a0)   # | Load root ppn
+    lhu t1, THREAD_ASID(a0)     # | Load asid (zero-extend)
+    slli t1, t1, 44             # | place ASID in bits 59:44
+    li t2, SATP_MODE_SV39       # | 
+    or t0, t0, t1               # | add ASID
+    or t0, t0, t2               # | add mode
+    csrw satp, t0               # |
+    sfence.vma x0, x0           # |
+	.extern MMU_ENABLED         # | 
+    la t4, MMU_ENABLED          # | set as true asap
+    li t3, (1 << 18)            # | Set sstatus.SUM (bit 18) so S-mode can access U pages
+    csrs sstatus, t3            # |
+    ld a0, -2*REGSZ(sp)         # |
+    ld ra, -3*REGSZ(sp)         #--
+    #li t0, 0x1 # I dunno what these were for so I removed them
+    #sw t0, 0(t1)                
+    ret
