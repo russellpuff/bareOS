@@ -90,6 +90,7 @@ void supervisor_start(void) {
   uint32_t root_tid = create_thread(&root_thread, "", 0);
   current_thread = (uint32_t)root_tid;
   thread_table[current_thread].state = TH_RUNNING;
+  kprintf("about to context load...\n");
   ctxload(&thread_table[current_thread]);
 }
 

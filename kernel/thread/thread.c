@@ -81,7 +81,6 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
     thread_table[i].priority = 0;
     thread_table[i].parent = current_thread;
     thread_table[i].sem = create_sem(0);
-
     return i;
 }
 

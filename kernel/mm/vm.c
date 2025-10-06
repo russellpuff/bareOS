@@ -112,13 +112,15 @@ static pte_t make_leaf(uint64_t leaf_ppn, bool R, bool W, bool X, bool G, bool U
 	return leaf;
 }
 
-/* Checks if there's an L1 that exists for this L2. */
+/* Checks if there's an L1 that exists for this L2, if not create it */
 static pte_t* ensure_l1(uint64_t root_l2_ppn, uint64_t va) {
 	pte_t* l2_page = (pte_t*)PPN_TO_KVA(root_l2_ppn);
 	uint64_t idx = va_vpn2(va);
-	if (!l2_page[idx].v) {
-		uint64_t l1_ppn = pfm_findfree_4k(); 
-		pfm_set(l1_ppn); 
+	bool is_leaf = l2_page[idx].v && (l2_page[idx].r || l2_page[idx].w || l2_page[idx].x);
+	if (!l2_page[idx].v || is_leaf) {
+		if (is_leaf) l2_page[idx] = (pte_t){ 0 };
+		uint64_t l1_ppn = pfm_findfree_4k();
+		pfm_set(l1_ppn);
 		clean_page(l1_ppn);
 		l2_page[idx] = make_nonleaf(l1_ppn);
 	}
