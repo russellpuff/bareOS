@@ -12,6 +12,8 @@
 #include <fs/fs.h>
 #include <fs/importer.h>
 
+#include <mm/vm_debugger.h>
+
 /*
  *  This file contains the C code entry point executed by the kernel.
  *  It is called by the bootstrap sequence once the hardware is configured.
@@ -36,6 +38,7 @@ void initialize(void) {
 	generic_importer(imp);
 	free(imp);
 	init_pages();
+	dump_kernel_root_page();
 }
 
 /* This function displays the welcome screen when the system and shell boot. */

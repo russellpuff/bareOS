@@ -217,13 +217,13 @@ void init_pages(void) {
 
 	/* Map kernel (identity-map style) */
 	uint64_t k_virt_addr = (uint64_t)&text_start;
-	uint64_t p_page_addr = (uint64_t)PPN_TO_KVA(kernel_leaf_ppn);
+	uint64_t p_page_addr = (uint64_t)PPN_TO_PA(kernel_leaf_ppn);
 	map_2m(kernel_root_ppn, k_virt_addr, p_page_addr,/*R*/1,/*W*/1,/*X*/1,/*G*/1,/*U*/0);
 
 	/* Map kernel-heap to kernel root */
 	for (uint64_t i = 0; i < 8; ++i) {
 		uint64_t hva = k_virt_addr + 0x200000UL * (i + 1);
-		uint64_t hpa = (uint64_t)PPN_TO_KVA(heap_leaf0_ppn) + (0x200000UL * i);
+		uint64_t hpa = (uint64_t)PPN_TO_PA(heap_leaf0_ppn) + (0x200000UL * i);
 		map_2m(kernel_root_ppn, hva, hpa, /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
 	}
 
@@ -258,8 +258,8 @@ uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 			set_megapage(leaf_ppn);
 			int64_t leaf2_ppn = pfm_findfree_2m();
 			set_megapage(leaf2_ppn);
-			map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_KVA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
-			map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_KVA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
+			map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
+			map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_PA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
 			*exec = (uint64_t)PPN_TO_KVA(leaf_ppn);
 			*stack = (uint64_t)PPN_TO_KVA(leaf2_ppn);
 			return root_ppn;
@@ -267,7 +267,7 @@ uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 			leaf_ppn = pfm_findfree_4k();
 			pfm_set(leaf_ppn);
 			clean_page(leaf_ppn);
-			map_4k(kernel_root_ppn, 0x81200000UL, (uint64_t)PPN_TO_KVA(leaf_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/0);
+			map_4k(kernel_root_ppn, 0x81200000UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/0);
 			*exec = (uint64_t)PPN_TO_KVA(leaf_ppn);
 			*stack = (uint64_t)NULL; /* for now */
 			return kernel_root_ppn;

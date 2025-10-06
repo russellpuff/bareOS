@@ -110,7 +110,5 @@ ctxload:
     li t3, (1 << 18)            # | Set sstatus.SUM (bit 18) so S-mode can access U pages
     csrs sstatus, t3            # |
     ld a0, -2*REGSZ(sp)         # |
-    ld ra, -3*REGSZ(sp)         #--
-    #li t0, 0x1 # I dunno what these were for so I removed them
-    #sw t0, 0(t1)                
+    ld ra, -3*REGSZ(sp)         #--          
     ret
