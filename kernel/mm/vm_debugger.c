@@ -170,12 +170,14 @@ static void dump_pt_level(pte_t* table, int level, uint16_t vpn2, uint16_t vpn1,
     }
 }
 
-void dump_kernel_root_page(void) {
+void dump_root_page(const char* label, uint64_t root_ppn) {
+    if (!label) label = "unknown";
+
     const uint32_t entries = 512;
     const uint32_t columns = 32;
-    pte_t* l2 = (pte_t*)PPN_TO_KVA(kernel_root_ppn);
+    pte_t* l2 = (pte_t*)PPN_TO_KVA(root_ppn);
 
-    kprintf("\n[vm] Kernel root page (PPN=%x)\n", (uint32_t)kernel_root_ppn);
+    kprintf("\n[vm] Root page dump for %s (PPN=%x)\n", label, (uint32_t)root_ppn);
     for (uint32_t i = 0; i < entries; ++i) {
         bool is_valid = l2[i].v;
         bool is_leaf = is_valid && (l2[i].r || l2[i].w || l2[i].x);
@@ -193,5 +195,5 @@ void dump_kernel_root_page(void) {
 
     dump_pt_level(l2, 2, 0, 0, 2);
 
-    kprintf("End of kernel root page dump\n\n");
+    kprintf("End of root page dump for %s\n\n", label);
 }

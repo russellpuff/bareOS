@@ -38,7 +38,6 @@ void initialize(void) {
 	generic_importer(imp);
 	free(imp);
 	init_pages();
-	dump_kernel_root_page();
 }
 
 /* This function displays the welcome screen when the system and shell boot. */
@@ -89,13 +88,13 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
   initialize();
-  kprintf("Address of root_thread: %x\n", &root_thread);
+  dump_root_page("kernel", kernel_root_ppn);
   uint32_t root_tid = create_thread(&root_thread, "", 0);
   current_thread = (uint32_t)root_tid;
   thread_table[current_thread].state = TH_RUNNING;
-  kprintf("about to context load...\n");
-  kprintf("stkptr: %x\nroot_ppn: %d\nasid: %d",
+  kprintf("stkptr: %x\nroot_ppn: %d\nasid: %d\n\n",
 	  thread_table[current_thread].stackptr, thread_table[current_thread].root_ppn, thread_table[current_thread].asid);
+  dump_root_page("root_thread", thread_table[current_thread].root_ppn);
   ctxload(&thread_table[current_thread]);
 }
 

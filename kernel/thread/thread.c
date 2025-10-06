@@ -4,8 +4,9 @@
 #include <lib/string.h>
 
 thread_t thread_table[NTHREADS];  /*  Create a table of threads  */
-uint32_t current_thread = 0;        /*  Set the initial thread id to 0                          */
+uint32_t current_thread; 
 queue_t sleep_list;
+uint16_t next_asid;
 
 /*
  *  'thread_init' sets up the thread table so that each thread is
@@ -21,9 +22,7 @@ void init_threads(void) {
         thread_table[i].state = TH_FREE;
         thread_table[i].sem = create_sem(0);
     }
-    current_thread = 0;
-    thread_table[current_thread].state = TH_RUNNING;
-    thread_table[current_thread].priority = (uint32_t)-1;
+    next_asid = 1;
 }
 
 static void trampoline(void) {
@@ -39,6 +38,8 @@ void wrapper(byte(*proc)(char*)) {
     kill_thread(current_thread);                      /*  Clean up thread after completion                                            */
 }
 
+#include <lib/bareio.h>
+
 /*  `create_thread`  takes a pointer  to a function that  acts as the entry  *
  *  point for a thread and selects an unused entry in the thread table.  It  *
  *  configures this  entry to represent a newly  created thread running the  *
@@ -50,7 +51,11 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
     for (i = 0; i < NTHREADS && thread_table[i].state != TH_FREE; i++); /*  Find the first TH_FREE entry in the thread table    */
     if (i == NTHREADS)                                                  /*                                                      */
         return -1;                                                      /*  Terminate is there are no free thread entries       */
-
+    kprintf("i was %d\n", i);
+    if (i == 1) {
+        const char* info = thread_table[0].state ? "not free" : "free";
+        kprintf("thread with asid 0 is marked as: %s\n", info);
+    }
     /* Allocate per-thread address space for VM */
     uint64_t exec_pa, stack_pa;
     uint64_t root_ppn = alloc_page(ALLOC_PROC, &exec_pa, &stack_pa);
@@ -75,7 +80,7 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
 
     /* Configure thread table entry */
     thread_table[i].root_ppn = root_ppn;
-    thread_table[i].asid = (uint16_t)i;
+    thread_table[i].asid = next_asid++;
     thread_table[i].stackptr = (uint64_t*)(STACK_VA_BASE + STACK_SIZE - 16 - (pad + arglen));
     thread_table[i].state = TH_SUSPEND;
     thread_table[i].priority = 0;
