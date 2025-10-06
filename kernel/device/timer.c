@@ -25,7 +25,7 @@ void init_clk(void) {
 }
 
 /* 
- * This function is triggered every 'timer_interval' microseconds 
+ * This function is triggered every 'timer_interval' 
  * automatically.  (see '__traps' in bootstrap.s)
  */
 s_interrupt handle_clk(void) {

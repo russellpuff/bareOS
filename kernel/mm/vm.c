@@ -70,6 +70,12 @@ static void set_megapage(uint64_t x) {
 	for (uint16_t i = 0; i < 512; ++i)
 		pfm_set(x + i);
 }
+
+/* Clears a megapage starting at x */
+static void clear_megapage(uint64_t x) {
+	for (uint16_t i = 0; i < 512; ++i)
+		pfm_clear(x + i);
+}
 //
 //
 //
@@ -148,6 +154,29 @@ static void clone_kernel_map(uint64_t new_root_ppn) {
 	byte* dst = PPN_TO_ADDR(new_root_ppn);
 	void* src = PPN_TO_ADDR(kernel_root_ppn);
 	memcpy(dst, src, PAGE_SIZE);
+}
+
+static void free_l0(uint64_t l0_ppn) {
+	pte_t* l0 = (pte_t*)PPN_TO_ADDR(l0_ppn);
+	for (uint16_t i = 0; i < 512; ++i) {
+		if (!l0[i].v) continue;
+		pfm_clear(l0[i].ppn);
+		l0[i] = (pte_t){ 0 };
+	}
+	clean_page(l0_ppn);
+	pfm_clear(l0_ppn);
+}
+
+static void free_l1(uint64_t l1_ppn) {
+	pte_t* l1 = (pte_t*)PPN_TO_ADDR(l1_ppn);
+	for (uint16_t i = 0; i < 512; ++i) {
+		if (!l1[i].v) continue;
+		if (l1[i].r || l1[i].w || l1[i].x) clear_megapage(l1[i].ppn);
+		else free_l0(l1[i].ppn);
+		l1[i] = (pte_t){ 0 };
+	}
+	clean_page(l1_ppn);
+	pfm_clear(l1_ppn);
 }
 //
 //
@@ -229,4 +258,25 @@ uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 			return kernel_root_ppn;
 	}
 	return NULL;
+}
+
+/* Rudimentary page clearer. Should be able to free all children of a root page except kernel mappings. */
+/* Cannot clear a gigapage. We don't have any non-kernel gigapages so who cares. */
+void free_pages(uint64_t root_ppn) {
+	if (root_ppn == kernel_root_ppn) return;
+
+	pte_t* root = (pte_t*)PPN_TO_ADDR(root_ppn);
+	pte_t* kernel_root = (pte_t*)PPN_TO_ADDR(kernel_root_ppn);
+
+	for (uint16_t i = 0; i < 512; ++i) {
+		if (!root[i].v) continue;
+		if (root[i].v && (root[i].g && (root[i].r || root[i].w || root[i].x))) continue; /* Kernel global pte, do not free */
+
+		if (root[i].r || root[i].w || root[i].x) clear_megapage(root[i].ppn);
+		else free_l1(root[i].ppn);
+		root[i] = (pte_t){ 0 };
+	}
+
+	clean_page(root_ppn);
+	pfm_clear(root_ppn);
 }
