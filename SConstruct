@@ -90,7 +90,7 @@ lflags = f"-nostdlib -Map {map_file} -T {ld_file} "
 AS     = "-".join([arch, "as"])
 aflags = "-march=rv64imac_zicsr -mabi=lp64 -g "
 QEMU   = "qemu-system-riscv64"
-qflags = f"-M virt -bios none -m 128M -chardev stdio,id=uart0{logfile} -serial chardev:uart0 -display none"
+qflags = f"-M virt -bios none -m 128M -chardev stdio,id=uart0 -serial chardev:uart0 -display none"
 GDB    = "-".join([arch, "gdb"])
 
 # Generate version.h -----------------------------------------------------------------------------------

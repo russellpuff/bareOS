@@ -112,14 +112,14 @@ static void clean_page(uint64_t ppn) {
 }
 
 
-static uint64_t make_nonleaf(uint64_t next_ppn) {
+static pte_t make_nonleaf(uint64_t next_ppn) {
 	pte_t nl = { 0 }; /* Leave rest as 0 R/W/X */
 	nl.ppn = next_ppn;
 	nl.v = 1; /* Set as valid */
-	return nl.bits;
+	return nl;
 }
 
-static uint64_t make_leaf(uint64_t leaf_ppn, bool R, bool W, bool X, bool G, bool U) {
+static pte_t make_leaf(uint64_t leaf_ppn, bool R, bool W, bool X, bool G, bool U) {
 	pte_t leaf = { 0 };
 	leaf.ppn = leaf_ppn;
 	leaf.a = 1;
@@ -130,7 +130,7 @@ static uint64_t make_leaf(uint64_t leaf_ppn, bool R, bool W, bool X, bool G, boo
 	leaf.g = !!G;
 	leaf.u = !!U;
 	leaf.v = 1;
-	return leaf.bits;
+	return leaf;
 }
 
 /* Checks if there's an L1 that exists for this L2, if not create it */
@@ -144,7 +144,7 @@ static pte_t* ensure_l1(uint64_t root_l2_ppn, uint64_t va) {
 		uint64_t l1_ppn = pfm_findfree_4k();
 		pfm_set(l1_ppn);
 		clean_page(l1_ppn);
-		l2_page[idx].bits = make_nonleaf(l1_ppn);
+		l2_page[idx] = make_nonleaf(l1_ppn);
 	}
 
 	return (pte_t*)PPN_TO_KVA(l2_page[idx].ppn);
@@ -158,7 +158,7 @@ static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 	int R, int W, int X, int G, int U) {
 	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
 	uint64_t idx = va_vpn1(virt_addr);
-	l1_page[idx].bits = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
+	l1_page[idx] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
 }
 
 /* Maps a regular 4K page assuming you already have it */
@@ -170,11 +170,11 @@ static void map_4k(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 		uint64_t l0_ppn = pfm_findfree_4k(); 
 		pfm_set(l0_ppn); 
 		clean_page(l0_ppn);
-		l1_page[l1_idx].bits = make_nonleaf(l0_ppn);
+		l1_page[l1_idx] = make_nonleaf(l0_ppn);
 	}
 	pte_t* l0 = (pte_t*)PPN_TO_KVA(l1_page[l1_idx].ppn);
 	uint64_t i0 = va_vpn0(virt_addr);
-	l0[i0].bits = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
+	l0[i0] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
 }
 
 static void clone_page_tables(uint64_t dst_ppn, uint64_t src_ppn, byte level) {
@@ -279,8 +279,8 @@ void init_pages(void) {
 	const uint64_t pa0 = 0x00000000UL;
 	const uint64_t pa1 = 0x40000000UL;
 	/* Yeah sure write anywhere to MMIO */
-	l2[0].bits = make_leaf(ADDR_TO_PPN(pa0), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
-	l2[1].bits = make_leaf(ADDR_TO_PPN(pa1), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[0] = make_leaf(ADDR_TO_PPN(pa0), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[1] = make_leaf(ADDR_TO_PPN(pa1), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
 }
 
 /* Rudimentary page allocator, allocates a static number of pages and returns  *
