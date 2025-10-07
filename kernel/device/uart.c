@@ -66,7 +66,6 @@ char uart_getc(void) {
  *  It is NOT modifying the behavior of the OS level interrupt handling.  This will *
  *  not - for instance - disable timer interrupts, only UART TX interrupts          */
 void set_uart_interrupt(byte enabled) {
-    if (!MMU_ENABLED) return;
     byte state = uart[UART0_INTR_REG];
     uart[UART0_INTR_REG] = (enabled ? (state | UART_TX_ON) : (state & ~UART_TX_ON));  /*  Set the "write ready" interrupt on the UART  */
 }
@@ -115,4 +114,6 @@ void init_uart(void) {
   uart[UART0_CTRL_REG] = UART_PARITY | UART_8BIT;      /*  Enable parity and 8-bit mode and start     */
   uart[UART0_INTR_REG] = UART_RX_ON;                   /*  listening for characters.                  */
   uart[UART0_MODEM]   |= UART_TRIGGER;                 /*                                             */
+
+  uart = (byte*)(UART0_CFG_REG); /* Once done, set uart to virtual address for later. */
 }

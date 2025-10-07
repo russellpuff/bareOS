@@ -1,19 +1,19 @@
 /* --  Supervisor mode interrupt management functions -- */
 
-    .extern s_last_scause
-    .extern s_last_stval
-    .extern s_last_sepc
+    .extern last_scause
+    .extern last_stval
+    .extern last_sepc
 
 .globl handle_trap
 handle_trap:
     csrr  t0, scause
     csrr  t1, stval
     csrr  t2, sepc
-    la    t3, s_last_scause
+    la    t3, last_scause
     sd    t0, 0(t3)
-    la    t3, s_last_stval
+    la    t3, last_stval
     sd    t1, 0(t3)
-    la    t3, s_last_sepc
+    la    t3, last_sepc
     sd    t2, 0(t3)
 
     addi  sp, sp, -16
@@ -93,14 +93,15 @@ save_and_handle_m:
     csrr  t0, mcause
     csrr  t1, mtval
     csrr  t2, mepc
-    la    t3, s_last_scause
+    la    t3, last_scause
     sd    t0, 0(t3)
-    la    t3, s_last_stval
+    la    t3, last_stval
     sd    t1, 0(t3)
-    la    t3, s_last_sepc
+    la    t3, last_sepc
     sd    t2, 0(t3)
 
-    /* hand off to the same C handler for visibility */
+    csrr  t3, mscratch
+    mv    sp, t3
     j     handle_exception
 
 __noop:	mret

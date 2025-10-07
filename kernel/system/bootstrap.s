@@ -8,6 +8,14 @@
 	.file "bootstrap.s"
 	.equ _mstatus_init,       0x880
 
+.section .bss
+.align 7
+.globl m_trap_stack
+m_trap_stack:
+        .skip 1024
+.globl m_trap_stack_top
+m_trap_stack_top:
+
 .section .text.entry
 .globl _start
 _start:
@@ -25,9 +33,11 @@ _start:
 	csrw mtvec, t0               # --
 
 	la gp, _kmap_global_ptr      # --
-	la sp, _kmap_kstack_top      #  |    Set initial stack pointer, global pointer,
-	la t0, supervisor_start      #  |    and system entry function
-	csrw mepc, t0                # --
+    la sp, _kmap_kstack_top      #  |    Set initial stack pointer, global pointer,
+    la t0, m_trap_stack_top      #  |    Provide stack space for machine-mode traps
+    csrw mscratch, t0            #  |    and system entry function
+    la t0, supervisor_start      #  |    
+    csrw mepc, t0                # --
 
 	li t0, 0x0f0f                # --
 	li t1, 0x20000000            #  |

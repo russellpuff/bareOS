@@ -6,7 +6,7 @@
 #include <device/timer.h>
 #include <mm/vm.h>
 
-volatile unsigned long s_last_scause, s_last_stval, s_last_sepc;
+volatile unsigned long last_scause, last_stval, last_sepc;
 
 /*
  *  This file contains code for handling exceptions generated
@@ -34,15 +34,18 @@ m_interrupt delegate_clk(void) {
 }
 
 /* Rudimentary exception handler, will handle more exceptions as time goes on. */
-__attribute__((noinline, optimize("O0")))
+/* DEBUG: This handles both SUPERVISOR and MACHINE exceptions, when this is called, M/S will write to last_* for info */
 m_interrupt handle_exception(void) {
     uint64_t cause, tval, epc;
+    /*
     asm volatile("csrr %0, scause" : "=r"(cause));
     asm volatile("csrr %0, stval"  : "=r"(tval));
     asm volatile("csrr %0, sepc"   : "=r"(epc));
-    s_last_scause = cause;
-    s_last_stval = tval;
-    s_last_sepc = epc;
+    */
+
+    cause = last_scause;
+    tval = last_stval;
+    epc = last_sepc;
 
     if ((cause & (1ULL << 63)) == 0) { /* Synchronous exception */
         uint64_t code = cause & 0xfffULL; /* Get exception code */
@@ -59,7 +62,7 @@ m_interrupt handle_exception(void) {
         }
     }
 
-    kprintf("Unhandled exception: scause=0x%lu stval=0x%lu\n", cause, tval);
+    kprintf("Unhandled exception: scause=%x stval=%x, sepc=%x\n", cause, tval, epc);
     while (1);
 }
 
