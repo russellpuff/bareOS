@@ -1,19 +1,19 @@
 /* --  Supervisor mode interrupt management functions -- */
 
-    .extern last_scause
-    .extern last_stval
-    .extern last_sepc
+    .extern last_cause_any
+    .extern last_tval_any
+    .extern last_epc_any
 
 .globl handle_trap
 handle_trap:
     csrr  t0, scause
     csrr  t1, stval
     csrr  t2, sepc
-    la    t3, last_scause
+    la    t3, last_cause_any
     sd    t0, 0(t3)
-    la    t3, last_stval
+    la    t3, last_tval_any
     sd    t1, 0(t3)
-    la    t3, last_sepc
+    la    t3, last_epc_any
     sd    t2, 0(t3)
 
     addi  sp, sp, -16
@@ -89,15 +89,15 @@ set_interrupt:                #  |  Enables a class of interrupts to trigger the
 
 .global save_and_handle_m
 save_and_handle_m:
-    /* snapshot M CSRs (NOT S!) */
+    # snapshot M stuff and stuff into global variables
     csrr  t0, mcause
     csrr  t1, mtval
     csrr  t2, mepc
-    la    t3, last_scause
+    la    t3, last_cause_any
     sd    t0, 0(t3)
-    la    t3, last_stval
+    la    t3, last_tval_any
     sd    t1, 0(t3)
-    la    t3, last_sepc
+    la    t3, last_epc_any
     sd    t2, 0(t3)
 
     csrr  t3, mscratch

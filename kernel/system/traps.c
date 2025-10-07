@@ -6,7 +6,7 @@
 #include <device/timer.h>
 #include <mm/vm.h>
 
-volatile unsigned long last_scause, last_stval, last_sepc;
+volatile unsigned long last_cause_any, last_tval_any, last_epc_any;
 
 /*
  *  This file contains code for handling exceptions generated
@@ -43,9 +43,9 @@ m_interrupt handle_exception(void) {
     asm volatile("csrr %0, sepc"   : "=r"(epc));
     */
 
-    cause = last_scause;
-    tval = last_stval;
-    epc = last_sepc;
+    cause = last_cause_any;
+    tval = last_tval_any;
+    epc = last_epc_any;
 
     if ((cause & (1ULL << 63)) == 0) { /* Synchronous exception */
         uint64_t code = cause & 0xfffULL; /* Get exception code */

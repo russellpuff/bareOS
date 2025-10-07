@@ -2,7 +2,7 @@
 #include <app/shell.h>
 #include <mm/vm.h>
 
-#define SYSCON_ADDR (0x100000 + (MMU_ENABLED ? KVM_BASE : 0))
+#define SYSCON_ADDR 0x100000
 #define SYSCON_SHUTDOWN 0x5555
 #define SYSCON_REBOOT 0x7777
 
@@ -14,7 +14,7 @@
 void signal_syscon(uint16_t signal) {
     const char* what = signal == SYSCON_SHUTDOWN ? "shut down" : "reboot";
     kprintf("The system will %s now.\n", what);
-    *(uint16_t*)SYSCON_ADDR = signal;
+    *(uint16_t*)PA_TO_KVA(SYSCON_ADDR) = signal;
     while (1);
 }
 

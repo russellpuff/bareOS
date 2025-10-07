@@ -12,29 +12,9 @@ static inline uint64_t va_vpn2(uint64_t va) { return (va >> 30) & 0x1ff; }
 static inline uint64_t va_vpn1(uint64_t va) { return (va >> 21) & 0x1ff; }
 static inline uint64_t va_vpn0(uint64_t va) { return (va >> 12) & 0x1ff; }
 
-#define PTE_V (1UL << 0)
-#define PTE_R (1UL << 1)
-#define PTE_W (1UL << 2)
-#define PTE_X (1UL << 3)
-#define PTE_U (1UL << 4)
-#define PTE_G (1UL << 5)
-#define PTE_A (1UL << 6)
-#define PTE_D (1UL << 7)
-#define PTE_PPN_SHIFT 10
-#define PTE_PPN(x) ((uint64_t)(x) << PTE_PPN_SHIFT)
-
 byte* page_freemask;
 uint64_t kernel_root_ppn;
 volatile byte MMU_ENABLED;
-
-void mmu_wait_ready(void) {
-	/* Busy-wait until ctxload flips the flag */
-	while (MMU_ENABLED == 0) {
-		__asm__ __volatile__("nop");
-	}
-	/* Prevent the compiler from reordering loads past the check */
-	__asm__ __volatile__("" ::: "memory");
-}
 
 //
 // Bitmask operators
@@ -276,11 +256,12 @@ void init_pages(void) {
 	/* Map whole ass MMIO to kernel. Why not? */
 	pte_t* l2 = (pte_t*)(PPN_TO_KVA(kernel_root_ppn));
 	/* L2 index for 1 GiB slices */
-	const uint64_t pa0 = 0x00000000UL;
-	const uint64_t pa1 = 0x40000000UL;
+	const uint64_t mmio_va0 = 0x00000000UL + KVM_BASE;
+	const uint64_t mmio_va1 = 0x40000000UL + KVM_BASE;
 	/* Yeah sure write anywhere to MMIO */
-	l2[0] = make_leaf(ADDR_TO_PPN(pa0), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
-	l2[1] = make_leaf(ADDR_TO_PPN(pa1), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[va_vpn2(mmio_va0)] = make_leaf(ADDR_TO_PPN(0x00000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[va_vpn2(mmio_va1)] = make_leaf(ADDR_TO_PPN(0x40000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	
 }
 
 /* Rudimentary page allocator, allocates a static number of pages and returns  *

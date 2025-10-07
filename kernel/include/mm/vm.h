@@ -34,7 +34,6 @@ typedef struct {
 
 _Static_assert(sizeof(pte_t) == 8, "pte_t must be 8 bytes");
 
-void mmu_wait_ready(void);
 void init_pages(void);
 uint64_t alloc_page(prequest, uint64_t*, uint64_t*);
 void free_pages(uint64_t);
