@@ -38,8 +38,6 @@ void wrapper(byte(*proc)(char*)) {
     kill_thread(current_thread);                      /*  Clean up thread after completion                                            */
 }
 
-#include <lib/bareio.h>
-
 /*  `create_thread`  takes a pointer  to a function that  acts as the entry  *
  *  point for a thread and selects an unused entry in the thread table.  It  *
  *  configures this  entry to represent a newly  created thread running the  *
@@ -47,15 +45,12 @@ void wrapper(byte(*proc)(char*)) {
 int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
     uint64_t i, pad;
     byte* stkptr_pa;
+    const uint16_t CTX_BYTES = 29 * 8;
 
     for (i = 0; i < NTHREADS && thread_table[i].state != TH_FREE; i++); /*  Find the first TH_FREE entry in the thread table    */
     if (i == NTHREADS)                                                  /*                                                      */
         return -1;                                                      /*  Terminate is there are no free thread entries       */
-    kprintf("i was %d\n", i);
-    if (i == 1) {
-        const char* info = thread_table[0].state ? "not free" : "free";
-        kprintf("thread with asid 0 is marked as: %s\n", info);
-    }
+
     /* Allocate per-thread address space for VM */
     uint64_t exec_pa, stack_pa;
     uint64_t root_ppn = alloc_page(ALLOC_PROC, &exec_pa, &stack_pa);
@@ -66,22 +61,24 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
     if (arglen > (STACK_SIZE - 64)) return -2;
 
     pad = (arglen % 4 ? (4 - (arglen % 4)) : 0); /* Alignment for arg */
-    stkptr_pa = (byte*)(stack_pa + STACK_SIZE - 16);
+    stkptr_pa = (byte*)(stack_pa + STACK_SIZE - 16 - CTX_BYTES);
     stkptr_pa -= (pad + arglen); /* Reserve space for arg + padding */
 
-    /* Copy arg into stack */
-    memcpy(stkptr_pa, arg, arglen);
-    memset(stkptr_pa + arglen, '\0', pad);
+    byte* stkptr = (byte*)PA_TO_KVA((uint64_t)stkptr_pa);
 
-    uint64_t* ctxptr_pa = (uint64_t*)stkptr_pa;
-    ctxptr_pa[-1] = (uint64_t)trampoline;       /*  [-1] Return address after context switch in Machine privilage */
-    ctxptr_pa[-2] = (uint64_t)proc;             /*  [-2] 'a0' register or first argument to the wrapper function  */
-    ctxptr_pa[-3] = (uint64_t)wrapper;          /*  [-3] Return point after returning from system call            */
+    /* Copy arg into stack */
+    memcpy(stkptr, arg, arglen);
+    memset(stkptr + arglen, '\0', pad);
+
+    uint64_t* ctxptr = (uint64_t*)stkptr;
+    ctxptr[-1] = (uint64_t)trampoline;       /*  [-1] Return address after context switch in Machine privilage */
+    ctxptr[-2] = (uint64_t)proc;             /*  [-2] 'a0' register or first argument to the wrapper function  */
+    ctxptr[-3] = (uint64_t)wrapper;          /*  [-3] Return point after returning from system call            */
 
     /* Configure thread table entry */
     thread_table[i].root_ppn = root_ppn;
     thread_table[i].asid = next_asid++;
-    thread_table[i].stackptr = (uint64_t*)(STACK_VA_BASE + STACK_SIZE - 16 - (pad + arglen));
+    thread_table[i].stackptr = (uint64_t*)(STACK_VA_BASE + STACK_SIZE - 16 - (pad + arglen) - CTX_BYTES);
     thread_table[i].state = TH_SUSPEND;
     thread_table[i].priority = 0;
     thread_table[i].parent = current_thread;

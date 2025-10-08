@@ -27,9 +27,9 @@
 void initialize(void) {
 	init_tty();
 	init_uart();
-	init_interrupts();
 	init_threads();
 	init_queues();
+	init_interrupts();
 	init_heap();
 	byte* imp = malloc_loaded_range(); /* QEMU loader injects at top of freelist. So we steal it asap. */
 	mk_ramdisk(MDEV_BLOCK_SIZE, MDEV_NUM_BLOCKS);
