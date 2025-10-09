@@ -7,6 +7,7 @@
 #include <mm/vm.h>
 
 volatile unsigned long last_cause_any, last_tval_any, last_epc_any;
+volatile uint64_t signum;
 
 /*
  *  This file contains code for handling exceptions generated

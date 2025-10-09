@@ -61,11 +61,6 @@ acknowledge_interrupt:        # --
 	csrrc zero, sip, a0       #  |  Untrigger a Supervisor interrupt.  This is necessary for software
     ret                       #  |  timers since the STIP bit does not automatically clear.
                               # --
-
-.globl signum
-.align 4
-signum:
-	.dword 0
 	
 .globl raise_syscall
 raise_syscall:
