@@ -1,5 +1,5 @@
 import os, shutil, re, subprocess
-from SCons.Script import GetOption
+from SCons.Script import GetOption, COMMAND_LINE_TARGETS
 
 # QEMU Setup -------------------------------------------------------------------------------------------
 
@@ -39,9 +39,9 @@ inc_dir   = os.path.join("kernel", "include")
 ld_file   = os.path.join("kernel", "kernel.ld")
 map_file  = File(os.path.join(build_dir, "kernel.map"))
 
-
+# Rare issue causes total build corruption after scons -c, fixed only by nuking everything. 
+# So just nuke by default on clean.
 def _safe_remove(path: str) -> None:
-    #Remove build artifacts while handling any cleanup errors gracefully.
     try:
         if os.path.isdir(path):
             print(f"scons: Removing build directory: {path}")
@@ -52,10 +52,16 @@ def _safe_remove(path: str) -> None:
     except OSError as exc:
         print(f"scons: Failed to remove {path}: {exc}")
 
-
-if GetOption("clean"):
+def _perform_clean():
     _safe_remove(build_dir)
     _safe_remove(".sconsign.dblite")
+
+
+if GetOption("clean"):
+    _perform_clean()
+
+if "debug" in COMMAND_LINE_TARGETS:
+    _perform_clean()
 
 PORT = 6999
 CC     = "-".join([arch, "gcc"])

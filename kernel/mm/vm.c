@@ -6,7 +6,7 @@
 
 #define FREEMASK_RANGE ((uint64_t)ALIGN_UP_2M(&mem_end - &text_start))
 #define FREEMASK_BITS (FREEMASK_RANGE / PAGE_SIZE)
-#define FREEMASK_SZ ((FREEMASK_BITS + 7) / 8)
+#define FREEMASK_SZ ((uint64_t)((FREEMASK_BITS + 7) / 8))
 #define PPN_TO_IDX(ppn) (ppn - ((uint64_t)&text_start >> PAGE_SHIFT))
 #define IDX_TO_PPN(idx) (idx + ((uint64_t)&text_start >> PAGE_SHIFT))
 
@@ -247,7 +247,7 @@ void init_pages(void) {
 	uint64_t end = ((uint64_t)&mem_end + ((1ULL << 21) - 1)) & ~((1ULL << 21) - 1);
 	for (; pa < end; pa += (1UL << 21)) {
 		uint64_t va = KVM_BASE + pa;
-		map_2m(kernel_root_ppn, va, pa, /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+		map_2m(kernel_root_ppn, va, pa, /*R*/1,/*W*/1,/*X*/1,/*G*/1,/*U*/0);
 	}
 
 	/* Map kernel (identity-map style) */
@@ -270,7 +270,6 @@ void init_pages(void) {
 	/* Yeah sure write anywhere to MMIO */
 	l2[va_vpn2(mmio_va0)] = make_leaf(ADDR_TO_PPN(0x00000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
 	l2[va_vpn2(mmio_va1)] = make_leaf(ADDR_TO_PPN(0x40000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
-	
 }
 
 /* Rudimentary page allocator, allocates a static number of pages and returns  *

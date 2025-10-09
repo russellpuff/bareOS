@@ -8,7 +8,7 @@ int16_t strcmp(const char* str1, const char* str2) {
   return (unsigned char)*str1 - (unsigned char)*str2;
 }
 
-void* memset(void* s, byte c, int32_t n) {
+void* memset(void* s, byte c, uint64_t n) {
     byte* p = (byte*)s;
     for(; n; --n) *p++ = c;
     return s;
