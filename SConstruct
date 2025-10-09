@@ -1,24 +1,6 @@
 import os, shutil, re, subprocess
 from SCons.Script import GetOption
 
-# Disable out of date targets --------------------------------------------------------------------------
-
-try:
-    # Remove '' target if present
-    if "" in COMMAND_LINE_TARGETS:
-        print("[Info] '' target has been removed; ignoring it.")
-        COMMAND_LINE_TARGETS[:] = [t for t in COMMAND_LINE_TARGETS if t != ""]
-except Exception:
-    pass
-
-try:
-    # Disable 'build' target
-    if "build" in COMMAND_LINE_TARGETS:
-        print("[Warning] 'build' target is disabled. Use `scons run`.")
-        Exit(1)
-except Exception:
-    pass
-
 # QEMU Setup -------------------------------------------------------------------------------------------
 
 Help("""
@@ -32,10 +14,6 @@ options:
 description: SCons entry points.
 
 Commands:
-  build
-    usage: scons [build]
-    description: (Disabled) Relied on obsolete testutils.c.
-
   run
     usage: scons run [debug]
 
@@ -81,13 +59,13 @@ if GetOption("clean"):
 
 PORT = 6999
 CC     = "-".join([arch, "gcc"])
-cflags = "-std=gnu2x -Wall -Werror -fno-builtin -nostdlib -nostdinc -march=rv64ima_zicsr -mabi=lp64 -mcmodel=medany -O0 -g "
+cflags = "-std=gnu2x -Wall -Werror -fno-builtin -nostdlib -nostdinc -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -O0 -g "
 LD     = "-".join([arch, "ld"])
 lflags = f"-nostdlib -Map {map_file} -T {ld_file} "
 AS     = "-".join([arch, "as"])
-aflags = "-march=rv64ima_zicsr -mabi=lp64 -g "
+aflags = "-march=rv64imac_zicsr -mabi=lp64 -g "
 QEMU   = "qemu-system-riscv64"
-qflags = f"-M virt -bios none -cpu max,sstc=false -m 128M -chardev stdio,id=uart0 -serial chardev:uart0 -display none"
+qflags = f"-M virt -bios none -cpu rv64,sstc=false -m 128M -chardev stdio,id=uart0 -serial chardev:uart0 -display none"
 GDB    = "-".join([arch, "gdb"])
 
 # Generate version.h -----------------------------------------------------------------------------------

@@ -4,7 +4,9 @@
 #include <lib/string.h>
 #include <system/thread.h>
 
-#define FREEMASK_SZ ((uint64_t)ALIGN_UP_4K(&mem_end - &text_start) / 4096) / 8
+#define FREEMASK_RANGE ((uint64_t)ALIGN_UP_2M(&mem_end - &text_start))
+#define FREEMASK_BITS (FREEMASK_RANGE / PAGE_SIZE)
+#define FREEMASK_SZ ((FREEMASK_BITS + 7) / 8)
 #define PPN_TO_IDX(ppn) (ppn - ((uint64_t)&text_start >> PAGE_SHIFT))
 #define IDX_TO_PPN(idx) (idx + ((uint64_t)&text_start >> PAGE_SHIFT))
 
@@ -191,6 +193,10 @@ static void free_l0(uint64_t l0_ppn) {
 	pte_t* l0 = (pte_t*)PPN_TO_KVA(l0_ppn);
 	for (uint16_t i = 0; i < 512; ++i) {
 		if (!l0[i].v) continue;
+		if (l0[i].g && (l0[i].r || l0[i].w || l0[i].x)) {
+			l0[i] = (pte_t){ 0 };
+			continue;
+		}
 		pfm_clear(l0[i].ppn);
 		l0[i] = (pte_t){ 0 };
 	}
@@ -202,12 +208,15 @@ static void free_l1(uint64_t l1_ppn) {
 	pte_t* l1 = (pte_t*)PPN_TO_KVA(l1_ppn);
 	for (uint16_t i = 0; i < 512; ++i) {
 		if (!l1[i].v) continue;
+		if (l1[i].g && (l1[i].r || l1[i].w || l1[i].x)) {
+			l1[i] = (pte_t){ 0 };
+			continue;
+		}
 		if (l1[i].r || l1[i].w || l1[i].x) clear_megapage(l1[i].ppn);
 		else free_l0(l1[i].ppn);
 		l1[i] = (pte_t){ 0 };
 	}
 	clean_page(l1_ppn);
-	pfm_clear(l1_ppn);
 }
 //
 //
