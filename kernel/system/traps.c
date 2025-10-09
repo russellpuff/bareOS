@@ -28,9 +28,8 @@ s_interrupt handle_syscall(void) {
 
 void delegate_clk(void) {
     *(uint64_t*)(CLINT_TIMER_ADDR - (MMU_ENABLED ? KVM_BASE : 0)) += timer_interval;
-    asm volatile ("li t0, 0x20\n"
-		  "csrs mip, t0\n"
-		  "csrs mie, t0\n");
+    asm volatile ("li t0, 0x20");
+    raise_syscall(RESCHED);
 }
 
 /* Rudimentary exception handler, will handle more exceptions as time goes on. */

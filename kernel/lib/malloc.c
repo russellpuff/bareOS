@@ -10,7 +10,7 @@ alloc_t* freelist;
 
 void init_heap(void) {
   freelist = (alloc_t*)ALIGN_UP_2M(&mem_start);
-  freelist->size = FREELIST_MAX;
+  freelist->size = FREELIST_MAX - sizeof(alloc_t);
   freelist->state = M_FREE;
   freelist->next = NULL;
 }

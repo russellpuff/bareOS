@@ -7,6 +7,12 @@
  *  'current_thread'.  Finally,  'resched' uses 'ctxsw' to swap from  *
  *  the old thread to the new thread.                                 */
 void resched(void) {
+    sleep_list.qnext->key -= 10;
+    while (sleep_list.qnext->key == 0) {
+        uint32_t tid = dequeue_thread(&sleep_list);
+        if (tid == -1) continue;
+        unsleep_thread(tid);
+    }
     uint32_t new_thread = dequeue_thread(&ready_list);
     if (new_thread == -1) return;
     uint32_t old_thread = current_thread;

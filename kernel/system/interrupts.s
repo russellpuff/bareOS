@@ -41,7 +41,7 @@ handle_trap:
     ld    t1, 0(sp)
     ld    t0, 8(sp)
     addi  sp, sp, 16
-    j     handle_clk
+    j     __noop
 
 .L_sys:
     csrci sip, 0x2
