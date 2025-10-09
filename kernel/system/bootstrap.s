@@ -25,12 +25,15 @@ _start:
 	la t1, _mstatus_init         # --
 	or t0, t0, t1                #  |    Enable interrupts and set running state to Supervisor mode
 	csrw mstatus, t0             # --
-	li t0, 0x202
+	li t0, 0x222
 	csrs mideleg, t0
 
 	la t0, __m_trap_vector       # --
 	addi t0, t0, 0x1             #  |    Set exception and interrupt vector to the '__traps' label
 	csrw mtvec, t0               # --
+
+	li t0, 0xB000			     # -.
+	csrs medeleg, t0			 # -'    Delegate page faults to supervisor
 
 	la gp, _kmap_global_ptr      # --
     la sp, _kmap_kstack_top      #  |    Set initial stack pointer, global pointer,

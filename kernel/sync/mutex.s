@@ -1,7 +1,7 @@
 .global create_mutex
 create_mutex:                          # --
-	amoswap.w.rl zero, zero, (a0)  #  |  Atomically set the value of the pointer to zero
-	ret                            # --
+	amoswap.w.rl zero, zero, (a0)      #  |  Atomically set the value of the pointer to zero
+	ret                                # --
 
 .globl lock_mutex
 lock_mutex:

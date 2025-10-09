@@ -4,7 +4,7 @@
 #include <system/syscall.h>
 #include <system/thread.h>
 
-static byte MUTEX_LOCK;
+static uint32_t MUTEX_LOCK;
 
 /* This function is to avoid a possible pitfall involving
    threads with their own priorities being ordered wrongly
