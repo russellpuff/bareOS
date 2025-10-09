@@ -78,8 +78,8 @@ raise_syscall:
 
 .globl set_interrupt          # --
 set_interrupt:                #  |  Enables a class of interrupts to trigger the corresponding handler.
-	csrrs a0, mie, a0     #  |  Disabled through the general mstatus/sstatus bits.
-	ret                   # --
+	csrrs a0, mie, a0         #  |  Disabled through the general mstatus/sstatus bits.
+	ret                       # --
 
 /*
  * The '__m_trap_vector' label is a table of functions that handle various special interrupts
@@ -100,9 +100,25 @@ save_and_handle_m:
     la    t3, last_epc_any
     sd    t2, 0(t3)
 
-    csrr  t3, mscratch
+    csrrw  t3, mscratch, sp
     mv    sp, t3
     j     handle_exception
+
+.globl clk_trampoline
+clk_trampoline:
+    mv    t1, sp
+    csrrw t0, mscratch, sp
+    mv    sp, t0
+    addi  sp, sp, -16
+    sd    ra, 8(sp)
+    sd    t1, 0(sp)
+    call  delegate_clk
+    ld    t1, 0(sp)
+    ld    ra, 8(sp)
+    addi  sp, sp, 16
+    csrw  mscratch, sp
+    mv    sp, t1
+    mret
 
 __noop:	mret
 
@@ -110,27 +126,27 @@ __noop:	mret
 .align 8
 __m_trap_vector:            # Interrupt table index | Cause
 .org __m_trap_vector + 0*4  #-----------------------+---------------------------------------
- 	j save_and_handle_m  #  0                    | SOFTWARE interrupt [User] or Exception
+ 	j save_and_handle_m     #  0                    | SOFTWARE interrupt [User] or Exception
 .org __m_trap_vector + 1*4  #-----------------------+---------------------------------------
-	j __noop            #  1                    | SOFTWARE interrupt [Supervisor]
+	j __noop                #  1                    | SOFTWARE interrupt [Supervisor]
 .org __m_trap_vector + 2*4  #-----------------------+---------------------------------------
-	j __noop            #  2                    | ------ /reserved/
+	j __noop                #  2                    | ------ /reserved/
 .org __m_trap_vector + 3*4  #-----------------------+---------------------------------------
-	j __noop            #  3                    | SOFTWARE interrupt [Machine]
+	j __noop                #  3                    | SOFTWARE interrupt [Machine]
 .org __m_trap_vector + 4*4  #-----------------------+---------------------------------------
-	j __noop            #  4                    | TIMER interrupt    [User]
+	j __noop                #  4                    | TIMER interrupt    [User]
 .org __m_trap_vector + 5*4  #-----------------------+---------------------------------------
-	j __noop            #  5                    | TIMER interrupt    [Supervisor]
+	j clk_trampoline        #  5                    | TIMER interrupt    [Supervisor]
 .org __m_trap_vector + 6*4  #-----------------------+---------------------------------------
-	j __noop            #  6                    | ------ /reserved/
+	j __noop                #  6                    | ------ /reserved/
 .org __m_trap_vector + 7*4  #-----------------------+---------------------------------------
-	j delegate_clk      #  7                    | TIMER interrupt    [Machine]
+	j clk_trampoline        #  7                    | TIMER interrupt    [Machine]
 .org __m_trap_vector + 8*4  #-----------------------+---------------------------------------
-	j __noop            #  8                    | EXTERNAL interrupt [User]
+	j __noop                #  8                    | EXTERNAL interrupt [User]
 .org __m_trap_vector + 9*4  #-----------------------+---------------------------------------
-	j __noop            #  9                    | EXTERNAL interrupt [Supervisor]
+	j __noop                #  9                    | EXTERNAL interrupt [Supervisor]
 .org __m_trap_vector + 10*4 #-----------------------+---------------------------------------
-	j __noop            # 10                    | ----- /reserved/
+	j __noop                # 10                    | ----- /reserved/
 .org __m_trap_vector + 11*4 #-----------------------+---------------------------------------
-	j __noop            # 11                    | EXTERNAL interrupt [Machine]
+	j __noop                # 11                    | EXTERNAL interrupt [Machine]
                             #-----------------------+---------------------------------------

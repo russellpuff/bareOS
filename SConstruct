@@ -80,15 +80,12 @@ if GetOption("clean"):
     _safe_remove(".sconsign.dblite")
 
 PORT = 6999
-logfile = ARGUMENTS.get("logfile", "")
-logfile = f",logfile={logfile}" if logfile else ""
-
 CC     = "-".join([arch, "gcc"])
-cflags = "-std=gnu2x -Wall -Werror -fno-builtin -nostdlib -nostdinc -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -O0 -g "
+cflags = "-std=gnu2x -Wall -Werror -fno-builtin -nostdlib -nostdinc -march=rv64ima_zicsr -mabi=lp64 -mcmodel=medany -O0 -g "
 LD     = "-".join([arch, "ld"])
 lflags = f"-nostdlib -Map {map_file} -T {ld_file} "
 AS     = "-".join([arch, "as"])
-aflags = "-march=rv64imac_zicsr -mabi=lp64 -g "
+aflags = "-march=rv64ima_zicsr -mabi=lp64 -g "
 QEMU   = "qemu-system-riscv64"
 qflags = f"-M virt -bios none -m 128M -chardev stdio,id=uart0 -serial chardev:uart0 -display none"
 GDB    = "-".join([arch, "gdb"])

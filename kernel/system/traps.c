@@ -26,8 +26,8 @@ s_interrupt handle_syscall(void) {
     syscall_table[signum]();
 }
 
-m_interrupt delegate_clk(void) {
-    *(uint64_t*)CLINT_TIMER_ADDR += timer_interval;
+void delegate_clk(void) {
+    *(uint64_t*)(CLINT_TIMER_ADDR - (MMU_ENABLED ? KVM_BASE : 0)) += timer_interval;
     asm volatile ("li t0, 0x20\n"
 		  "csrs mip, t0\n"
 		  "csrs mie, t0\n");
