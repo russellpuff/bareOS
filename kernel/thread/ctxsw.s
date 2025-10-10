@@ -105,13 +105,16 @@ ctxload:
     or t0, t0, t2               # | add mode
     csrw satp, t0               # |
     sfence.vma x0, x0           # |
-	.extern MMU_ENABLED
-    la t4, MMU_ENABLED
-    li t5, 1
-    sb t5, 0(t4)
-    fence rw, rw                #
+	.extern MMU_ENABLED         # |
+    la t4, MMU_ENABLED          # |
+    li t5, 1                    # |
+    sb t5, 0(t4)                # |
+    fence rw, rw                # |
     li t3, (1 << 18)            # | Set sstatus.SUM (bit 18) so S-mode can access U pages
     csrs sstatus, t3            # |
-    ld a0, -2*REGSZ(sp)         # |
-    ld ra, -3*REGSZ(sp)         #--          
-    ret
+    ld t0, -3*REGSZ(sp)         # | Load wrapper entry point
+    ld a0, -2*REGSZ(sp)         # | Load thread entry function pointer
+    ld ra, -1*REGSZ(sp)         # | Load return address trampoline
+    addi sp, sp, CTX_BYTES      # | Move SP above saved context frame
+    jr t0                       # | Jump to wrapper         
+    ret                         # -

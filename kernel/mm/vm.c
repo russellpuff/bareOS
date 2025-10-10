@@ -194,13 +194,10 @@ static void free_l0(uint64_t l0_ppn) {
 	for (uint16_t i = 0; i < 512; ++i) {
 		if (!l0[i].v) continue;
 		if (l0[i].g && (l0[i].r || l0[i].w || l0[i].x)) {
-			l0[i] = (pte_t){ 0 };
 			continue;
 		}
 		pfm_clear(l0[i].ppn);
-		l0[i] = (pte_t){ 0 };
 	}
-	clean_page(l0_ppn);
 	pfm_clear(l0_ppn);
 }
 
@@ -209,14 +206,12 @@ static void free_l1(uint64_t l1_ppn) {
 	for (uint16_t i = 0; i < 512; ++i) {
 		if (!l1[i].v) continue;
 		if (l1[i].g && (l1[i].r || l1[i].w || l1[i].x)) {
-			l1[i] = (pte_t){ 0 };
 			continue;
 		}
 		if (l1[i].r || l1[i].w || l1[i].x) clear_megapage(l1[i].ppn);
 		else free_l0(l1[i].ppn);
-		l1[i] = (pte_t){ 0 };
 	}
-	clean_page(l1_ppn);
+	pfm_clear(l1_ppn);
 }
 //
 //
@@ -310,7 +305,7 @@ uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
 	return NULL;
 }
 
-/* Rudimentary page clearer. Should be able to free all children of a root page except kernel mappings. */
+/* Rudimentary page clearer. Should be able to free all children of a root page. */
 /* Cannot clear a gigapage. We don't have any non-kernel gigapages so who cares. */
 void free_pages(uint64_t root_ppn) {
 	if (root_ppn == kernel_root_ppn) return;
@@ -322,9 +317,7 @@ void free_pages(uint64_t root_ppn) {
 
 		if (root[i].r || root[i].w || root[i].x) clear_megapage(root[i].ppn);
 		else free_l1(root[i].ppn);
-		root[i] = (pte_t){ 0 };
 	}
 
-	clean_page(root_ppn);
 	pfm_clear(root_ppn);
 }

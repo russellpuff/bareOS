@@ -116,6 +116,7 @@ int32_t kill_thread(uint32_t threadid) {
     if (thread_table[threadid].root_ppn != kernel_root_ppn) {
         free_pages(thread_table[threadid].root_ppn);   /*  Free pages associated with thread     */
     }
+    thread_table[threadid].root_ppn = 0;
     post_sem(&thread_table[threadid].sem); /* Notify waiting threads. */
     free_sem(&thread_table[threadid].sem); /* Calls resched after dumping children. */
     return 0;

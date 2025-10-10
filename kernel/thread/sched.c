@@ -15,6 +15,10 @@ void resched(void) {
     }
     uint32_t new_thread = dequeue_thread(&ready_list);
     if (new_thread == -1) return;
+    if (thread_table[new_thread].root_ppn == 0) {
+        // TODO: panic
+        return;
+    }
     uint32_t old_thread = current_thread;
     current_thread = new_thread;
     thread_table[new_thread].state = TH_RUNNING;
@@ -35,7 +39,10 @@ void resched(void) {
 int32_t resume_thread(uint32_t threadid) {
     if (threadid >= NTHREADS || (thread_table[threadid].state != TH_SUSPEND && thread_table[threadid].state != TH_WAITING))
         return -1;
-
+    if (thread_table[threadid].root_ppn == 0) {
+        // TODO: panic
+        return -1;
+    }
     thread_table[threadid].state = TH_READY;
     enqueue_thread(&ready_list, threadid);
     raise_syscall(RESCHED);
