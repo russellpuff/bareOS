@@ -92,5 +92,6 @@ void supervisor_start(void) {
   current_thread = (uint32_t)root_tid;
   thread_table[current_thread].state = TH_RUNNING;
   ctxload(&thread_table[current_thread]);
+  sys_idle();
 }
 

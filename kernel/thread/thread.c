@@ -1,5 +1,6 @@
 #include <system/thread.h>
 #include <system/interrupts.h>
+#include <system/syscall.h>
 #include <mm/vm.h>
 #include <lib/string.h>
 
@@ -36,6 +37,9 @@ void wrapper(byte(*proc)(char*)) {
     char* arg = (char*)thread_table[current_thread].stackptr;
     thread_table[current_thread].retval = proc(arg);  /*  Call the thread's entry point function and store the result on return       */
     kill_thread(current_thread);                      /*  Clean up thread after completion                                            */
+    /* Temp, trampoline returns to who knows where, let scheduler pull away from this thread instead. */
+    raise_syscall(RESCHED);
+    while (1);
 }
 
 /*  `create_thread`  takes a pointer  to a function that  acts as the entry  *
@@ -116,7 +120,7 @@ int32_t kill_thread(uint32_t threadid) {
     if (thread_table[threadid].root_ppn != kernel_root_ppn) {
         free_pages(thread_table[threadid].root_ppn);   /*  Free pages associated with thread     */
     }
-    thread_table[threadid].root_ppn = 0;
+    thread_table[threadid].root_ppn = NULL;
     post_sem(&thread_table[threadid].sem); /* Notify waiting threads. */
     free_sem(&thread_table[threadid].sem); /* Calls resched after dumping children. */
     return 0;

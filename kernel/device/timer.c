@@ -21,6 +21,6 @@ const uint64_t timer_interval = 100000;
  */
 void init_clk(void) {
 	return;
-  *(uint64_t*)CLINT_TIMER_ADDR = timer_interval;
-  set_interrupt(TRAP_TIMER_ENABLE);
+	*(uint64_t*)CLINT_TIMER_ADDR = timer_interval;
+	set_interrupt(TRAP_TIMER_ENABLE);
 }
