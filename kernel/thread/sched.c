@@ -23,6 +23,11 @@ void resched(void) {
         enqueue_thread(&ready_list, old_thread);
     }
     ctxsw(&thread_table[new_thread], &thread_table[old_thread]);
+    while (reap_list.qnext != &reap_list) {
+        int32_t id = dequeue_thread(&reap_list);
+        if (id == -1) continue; /* Encountered a phantom thread. Not worth panicking over for now. */
+        kill_thread(id);
+    }
     return;
 }
 

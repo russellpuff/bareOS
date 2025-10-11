@@ -3,6 +3,7 @@
 #include <system/syscall.h>
 #include <mm/vm.h>
 #include <lib/string.h>
+#include <system/queue.h>
 
 thread_t thread_table[NTHREADS];  /*  Create a table of threads  */
 uint32_t current_thread; 
@@ -36,7 +37,7 @@ static void trampoline(void) {
 void wrapper(byte(*proc)(char*)) {
     char* arg = (char*)thread_table[current_thread].stackptr;
     thread_table[current_thread].retval = proc(arg);  /*  Call the thread's entry point function and store the result on return       */
-    kill_thread(current_thread);                      /*  Clean up thread after completion                                            */
+    enqueue_thread(&reap_list, current_thread);
     /* Temp, trampoline returns to who knows where, let scheduler pull away from this thread instead. */
     raise_syscall(RESCHED);
     while (1);
@@ -106,22 +107,29 @@ int32_t join_thread(uint32_t threadid) {
     return thread_table[threadid].retval;
 }
 
-/*  Takes an index into the thread_table.  If that thread is not free (in use),  *
- *  sets the thread to defunct and raises a RESCHED syscall.                     */
+/* Takes an index into the thread table and marks the thread as defunct and *
+ * frees up any resources it was using. This can only be called by the      *
+ * scheduler looking through the reap_list of to-be-killed threads after    *
+ * their context is swapped from for the last time. So there's no possible  *
+ * chance of context corruption from freeing pages                          */
 int32_t kill_thread(uint32_t threadid) {
     if (threadid >= NTHREADS || thread_table[threadid].state == TH_FREE) /*                                                             */
         return -1;                                                         /*  Return if the requested thread is invalid or already free  */
 
-    for (int i = 0; i < NTHREADS; i++) {               /*                                        */
-        if (thread_table[i].parent == threadid)        /*  Identify all children of the thread   */
+    /* TODO: This is lousy and unsafe. Doesn't properly reap anything. */
+    /* For now we don't really have any threads with children so this is irrelevant, but in the future it must be fixed. */
+    for (int i = 0; i < NTHREADS; ++i) {               /*                                        */
+        if (thread_table[i].parent == threadid) {      /*  Identify all children of the thread   */
             thread_table[i].state = TH_FREE;           /*  Reap running children threads         */
+        }  
     }
-    thread_table[threadid].state = TH_DEFUNCT;         /*  Set the thread's state to TH_DEFUNCT  */
     if (thread_table[threadid].root_ppn != kernel_root_ppn) {
         free_pages(thread_table[threadid].root_ppn);   /*  Free pages associated with thread     */
     }
     thread_table[threadid].root_ppn = NULL;
     post_sem(&thread_table[threadid].sem); /* Notify waiting threads. */
     free_sem(&thread_table[threadid].sem); /* Calls resched after dumping children. */
+
+    thread_table[threadid].state = TH_DEFUNCT;         /*  Set the thread's state to TH_DEFUNCT  */
     return 0;
 }
