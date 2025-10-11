@@ -80,6 +80,7 @@ static void root_thread(void) {
     uint32_t shell_tid = create_thread(&shell, "", 0);
     resume_thread(shell_tid);
     join_thread(shell_tid);
+	krprintf("The root thread has completed, waiting for the scheduler.\n");
 }
 
 /*
@@ -87,11 +88,14 @@ static void root_thread(void) {
  *  Used to initialize devices before starting steady state behavior
  */
 void supervisor_start(void) {
-  initialize();
-  uint32_t root_tid = create_thread(&root_thread, "", 0);
-  current_thread = (uint32_t)root_tid;
-  thread_table[current_thread].state = TH_RUNNING;
-  ctxload(&thread_table[current_thread]);
-  sys_idle();
+	initialize();
+	set_s_interrupt(1 << 0x2);
+	asm volatile("csrs sstatus, 0x2");
+	krprintf("This is a debug message indicating supervisor start has finished initializing.\n");
+	uint32_t root_tid = create_thread(&root_thread, "", 0);
+	current_thread = (uint32_t)root_tid;
+	thread_table[current_thread].state = TH_RUNNING;
+	ctxload(&thread_table[current_thread]);
+	while(1);
 }
 

@@ -22,7 +22,7 @@ void uart_handler(void);
 void init_plic(void) {
   uint32_t* plic_thresh_addr = (uint32_t*)EXTERNAL_THRESH_ADDR;
   *plic_thresh_addr  = 0x0;
-  set_interrupt(TRAP_EXTERNAL_ENABLE);
+  set_m_interrupt(TRAP_EXTERNAL_ENABLE);
 }
 
 

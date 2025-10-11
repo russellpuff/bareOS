@@ -12,7 +12,7 @@ static char raw_putc(char ch) {
 	return uart[UART0_RW_REG] = (ch & 0xff);             /*  Send character to the UART    */
 }
 
-static void puts(const char* str) {
+void puts(const char* str) {
     while (*str != '\0') raw_putc(*str++);
 }
 
