@@ -27,10 +27,10 @@ s_interrupt handle_syscall(void) {
 }
 
 s_interrupt s_handle_exception(void) {
-    uint64_t cause, tval, epc;
-    asm volatile("csrr %0, scause" : "=r"(cause));
-    asm volatile("csrr %0, stval"  : "=r"(tval));
-    asm volatile("csrr %0, sepc"   : "=r"(epc));
+   uint64_t cause, tval, epc;
+   asm volatile("csrr %0, scause" : "=r"(cause));
+   asm volatile("csrr %0, stval"  : "=r"(tval));
+   asm volatile("csrr %0, sepc"   : "=r"(epc));
 
     if ((cause & (1ULL << 63)) == 0) { /* Synchronous exception */
         uint64_t code = cause & 0xfffULL; /* Get exception code */
@@ -51,13 +51,12 @@ s_interrupt s_handle_exception(void) {
     while (1);
 }
 
-/* Rudimentary exception handler, will handle more exceptions as time goes on. */
-/* DEBUG: This handles both SUPERVISOR and MACHINE exceptions, when this is called, M/S will write to last_* for info */
 m_interrupt m_handle_exception(void) {
-    uint64_t cause, tval, epc;
-    asm volatile("csrr %0, mcause" : "=r"(cause));
-    asm volatile("csrr %0, mtval"  : "=r"(tval));
-    asm volatile("csrr %0, mepc"   : "=r"(epc));
+    /* Read the registers in gdb */
+    // uint64_t cause, tval, epc;
+    // asm volatile("csrr %0, mcause" : "=r"(cause));
+    // asm volatile("csrr %0, mtval"  : "=r"(tval));
+    // asm volatile("csrr %0, mepc"   : "=r"(epc));
 
     while (1);
 }

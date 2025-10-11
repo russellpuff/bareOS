@@ -85,7 +85,7 @@ delegate_clk:
     add t0, t0, t2
     sw t0, (t1)
     li t0, 0x20
-    csrs sip, t0
+    csrs mip, t0
     ld t2, -24(sp)
     ld t1, -16(sp)
     ld t0, -8(sp)
