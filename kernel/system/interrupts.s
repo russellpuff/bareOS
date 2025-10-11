@@ -1,21 +1,9 @@
 /* --  Supervisor mode interrupt management functions -- */
 
-    .extern last_cause_any
-    .extern last_tval_any
-    .extern last_epc_any
+    .extern 
 
 .globl handle_trap
 handle_trap:
-    csrr  t0, scause
-    csrr  t1, stval
-    csrr  t2, sepc
-    la    t3, last_cause_any
-    sd    t0, 0(t3)
-    la    t3, last_tval_any
-    sd    t1, 0(t3)
-    la    t3, last_epc_any
-    sd    t2, 0(t3)
-
     addi  sp, sp, -16
     sd    t0, 8(sp)
     sd    t1, 0(sp)
@@ -24,7 +12,7 @@ handle_trap:
     ld    t1, 0(sp)
     ld    t0, 8(sp)
     addi  sp, sp, 16
-    j     handle_exception
+    j     s_handle_exception
 
 .L_is_interrupt:
     andi  t0, t0, 0x1FF
@@ -41,7 +29,7 @@ handle_trap:
     ld    t1, 0(sp)
     ld    t0, 8(sp)
     addi  sp, sp, 16
-    j     __noop
+    j     handle_clk
 
 .L_sys:
     csrci sip, 0x2
@@ -82,66 +70,41 @@ set_interrupt:                #  |  Enables a class of interrupts to trigger the
  * register.  (see bootstrap.s)
 */
 
-.global save_and_handle_m
-save_and_handle_m:
-    # snapshot M stuff and stuff into global variables
-    csrr  t0, mcause
-    csrr  t1, mtval
-    csrr  t2, mepc
-    la    t3, last_cause_any
-    sd    t0, 0(t3)
-    la    t3, last_tval_any
-    sd    t1, 0(t3)
-    la    t3, last_epc_any
-    sd    t2, 0(t3)
-
-    csrrw  t3, mscratch, sp
-    mv    sp, t3
-    j     handle_exception
-
-.globl clk_trampoline
-clk_trampoline:
-    mv    t1, sp
-    csrrw t0, mscratch, sp
-    mv    sp, t0
-    addi  sp, sp, -16
-    sd    ra, 8(sp)
-    sd    t1, 0(sp)
-    call  delegate_clk
-    ld    t1, 0(sp)
-    ld    ra, 8(sp)
-    addi  sp, sp, 16
-    csrw  mscratch, sp
-    mv    sp, t1
-    mret
-
 __noop:	mret
+
+.global delegate_clk
+delegate_clk:
+    sd t0, -8(sp)
+    sd t1, -16(sp)
+    sd t2, -24(sp)
+    la t0, timer_interval
+    ld t0, (t0)
+    la t1, clint_timer_addr
+    ld t1, (t1)
+    ld t2, (t1)
+    add t0, t0, t2
+    sw t0, (t1)
+    li t0, 0x20
+    csrs sip, t0
+    ld t2, -24(sp)
+    ld t1, -16(sp)
+    ld t0, -8(sp)
+    ret
 
 .globl __m_trap_vector
 .align 8
-__m_trap_vector:            # Interrupt table index | Cause
-.org __m_trap_vector + 0*4  #-----------------------+---------------------------------------
- 	j save_and_handle_m     #  0                    | SOFTWARE interrupt [User] or Exception
-.org __m_trap_vector + 1*4  #-----------------------+---------------------------------------
-	j __noop                #  1                    | SOFTWARE interrupt [Supervisor]
-.org __m_trap_vector + 2*4  #-----------------------+---------------------------------------
-	j __noop                #  2                    | ------ /reserved/
-.org __m_trap_vector + 3*4  #-----------------------+---------------------------------------
-	j __noop                #  3                    | SOFTWARE interrupt [Machine]
-.org __m_trap_vector + 4*4  #-----------------------+---------------------------------------
-	j __noop                #  4                    | TIMER interrupt    [User]
-.org __m_trap_vector + 5*4  #-----------------------+---------------------------------------
-	j clk_trampoline        #  5                    | TIMER interrupt    [Supervisor]
-.org __m_trap_vector + 6*4  #-----------------------+---------------------------------------
-	j __noop                #  6                    | ------ /reserved/
-.org __m_trap_vector + 7*4  #-----------------------+---------------------------------------
-	j clk_trampoline        #  7                    | TIMER interrupt    [Machine]
-.org __m_trap_vector + 8*4  #-----------------------+---------------------------------------
-	j __noop                #  8                    | EXTERNAL interrupt [User]
-.org __m_trap_vector + 9*4  #-----------------------+---------------------------------------
-	j __noop                #  9                    | EXTERNAL interrupt [Supervisor]
-.org __m_trap_vector + 10*4 #-----------------------+---------------------------------------
-	j __noop                # 10                    | ----- /reserved/
-.org __m_trap_vector + 11*4 #-----------------------+---------------------------------------
-	j __noop                # 11                    | EXTERNAL interrupt [Machine]
-                            #-----------------------+---------------------------------------
+__m_trap_vector:
+    csrrw sp, mscratch, sp
+    la sp, m_trap_stack_top
+    sd t0, -0x8(sp)
+    csrr t0, mcause
+    srli t0, t0, 4
+    bnez t0, 1f
+    ld t0, -0x8(sp)
+    csrr sp, mscratch
+    j m_handle_exception
+1:
+    ld t0, -0x8(sp)
+    jal delegate_clk
+    csrrw sp, mscratch, sp
+    mret
