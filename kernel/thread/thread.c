@@ -1,6 +1,7 @@
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/syscall.h>
+#include <system/panic.h>
 #include <mm/vm.h>
 #include <lib/string.h>
 #include <system/queue.h>
@@ -53,17 +54,22 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
     const uint16_t CTX_BYTES = 29 * 8;
 
     for (i = 0; i < NTHREADS && thread_table[i].state != TH_FREE; i++); /*  Find the first TH_FREE entry in the thread table    */
-    if (i == NTHREADS)                                                  /*                                                      */
-        return -1;                                                      /*  Terminate is there are no free thread entries       */
+    if (i == NTHREADS) {
+        panic("No free thread entries in the thread table for this new thread. No handler exists to wait for one to become free.\n");
+    }
 
     /* Allocate per-thread address space for VM */
     uint64_t exec_pa, stack_pa;
     uint64_t root_ppn = alloc_page(ALLOC_PROC, &exec_pa, &stack_pa);
-    if (root_ppn == NULL) return -1;
+    if (root_ppn == NULL) {
+        panic("Page allocator failed to allocate a page for this new thread.\n");
+    }
 
     const uint64_t STACK_VA_BASE = 0x200000UL;
     const uint64_t STACK_SIZE = 0x200000UL;
-    if (arglen > (STACK_SIZE - 64)) return -2;
+    if (arglen > (STACK_SIZE - 64)) {
+        panic("Arglen was too big for the statically allocated stack size for this new thread.\n");
+    }
 
     pad = (arglen % 4 ? (4 - (arglen % 4)) : 0); /* Alignment for arg */
     stkptr_pa = (byte*)(stack_pa + STACK_SIZE - 16 - CTX_BYTES);
@@ -114,7 +120,7 @@ int32_t join_thread(uint32_t threadid) {
  * chance of context corruption from freeing pages                          */
 int32_t kill_thread(uint32_t threadid) {
     if (threadid >= NTHREADS || thread_table[threadid].state == TH_FREE) /*                                                             */
-        return -1;                                                         /*  Return if the requested thread is invalid or already free  */
+        return -1;                                                       /*  Return if the requested thread is invalid or already free  */
 
     /* TODO: This is lousy and unsafe. Doesn't properly reap anything. */
     /* For now we don't really have any threads with children so this is irrelevant, but in the future it must be fixed. */

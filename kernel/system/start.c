@@ -6,6 +6,7 @@
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/queue.h>
+#include <system/panic.h>
 #include <mm/malloc.h>
 #include <mm/vm.h>
 #include <device/tty.h>
@@ -74,7 +75,7 @@ void display_welcome(void) {
 static void sys_idle() { while(1); }
 
 static void root_thread(void) {
-	krprintf("This is a debug message indicating the root thread has spun up in virtual memory.\nImmediately after this message should be the welcome banner, if you cannot see it, there is a problem with the TTY.\n");
+	krprintf("This is a debug message indicating the root thread has spun up in virtual memory.\n");
 	display_welcome();
 	uint32_t idle_tid = create_thread(&sys_idle, "", 0);
 	resume_thread(idle_tid);
@@ -94,6 +95,7 @@ void supervisor_start(void) {
 	asm volatile("csrs sstatus, 0x2");
 	krprintf("This is a debug message indicating supervisor start has finished initializing.\n");
 	uint32_t root_tid = create_thread(&root_thread, "", 0);
+
 	current_thread = (uint32_t)root_tid;
 	thread_table[current_thread].state = TH_RUNNING;
 	ctxload(&thread_table[current_thread]);

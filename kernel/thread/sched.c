@@ -1,5 +1,8 @@
 #include <system/thread.h>
 #include <system/syscall.h>
+#include <system/panic.h>
+
+// todo: these panic wrongly if passed an invalid thread id, fix eventually
 
 /*  'resched' places the current running thread into the ready state  *
  *  and  places it onto  the tail of the  ready queue.  Then it gets  *
@@ -10,8 +13,7 @@ void resched(void) {
     uint32_t new_thread = dequeue_thread(&ready_list);
     if (new_thread == -1) return;
     if (thread_table[new_thread].root_ppn == NULL) {
-        // TODO: panic
-        return;
+        panic("A thread in the ready list had a null root ppn and was going to be resumed.\n");
     }
     uint32_t old_thread = current_thread;
     current_thread = new_thread;
@@ -36,11 +38,11 @@ void resched(void) {
  *  sets  the thread's  state to  ready and raises a RESCHED  syscall to  schedule a new  *
  *  thread.  Returns the threadid to confirm resumption.                                  */
 int32_t resume_thread(uint32_t threadid) {
-    if (threadid >= NTHREADS || (thread_table[threadid].state != TH_SUSPEND && thread_table[threadid].state != TH_WAITING))
-        return -1;
+    if (threadid >= NTHREADS || (thread_table[threadid].state != TH_SUSPEND && thread_table[threadid].state != TH_WAITING)) {
+        panic("Tried to resume a thread that was already ready/running.\n");
+    }
     if (thread_table[threadid].root_ppn == NULL) {
-        // TODO: panic
-        return -1;
+        panic("A thread in the ready list had a null root ppn and was going to be resumed.\n");
     }
     thread_table[threadid].state = TH_READY;
     enqueue_thread(&ready_list, threadid);
@@ -56,7 +58,7 @@ int32_t suspend_thread(uint32_t threadid) {
     if (threadid < 0 || threadid >= NTHREADS ||
         (thread_table[threadid].state != TH_RUNNING &&
             thread_table[threadid].state != TH_READY)) {
-        return -1;
+        panic("Tried to suspend a thread that was already suspended.\n");
     }
 
     if (thread_table[threadid].state == TH_READY) {
@@ -71,7 +73,9 @@ int32_t suspend_thread(uint32_t threadid) {
 /*  Places the thread into a sleep state and inserts it into the  *
  *  sleep delta list.                                             */
 int32_t sleep_thread(uint32_t threadid, uint32_t delay) {
-    if (threadid >= NTHREADS || thread_table[threadid].state != TH_READY) return -1;
+    if (threadid >= NTHREADS || thread_table[threadid].state != TH_READY) {
+        panic("Tried to sleep a thread that wasn't ready.\n");
+    }
     detach_thread(threadid, false);
     thread_table[threadid].state = TH_SLEEP;
     queue_t* node = &queue_table[threadid];
@@ -84,7 +88,9 @@ int32_t sleep_thread(uint32_t threadid, uint32_t delay) {
 /*  If the thread is in the sleep state, remove the thread from the  *
  *  sleep queue and resumes it.                                      */
 int32_t unsleep_thread(uint32_t threadid) {
-    if (threadid >= NTHREADS || thread_table[threadid].state != TH_SLEEP) return -1;
+    if (threadid >= NTHREADS || thread_table[threadid].state != TH_SLEEP) {
+        panic("Tried to wake a thread that wasn't sleeping.\n");
+    }
     detach_thread(threadid, true);
     queue_t* node = &queue_table[threadid];
     node->key = thread_table[threadid].priority;

@@ -3,6 +3,7 @@
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/syscall.h>
+#include <system/panic.h>
 #include <device/timer.h>
 #include <mm/vm.h>
 
@@ -40,7 +41,10 @@ s_interrupt s_handle_exception(void) {
         /* 15 = store page fault */
         if (code == 12 || code == 13 || code == 15) {
             /* No handler. Just kill the thread. */
-            kprintf("Thread %u faulted at 0x%x on code %u\n", current_thread, (uint32_t)tval, code);
+            krprintf("Thread %u faulted at %x on code %u\n", current_thread, (uint32_t)tval, code);
+            if (ready_list.qnext == &ready_list) {
+                panic("Couldn't resched after a fault. There's no other available threads to switch to.\n");
+            }
             kill_thread(current_thread);
             raise_syscall(RESCHED);
             return;

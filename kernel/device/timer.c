@@ -3,6 +3,7 @@
 #include <system/syscall.h>
 #include <system/queue.h>
 #include <system/thread.h>
+#include <system/panic.h>
 #include <device/timer.h>
 #include <mm/vm.h>
 
@@ -42,5 +43,6 @@ s_interrupt handle_clk(void) {
 			unsleep_thread(tid);
 		}
 	}
+	
 	raise_syscall(RESCHED);
 }
