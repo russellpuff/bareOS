@@ -12,7 +12,7 @@
 #include <fs/fs.h>
 #include <fs/importer.h>
 
-#include <mm/vm_debugger.h>
+//#include <mm/vm_debugger.h>
 
 /*
  *  This file contains the C code entry point executed by the kernel.
@@ -74,6 +74,7 @@ void display_welcome(void) {
 static void sys_idle() { while(1); }
 
 static void root_thread(void) {
+	krprintf("This is a debug message indicating the root thread has spun up in virtual memory.\nImmediately after this message should be the welcome banner, if you cannot see it, there is a problem with the TTY.\n");
 	display_welcome();
 	uint32_t idle_tid = create_thread(&sys_idle, "", 0);
 	resume_thread(idle_tid);

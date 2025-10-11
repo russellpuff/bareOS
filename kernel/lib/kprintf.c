@@ -1,15 +1,26 @@
 #include <lib/bareio.h>
 #include <lib/barelib.h>
+#include <mm/vm.h>
 
 #define MODE_REGULAR 0
 #define MODE_BUFFER 1
 //#define MODE_FILE 2
+#define MODE_RAW 3
 
-/* Helper functions. mode_put is the only thing that can advance the buffer pointer so always return it for updates. */
+/* Helper functions. mode_put is the only thing that can advance the buffer pointer so always return it for updates */
 byte* mode_put(char c, byte mode, byte* ptr) {
     switch(mode) {
         case MODE_REGULAR: uart_putc(c); break;
         case MODE_BUFFER: *ptr++ = c; break;
+        case MODE_RAW:
+            #define UART0_CFG_REG 0x10000000
+            #define UART0_RW_REG   0x0 
+            #define UART0_STAT_REG 0x5
+            #define UART_IDLE     0x20
+            byte* uart = (byte*)PA_TO_KVA(UART0_CFG_REG);
+            while ((uart[UART0_STAT_REG] & UART_IDLE) == 0); /*  Wait for the UART to be idle */
+            uart[UART0_RW_REG] = (c & 0xff);                 /*  Send character to the UART   */
+            break;
     }
     return ptr;
 }
@@ -128,4 +139,15 @@ void ksprintf(byte* buff, const char* format, ...) {
     va_start(ap, format);
     master_kprintf(MODE_BUFFER, buff, format, ap);
     va_end(ap);
+}
+
+/* Kernel raw printf, bypasses tty to talk to the uart directly. Only for panic() and debug. */
+void krprintf(const char* format, ...) {
+    va_list ap; va_start(ap, format);
+    vkrprintf(format, ap);
+    va_end(ap);
+}
+
+void vkrprintf(const char* format, va_list ap) {
+    master_kprintf(MODE_RAW, NULL, format, ap);
 }
