@@ -12,84 +12,134 @@
     .equ THREAD_ASID,     24
 	.equ SATP_MODE_SV39,  (8 << 60)
 
-	.equ CTX_BYTES, (29*REGSZ)
+	.equ OFF_RA,      0*REGSZ
+    .equ OFF_SSTATUS, 1*REGSZ
+    .equ OFF_SEPC,    2*REGSZ
+    .equ OFF_A0,      3*REGSZ
+    .equ OFF_A1,      4*REGSZ
+    .equ OFF_A2,      5*REGSZ
+    .equ OFF_A3,      6*REGSZ
+    .equ OFF_A4,      7*REGSZ
+    .equ OFF_A5,      8*REGSZ
+    .equ OFF_A6,      9*REGSZ
+    .equ OFF_A7,     10*REGSZ
+    .equ OFF_S0,     11*REGSZ
+    .equ OFF_S1,     12*REGSZ
+    .equ OFF_S2,     13*REGSZ
+    .equ OFF_S3,     14*REGSZ
+    .equ OFF_S4,     15*REGSZ
+    .equ OFF_S5,     16*REGSZ
+    .equ OFF_S6,     17*REGSZ
+    .equ OFF_S7,     18*REGSZ
+    .equ OFF_S8,     19*REGSZ
+    .equ OFF_S9,     20*REGSZ
+    .equ OFF_S10,    21*REGSZ
+    .equ OFF_S11,    22*REGSZ
+    .equ OFF_T0,     23*REGSZ
+    .equ OFF_T1,     24*REGSZ
+    .equ OFF_T2,     25*REGSZ
+    .equ OFF_T3,     26*REGSZ
+    .equ OFF_T4,     27*REGSZ
+    .equ OFF_T5,     28*REGSZ
+    .equ OFF_T6,     29*REGSZ
+    .equ CTX_BYTES,  30*REGSZ
 
 .globl ctxsw
 ctxsw:
-	sd ra,  -1*REGSZ(sp)  # --
-	sd a0,  -2*REGSZ(sp)  #  |
-	csrr t0, sepc         #  |
-	sd t1,  -4*REGSZ(sp)  #  |
-	sd t2,  -5*REGSZ(sp)  #  |
-	sd s0,  -6*REGSZ(sp)  #  |
-	sd s1,  -7*REGSZ(sp)  #  |
-	sd a1,  -8*REGSZ(sp)  #  |
-	sd a2,  -9*REGSZ(sp)  #  |
-	sd a3, -10*REGSZ(sp)  #  |
-	sd a4, -11*REGSZ(sp)  #  |
-	sd a5, -12*REGSZ(sp)  #  |
-	sd a6, -13*REGSZ(sp)  #  |
-	sd a7, -14*REGSZ(sp)  #  |
-	sd s2, -15*REGSZ(sp)  #  |  Store all registers onto bottom of the stack (old thread)
-	sd s3, -16*REGSZ(sp)  #  |
-	sd s4, -17*REGSZ(sp)  #  |
-	sd s5, -18*REGSZ(sp)  #  |
-	sd s6, -19*REGSZ(sp)  #  |
-	sd s7, -20*REGSZ(sp)  #  |
-	sd s8, -21*REGSZ(sp)  #  |
-	sd s9, -22*REGSZ(sp)  #  |
-	sd s10,-23*REGSZ(sp)  #  |
-	sd s11,-24*REGSZ(sp)  #  |
-	sd t3, -25*REGSZ(sp)  #  |
-	sd t4, -26*REGSZ(sp)  #  |
-	sd t5, -27*REGSZ(sp)  #  |
-	sd t6, -28*REGSZ(sp)  #  |
-	sd t0, -29*REGSZ(sp)  #  |
-	sd t0, -3*REGSZ(sp)   # --  
-	sd sp, THREAD_STACKPTR(a1)  # --  Store the current stack pointer to old thread -> stackptr
+    # a0 = new thread*, a1 = old thread*
+    addi sp, sp, -CTX_BYTES          # Reserve space before saving
+    sd   ra,      OFF_RA(sp)
+    csrr t0, sstatus
+    sd   t0,      OFF_SSTATUS(sp)    # save sstatus
+    csrr t0, sepc
+    sd   t0,      OFF_SEPC(sp)       # save sepc
 
-	lhu t1, THREAD_ASID(a0)     # -- Load new thread ASID
-	ld t2, THREAD_ROOTPPN(a0)   # -- Load new thread root ppn
-	slli t1, t1, 44             # -- Shift ASID left into place
-	or t0, t1, t2               # -- Combine ASID and ppn
-	li t3, SATP_MODE_SV39       # -- Get mode (8 for Sv39, will never change, pre-shifted)
-	or t0, t0, t3               # -- Combine all
-	csrw satp, t0               # -- Write to satp register
-	sfence.vma x0, x0           # -- Flush TLB entries
-	
-	ld sp, THREAD_STACKPTR(a0)  # --  Load the new stack pointer from the thread table  (argument 0)
-	ld ra,  -1*REGSZ(sp)  # --
-	ld a0,  -2*REGSZ(sp)  #  |
-	ld t0,  -3*REGSZ(sp)  #  |
-	csrw sepc, t0         #  |
-	ld t1,  -4*REGSZ(sp)  #  |
-	ld t2,  -5*REGSZ(sp)  #  |
-	ld s0,  -6*REGSZ(sp)  #  |
-	ld s1,  -7*REGSZ(sp)  #  |
-	ld a1,  -8*REGSZ(sp)  #  |
-	ld a2,  -9*REGSZ(sp)  #  |
-	ld a3, -10*REGSZ(sp)  #  |
-	ld a4, -11*REGSZ(sp)  #  |
-	ld a5, -12*REGSZ(sp)  #  |
-	ld a6, -13*REGSZ(sp)  #  |
-	ld a7, -14*REGSZ(sp)  #  |  Restore the registers from the bottom of the stack (new thread)
-	ld s2, -15*REGSZ(sp)  #  |
-	ld s3, -16*REGSZ(sp)  #  |
-	ld s4, -17*REGSZ(sp)  #  |
-	ld s5, -18*REGSZ(sp)  #  |
-	ld s6, -19*REGSZ(sp)  #  |
-	ld s7, -20*REGSZ(sp)  #  |
-	ld s8, -21*REGSZ(sp)  #  |
-	ld s9, -22*REGSZ(sp)  #  |
-	ld s10,-23*REGSZ(sp)  #  |
-	ld s11,-24*REGSZ(sp)  #  |
-	ld t3, -25*REGSZ(sp)  #  |
-	ld t4, -26*REGSZ(sp)  #  |
-	ld t5, -27*REGSZ(sp)  #  |
-	ld t6, -28*REGSZ(sp)  #  |
-	ld t0, -29*REGSZ(sp)  # --
-	addi sp, sp, CTX_BYTES
-	ret
+    sd   a0,      OFF_A0(sp)
+    sd   a1,      OFF_A1(sp)
+    sd   a2,      OFF_A2(sp)
+    sd   a3,      OFF_A3(sp)
+    sd   a4,      OFF_A4(sp)
+    sd   a5,      OFF_A5(sp)
+    sd   a6,      OFF_A6(sp)
+    sd   a7,      OFF_A7(sp)
+
+    sd   s0,      OFF_S0(sp)
+    sd   s1,      OFF_S1(sp)
+    sd   s2,      OFF_S2(sp)
+    sd   s3,      OFF_S3(sp)
+    sd   s4,      OFF_S4(sp)
+    sd   s5,      OFF_S5(sp)
+    sd   s6,      OFF_S6(sp)
+    sd   s7,      OFF_S7(sp)
+    sd   s8,      OFF_S8(sp)
+    sd   s9,      OFF_S9(sp)
+    sd   s10,     OFF_S10(sp)
+    sd   s11,     OFF_S11(sp)
+
+    sd   t0,      OFF_T0(sp)         # t0 currently holds last sepc; harmless to save
+    sd   t1,      OFF_T1(sp)
+    sd   t2,      OFF_T2(sp)
+    sd   t3,      OFF_T3(sp)
+    sd   t4,      OFF_T4(sp)
+    sd   t5,      OFF_T5(sp)
+    sd   t6,      OFF_T6(sp)
+
+    sd   sp, THREAD_STACKPTR(a1)     # Store pushed SP to old->stackptr
+
+    # Load new address space (ASID + root PPN) into satp
+    lhu  t1, THREAD_ASID(a0)         
+    ld   t2, THREAD_ROOTPPN(a0)      
+    slli t1, t1, 44
+    or   t0, t2, t1
+    li   t3, SATP_MODE_SV39
+    or   t0, t0, t3
+    csrw satp, t0
+    sfence.vma x0, x0
+
+    # Switch to new stack and restore context
+    ld   sp, THREAD_STACKPTR(a0)
+
+    ld   ra,      OFF_RA(sp)
+    ld   t0,      OFF_SSTATUS(sp)
+    csrw sstatus, t0                 # Restore full sstatus
+    li   t3, (1 << 18)               # ensure SUM is set (S-mode may touch U pages)
+    csrs sstatus, t3                 # Reassert SUM every switch
+
+    ld   t0,      OFF_SEPC(sp)
+    csrw sepc, t0
+
+    ld   a0,      OFF_A0(sp)
+    ld   a1,      OFF_A1(sp)
+    ld   a2,      OFF_A2(sp)
+    ld   a3,      OFF_A3(sp)
+    ld   a4,      OFF_A4(sp)
+    ld   a5,      OFF_A5(sp)
+    ld   a6,      OFF_A6(sp)
+    ld   a7,      OFF_A7(sp)
+
+    ld   s0,      OFF_S0(sp)
+    ld   s1,      OFF_S1(sp)
+    ld   s2,      OFF_S2(sp)
+    ld   s3,      OFF_S3(sp)
+    ld   s4,      OFF_S4(sp)
+    ld   s5,      OFF_S5(sp)
+    ld   s6,      OFF_S6(sp)
+    ld   s7,      OFF_S7(sp)
+    ld   s8,      OFF_S8(sp)
+    ld   s9,      OFF_S9(sp)
+    ld   s10,     OFF_S10(sp)
+    ld   s11,     OFF_S11(sp)
+
+    ld   t0,      OFF_T0(sp)
+    ld   t1,      OFF_T1(sp)
+    ld   t2,      OFF_T2(sp)
+    ld   t3,      OFF_T3(sp)
+    ld   t4,      OFF_T4(sp)
+    ld   t5,      OFF_T5(sp)
+    ld   t6,      OFF_T6(sp)
+
+    addi sp, sp, CTX_BYTES
+    ret
 
 #  `ctxload` loads a thread  onto the CPU without a  source thread.  This
 #  is used during initialization to load the FIRST thread and switch from
