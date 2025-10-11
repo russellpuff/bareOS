@@ -13,8 +13,8 @@
  *  used by the kernel.
  */
 
-#define m_interrupt __attribute__ ((interrupt ("machine"))) void
-#define s_interrupt __attribute__ ((interrupt ("supervisor"))) void
+//#define m_interrupt __attribute__ ((interrupt ("machine"))) void
+//#define s_interrupt __attribute__ ((interrupt ("supervisor"))) void
 
 #define NULL 0x0
 #define va_copy(dst, src)       __builtin_va_copy(dst, src)    /*                                      */

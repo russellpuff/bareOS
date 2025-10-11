@@ -28,7 +28,7 @@ void init_clk(void) {
 	set_m_interrupt(TRAP_TIMER_ENABLE);
 }
 
-s_interrupt handle_clk(void) {
+void handle_clk(void) {
 	if (sleep_list.qnext != &sleep_list) {
 		if (sleep_list.qnext->key == 0) {
 			panic("The next thread in the sleep list had a timer of zero but was not dequeued.\n");

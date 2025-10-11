@@ -22,7 +22,7 @@ command_t builtin_commands[] = {
 };
 
 function_t get_command(const char* name) {
-    for(int i = 0; builtin_commands[i].name != NULL; ++i) {
+    for(uint32_t i = 0; builtin_commands[i].name != NULL; ++i) {
         if(!strcmp(name, builtin_commands[i].name)) {
             return builtin_commands[i].func;
         }

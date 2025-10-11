@@ -91,8 +91,8 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
 	initialize();
-	set_s_interrupt(1 << 0x2);
-	asm volatile("csrs sstatus, 0x2");
+	//set_s_interrupt(1 << 0x2);
+	//asm volatile("csrs sstatus, 0x2");
 	krprintf("This is a debug message indicating supervisor start has finished initializing.\n");
 	uint32_t root_tid = create_thread(&root_thread, "", 0);
 

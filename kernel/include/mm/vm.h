@@ -39,5 +39,6 @@ uint64_t alloc_page(prequest, uint64_t*, uint64_t*);
 void free_pages(uint64_t);
 
 extern uint64_t kernel_root_ppn;
+extern byte* s_trap_top;
 
 #endif

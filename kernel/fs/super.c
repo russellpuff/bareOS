@@ -43,7 +43,7 @@ void mkfs(void) {
  *  and copies it into the 'fsd' to make it the active file   *
  *  system.                                                   */
 uint32_t mount_fs(void) {
-    int i;
+    uint32_t i;
 
     if ((fsd = (fsystem_t*)malloc(sizeof(fsystem_t))) == (fsystem_t*)-1) {  /*  Allocate space for the fsd  */
         return 1;                                                            /*                              */

@@ -21,13 +21,13 @@ void (*syscall_table[]) (void) = {
   resched
 };
 
-s_interrupt handle_syscall(void) {
-  int32_t table_size = sizeof(syscall_table) / sizeof(int (*)(void));
+void handle_syscall(void) {
+  int32_t table_size = sizeof(syscall_table) / sizeof(uint32_t (*)(void));
   if (signum < table_size)
     syscall_table[signum]();
 }
 
-s_interrupt s_handle_exception(void) {
+void s_handle_exception(void) {
    uint64_t cause, tval, epc;
    asm volatile("csrr %0, scause" : "=r"(cause));
    asm volatile("csrr %0, stval"  : "=r"(tval));
@@ -55,7 +55,7 @@ s_interrupt s_handle_exception(void) {
     while (1);
 }
 
-m_interrupt m_handle_exception(void) {
+void m_handle_exception(void) {
     /* Read the registers in gdb */
     // uint64_t cause, tval, epc;
     // asm volatile("csrr %0, mcause" : "=r"(cause));

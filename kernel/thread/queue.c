@@ -14,7 +14,7 @@ queue_t reap_list;
 /* 'init_queues' sets all entries in the queue_table to initial values so they   *
  *  can be used safely later during OS operations.                               */
 void init_queues(void) {
-  for(int i = 0; i < NTHREADS; ++i) {
+  for(uint32_t i = 0; i < NTHREADS; ++i) {
 	queue_table[i].key = -1;
 	queue_table[i].qnext = NULL;
 	queue_table[i].qprev = NULL;
@@ -86,7 +86,7 @@ int32_t dequeue_thread(queue_t* queue) {
 		return -1;
 	queue_t* node = queue->qnext;
 	
-	int threadid = 0;
+	uint32_t threadid = 0;
 	for(; threadid < NTHREADS; ++threadid)
 		if(&queue_table[threadid] == node) break;
 	if(threadid == NTHREADS) return -1;

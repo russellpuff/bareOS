@@ -29,7 +29,7 @@ int32_t create(char* filename) {
 	while (ncopy < (FILENAME_LEN - 1) && filename[ncopy] != '\0') ++ncopy;
 	memcpy(fsd->root_dir.entry[slot].name, filename, ncopy);
 
-	for (int n = 0; filename[n] && n < FILENAME_LEN - 1; ++n)
+	for (uint32_t n = 0; filename[n] && n < FILENAME_LEN - 1; ++n)
 		fsd->root_dir.entry[slot].name[n] = filename[n];
 
 	fsd->root_dir.entry[slot].inode_block = b;
@@ -74,7 +74,7 @@ int32_t open(char* filename) {
 
 	/* Look for available oft slot. */
 	int16_t fd = -1;
-	for (int i = 0; i < NUM_FD; ++i) {
+	for (uint32_t i = 0; i < NUM_FD; ++i) {
 		if (oft[i].state == FSTATE_CLOSED) {
 			fd = i;
 			break;

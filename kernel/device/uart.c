@@ -4,33 +4,33 @@
 #include <device/tty.h>
 #include <mm/vm.h>
 
-#define UART_PRIO_ADDR 0xc000028         /*  These  values and  addresses  are used to  setup  */
-#define UART_ENABLE 0x400                                                 /*  the UART on the PLIC.  The addresses must be set  */
-#define EXTERNAL_ENABLED_ADDR 0xc002080  /*  to certain  values to enable the UART  hardware.  */
+#define UART_PRIO_ADDR 0xc000028UL         /*  These  values and  addresses  are used to  setup */
+#define UART_ENABLE 0x400                  /*  the UART on the PLIC.  The addresses must be set */
+#define EXTERNAL_ENABLED_ADDR 0xc002080UL  /*  to certain  values to enable the UART  hardware. */
 
-#define UART0_BAUD 115200                 /* Configuration parameters for the UART.  BAUD and   */
-#define UART0_FREQ 1843200                /* FREQ are factors for the rate to send characters   */
+#define UART0_BAUD 115200                  /* Configuration parameters for the UART.  BAUD and  */
+#define UART0_FREQ 1843200                 /* FREQ are factors for the rate to send characters  */
 
-#define UART0_CFG_REG 0x10000000         /*  This addresses are for the NS16550  UART module  */
-#define UART0_RW_REG   0x0                                                /*  Each device on the PLIC has dedicated addresses  */
-#define UART0_INTR_REG 0x1                                                /*  tied to hardware registers.  These are the ones  */
-#define UART0_RW_H_REG 0x2                                                 /*  used by the UART.                                */
-#define UART0_INT_STAT 0x2                /*                                                   */
-#define UART0_CTRL_REG 0x3                /*                                                   */
-#define UART0_MODEM    0x4                /*  For  example, RW_REG  reads and  writes a  byte  */
-#define UART0_STAT_REG 0x5                /*  to/from the UART.                                */
+#define UART0_CFG_REG 0x10000000UL         /*  This addresses are for the NS16550  UART module  */
+#define UART0_RW_REG   0x0                 /*  Each device on the PLIC has dedicated addresses  */
+#define UART0_INTR_REG 0x1                 /*  tied to hardware registers.  These are the ones  */
+#define UART0_RW_H_REG 0x2                 /*  used by the UART.                                */
+#define UART0_INT_STAT 0x2                 /*                                                   */
+#define UART0_CTRL_REG 0x3                 /*                                                   */
+#define UART0_MODEM    0x4                 /*  For  example, RW_REG  reads and  writes a  byte  */
+#define UART0_STAT_REG 0x5                 /*  to/from the UART.                                */
 
-#define UART_RX_ON    0x01                /*                                                   */
-#define UART_TX_ON    0x02                /*                                                   */
-#define UART_TRIGGER  0x08                /*  These are common values sent to UART registers   */
-#define UART_CFG_ON   0x80                /*  during normal operation                          */
-#define UART_8BIT     0x03                /*                                                   */
-#define UART_PARITY   0x08                /*                                                   */
-#define UART_IDLE     0x20                /*                                                   */
-
-#define UART_RX_INTR  0x4                 /*  UART interrupt code for "received data ready"    */
-#define UART_TX_INTR  0x2                 /*  UART interrupt code for "transmit reg empty"     */
-#define UART_INT_MASK 0xE                 /*  Mask for extracting interrupt data from reg      */
+#define UART_RX_ON    0x01                 /*                                                   */
+#define UART_TX_ON    0x02                 /*                                                   */
+#define UART_TRIGGER  0x08                 /*  These are common values sent to UART registers   */
+#define UART_CFG_ON   0x80                 /*  during normal operation                          */
+#define UART_8BIT     0x03                 /*                                                   */
+#define UART_PARITY   0x08                 /*                                                   */
+#define UART_IDLE     0x20                 /*                                                   */
+                                           
+#define UART_RX_INTR  0x4                  /*  UART interrupt code for "received data ready"    */
+#define UART_TX_INTR  0x2                  /*  UART interrupt code for "transmit reg empty"     */
+#define UART_INT_MASK 0xE                  /*  Mask for extracting interrupt data from reg      */
 
 volatile byte* uart;
 

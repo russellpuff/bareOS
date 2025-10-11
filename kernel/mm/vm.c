@@ -16,6 +16,7 @@ static inline uint64_t va_vpn0(uint64_t va) { return (va >> 12) & 0x1ff; }
 
 byte* page_freemask;
 uint64_t kernel_root_ppn;
+byte* s_trap_top;
 volatile byte MMU_ENABLED;
 
 //
@@ -137,7 +138,7 @@ static pte_t* ensure_l1(uint64_t root_l2_ppn, uint64_t va) {
 
 /* Maps a 2M megapage assuming you already have the page */
 static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
-	int R, int W, int X, int G, int U) {
+	bool R, bool W, bool X, bool G, bool U) {
 	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
 	uint64_t idx = va_vpn1(virt_addr);
 	l1_page[idx] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
@@ -145,7 +146,7 @@ static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 
 /* Maps a regular 4K page assuming you already have it */
 static void map_4k(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
-	int R, int W, int X, int G, int U) {
+	bool R, bool W, bool X, bool G, bool U) {
 	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
 	uint64_t l1_idx = va_vpn1(virt_addr);
 	if (!l1_page[l1_idx].v) {
@@ -230,7 +231,7 @@ void init_pages(void) {
 	/* Do fixed heap size (for now). It's 16MiB and lives right past the kernel */
 	int64_t heap_leaf0_ppn = pfm_findfree_2m();
 	set_megapage(heap_leaf0_ppn);
-	for (int i = 1; i < 8; ++i) { int64_t h = pfm_findfree_2m(); set_megapage(h);}
+	for (uint32_t i = 1; i < 8; ++i) { int64_t h = pfm_findfree_2m(); set_megapage(h);}
 
 	/* Create root page for kernel */
 	kernel_root_ppn = pfm_findfree_4k();
@@ -249,6 +250,12 @@ void init_pages(void) {
 	uint64_t k_virt_addr = (uint64_t)&text_start;
 	uint64_t p_page_addr = (uint64_t)PPN_TO_PA(kernel_leaf_ppn);
 	map_2m(kernel_root_ppn, k_virt_addr, p_page_addr,/*R*/1,/*W*/1,/*X*/1,/*G*/1,/*U*/0);
+
+	/* Get a page for supervisor interrupt stack */
+	uint64_t s_trap_ppn = pfm_findfree_4k();
+	pfm_set(s_trap_ppn);
+	clean_page(s_trap_ppn);
+	s_trap_top = (byte*)(PPN_TO_PA(s_trap_ppn) + KVM_BASE + PAGE_SIZE); /* For use by the trap handler */
 
 	/* Map kernel-heap to kernel root */
 	for (uint64_t i = 0; i < 8; ++i) {

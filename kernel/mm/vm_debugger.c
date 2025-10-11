@@ -6,7 +6,7 @@
 static void format_hex64(char* buffer, uint64_t value) {
     buffer[0] = '0';
     buffer[1] = 'x';
-    for (int i = 0; i < 16; ++i) {
+    for (uint32_t i = 0; i < 16; ++i) {
         uint64_t shift = (15 - i) * 4;
         uint8_t nibble = (value >> shift) & 0xF;
         buffer[2 + i] = (nibble < 10) ? ('0' + nibble) : ('A' + (nibble - 10));
@@ -22,7 +22,7 @@ static uint64_t canonicalize_sv39(uint64_t va39) {
     return va39 & ((1ULL << 39) - 1);
 }
 
-static uint64_t level_span_bytes(int level) {
+static uint64_t level_span_bytes(uint32_t level) {
     switch (level) {
     case 2: return 1ULL << 30; /* 1 GiB */
     case 1: return 1ULL << 21; /* 2 MiB */
@@ -30,14 +30,14 @@ static uint64_t level_span_bytes(int level) {
     }
 }
 
-static void dump_pt_level(pte_t* table, int level, uint16_t vpn2, uint16_t vpn1, int indent);
+static void dump_pt_level(pte_t* table, uint32_t level, uint16_t vpn2, uint16_t vpn1, uint32_t indent);
 
-static void print_indent(int indent) {
-    for (int i = 0; i < indent; ++i) kprintf(" ");
+static void print_indent(uint32_t indent) {
+    for (uint32_t i = 0; i < indent; ++i) kprintf(" ");
 }
 
-static void dump_pt_entry(int level, uint16_t vpn2_idx, uint16_t vpn1_idx, uint16_t vpn0_idx,
-    pte_t entry, int indent) {
+static void dump_pt_entry(uint32_t level, uint16_t vpn2_idx, uint16_t vpn1_idx, uint16_t vpn0_idx,
+    pte_t entry, uint32_t indent) {
     bool is_leaf = entry.r || entry.w || entry.x;
     uint64_t span = level_span_bytes(level);
     uint64_t va39_base = ((uint64_t)vpn2_idx << 30)
@@ -144,7 +144,7 @@ static void dump_pt_entry(int level, uint16_t vpn2_idx, uint16_t vpn1_idx, uint1
     }
 }
 
-static void dump_pt_level(pte_t* table, int level, uint16_t vpn2, uint16_t vpn1, int indent) {
+static void dump_pt_level(pte_t* table, uint32_t level, uint16_t vpn2, uint16_t vpn1, uint32_t indent) {
     for (uint16_t idx = 0; idx < 512; ++idx) {
         if (!table[idx].v) continue;
 

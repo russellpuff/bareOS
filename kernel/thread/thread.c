@@ -17,7 +17,7 @@ uint16_t next_asid;
  *  the 'start'  function) to be  running as the  current  thread.
  */
 void init_threads(void) {
-    for (int i = 0; i < NTHREADS; i++) {
+    for (uint32_t i = 0; i < NTHREADS; i++) {
         thread_table[i].stackptr = NULL;
         thread_table[i].priority = 0;
         thread_table[i].parent = NTHREADS;
@@ -123,12 +123,15 @@ int32_t kill_thread(uint32_t threadid) {
         return -1;                                                       /*  Return if the requested thread is invalid or already free  */
 
     /* TODO: This is lousy and unsafe. Doesn't properly reap anything. */
-    /* For now we don't really have any threads with children so this is irrelevant, but in the future it must be fixed. */
-    for (int i = 0; i < NTHREADS; ++i) {               /*                                        */
-        if (thread_table[i].parent == threadid) {      /*  Identify all children of the thread   */
-            thread_table[i].state = TH_FREE;           /*  Reap running children threads         */
-        }  
+    /* Actually don't do this at all, this kills the idle and shell when root is reaped LOL 
+    
+    for (uint32_t i = 0; i < NTHREADS; ++i) {
+        if (thread_table[i].parent == threadid) {
+            thread_table[i].state = TH_FREE;
+        }
     }
+    */
+
     if (thread_table[threadid].root_ppn != kernel_root_ppn) {
         free_pages(thread_table[threadid].root_ppn);   /*  Free pages associated with thread     */
     }

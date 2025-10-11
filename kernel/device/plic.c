@@ -9,9 +9,9 @@
 #include <system/interrupts.h>
 #include <mm/vm.h>
 
-#define TRAP_EXTERNAL_ENABLE 0x200
-#define EXTERNAL_PENDING_ADDR (0xc001000 + (MMU_ENABLED ? KVM_BASE : 0)) 
-#define EXTERNAL_THRESH_ADDR  (0xc201000 + (MMU_ENABLED ? KVM_BASE : 0)) 
+#define PLIC_ENABLE 0x200
+#define PLIC_S_THRESH (0x0C201000UL + (MMU_ENABLED ? KVM_BASE : 0))
+#define PLIC_S_CLAIM (0x0C201004UL + (MMU_ENABLED ? KVM_BASE : 0))
 
 void uart_handler(void);
 
@@ -20,9 +20,9 @@ void uart_handler(void);
  *  from the Platform Local Interrupt Controller [PLIC] (see bootstrap.s)
  */
 void init_plic(void) {
-  uint32_t* plic_thresh_addr = (uint32_t*)EXTERNAL_THRESH_ADDR;
-  *plic_thresh_addr  = 0x0;
-  set_m_interrupt(TRAP_EXTERNAL_ENABLE);
+    volatile uint32_t* const thresh = (volatile uint32_t*)PLIC_S_THRESH;
+    *thresh = 0;                          // allow all priorities
+    set_m_interrupt(PLIC_ENABLE);
 }
 
 
@@ -30,9 +30,10 @@ void init_plic(void) {
  * This function is automatically triggered whenver an external 
  * event occurs.  (see '__traps' in bootstrap.s)
  */
-s_interrupt handle_plic(void) {
-  uint32_t* plic_pending_addr = (uint32_t*)EXTERNAL_PENDING_ADDR;
-  if (*plic_pending_addr == 0x400)
-      uart_handler();
-  *plic_pending_addr = 0x0;
+void handle_plic(void) {
+    volatile uint32_t* const claim = (volatile uint32_t*)PLIC_S_CLAIM;
+    uint32_t id = *claim;                 
+    if (id == 10) /* QEMU virt: UART0 is source ID 10 */
+        uart_handler();
+    *claim = id;
 }
