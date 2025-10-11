@@ -40,6 +40,7 @@ handle_trap:
     csrr   t0, scause
     bltz   t0, .L_irq
 
+    mv     a0, sp
     jal    s_handle_exception
     j      .L_return
 
@@ -59,6 +60,7 @@ handle_trap:
 
 .L_sys:
     csrci  sip, 0x2               /* clear SSIP */
+    mv     a0, sp
     jal    handle_syscall
 
 .L_return:
@@ -105,9 +107,10 @@ acknowledge_interrupt:        # --
 .globl raise_syscall
 raise_syscall:
 	la t0, signum
-	sd a0, 0(t0)
-	csrwi sip, 0x2
-	ret
+    sd a0, 0(t0)
+    mv a7, a0
+    ecall
+    ret
 
 .globl set_s_interrupt          
 set_s_interrupt:               

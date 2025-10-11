@@ -32,8 +32,8 @@ _start:
 	addi t0, t0, 0x1             #  |    Set exception and interrupt vector to the '__traps' label
 	csrw mtvec, t0               # --
 
-	li t0, 0xB000			     # -.
-	csrs medeleg, t0			 # -'    Delegate page faults to supervisor
+	li t0, 0xB300			     # -.
+	csrs medeleg, t0			 # -'    Delegate page faults and ecall to supervisor
 
 	la gp, _kmap_global_ptr      # --
     la sp, _kmap_kstack_top      #  |    Set initial stack pointer, global pointer,

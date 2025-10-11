@@ -8,6 +8,8 @@
 #include <mm/vm.h>
 
 volatile uint64_t signum;
+#define TF_A7_INDEX   15
+#define TF_SEPC_INDEX 29
 
 /*
  *  This file contains code for handling exceptions generated
@@ -21,13 +23,14 @@ void (*syscall_table[]) (void) = {
   resched
 };
 
-void handle_syscall(void) {
-  int32_t table_size = sizeof(syscall_table) / sizeof(uint32_t (*)(void));
-  if (signum < table_size)
-    syscall_table[signum]();
+void handle_syscall(uint64_t* frame) {
+    (void)frame;
+    int32_t table_size = sizeof(syscall_table) / sizeof(uint32_t (*)(void));
+    if (signum < table_size)
+        syscall_table[signum]();
 }
 
-void s_handle_exception(void) {
+void s_handle_exception(uint64_t* frame) {
    uint64_t cause, tval, epc;
    asm volatile("csrr %0, scause" : "=r"(cause));
    asm volatile("csrr %0, stval"  : "=r"(tval));
@@ -35,6 +38,12 @@ void s_handle_exception(void) {
 
     if ((cause & (1ULL << 63)) == 0) { /* Synchronous exception */
         uint64_t code = cause & 0xfffULL; /* Get exception code */
+        if (code == 8 || code == 9) { /* ecall from U or S mode */
+            signum = frame[TF_A7_INDEX];
+            frame[TF_SEPC_INDEX] = epc + 4;
+            handle_syscall(frame);
+            return;
+        }
         /* Placeholder for handling basic page faults without a crash */
         /* 12 = instruction page fault */
         /* 13 = load page fault        */
@@ -46,7 +55,8 @@ void s_handle_exception(void) {
                 panic("Couldn't resched after a fault. There's no other available threads to switch to.\n");
             }
             kill_thread(current_thread);
-            raise_syscall(RESCHED);
+            signum = RESCHED;
+            handle_syscall(frame);
             return;
         }
     }

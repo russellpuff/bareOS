@@ -9,6 +9,7 @@
  *  the head  of the ready  queue  and sets this  new thread  as the  *
  *  'current_thread'.  Finally,  'resched' uses 'ctxsw' to swap from  *
  *  the old thread to the new thread.                                 */
+#include <lib/bareio.h>
 void resched(void) {
     uint32_t new_thread = dequeue_thread(&ready_list);
     if (new_thread == -1) return;
