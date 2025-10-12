@@ -25,9 +25,9 @@ void init_clk(void) {
 	volatile uint64_t* mtime = (uint64_t*)CLINT_MTIME;
 	volatile uint64_t* mtimecmp = (uint64_t*)clint_timer_addr;
 	*mtimecmp = *mtime + timer_interval;
-	set_m_interrupt(TRAP_TIMER_ENABLE);
+	//set_m_interrupt(TRAP_TIMER_ENABLE);
 }
-
+#include <lib/bareio.h>
 void handle_clk(void) {
 	if (sleep_list.qnext != &sleep_list) {
 		if (sleep_list.qnext->key == 0) {
@@ -44,5 +44,5 @@ void handle_clk(void) {
 		}
 	}
 	
-	raise_syscall(RESCHED);
+	pend_syscall(RESCHED);
 }

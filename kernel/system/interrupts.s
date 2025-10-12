@@ -91,7 +91,7 @@ init_interrupts:
     la   t1, handle_trap
     csrw stvec, t1 
 
-    li   t2, ((1<<5) | (1<<9)) # STIE | SEIE 
+    li   t2, ((1<<1) | (1<<5) | (1<<9))   # SSIE | STIE | SEIE 
     csrs sie, t2
 
     li   t3, 0x2
@@ -110,6 +110,14 @@ raise_syscall:
     sd a0, 0(t0)
     mv a7, a0
     ecall
+    ret
+
+.globl pend_syscall
+pend_syscall:
+    la   t0, signum
+    sd   a0, 0(t0)        
+    li   t1, 0x2
+    csrs sip, t1
     ret
 
 .globl set_s_interrupt          

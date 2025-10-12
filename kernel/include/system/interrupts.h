@@ -8,7 +8,7 @@ uint32_t set_m_interrupt(uint32_t);      /*  Turn on an interrupt for a specific
 uint32_t set_s_interrupt(uint32_t);
 uint32_t disable_interrupts(void);   /*  Turn off all interrupts                     */
 void restore_interrupts(uint32_t);   /*  Return the interrupts to a given state      */
-void acknowledge_interrupt();  /*  Reset a triggered interrupt                 */
+void acknowledge_interrupt(uint64_t mask);  /*  Reset a triggered interrupt                 */
 void uart_wake_tx(void);
 extern volatile uint64_t signum;
 
