@@ -25,7 +25,7 @@
  *  This function calls any initialization functions to set up
  *  devices and other systems.
  */
-void initialize(void) {
+static void initialize(void) {
 	init_tty();
 	init_uart();
 	init_threads();
@@ -42,7 +42,7 @@ void initialize(void) {
 }
 
 /* This function displays the welcome screen when the system and shell boot. */
-void display_welcome(void) {
+static void display_welcome(void) {
 	kprintf("Welcome to bareOS alpha%d-%d.%d.%d (qemu-system-riscv64)\n\n", VERSION_ALPHA, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	kprintf("  Kernel information as of Who Knows When\n\n");
 	kprintf("  Kernel start: %x\n  Kernel size: %d\n  Globals start: %x\n  Heap/Stack start: %x\n  Free Memory Available: %d\n\n",
@@ -52,37 +52,37 @@ void display_welcome(void) {
 		(uint64_t)&mem_start,
 		(uint64_t)(&mem_end - &mem_start));
 	
-	/* Janky way of detecting importer status on boot. */
-	char sentinel[] = "Importer finished with no errors.";
-	int16_t fd = open("importer.log");
-	uint16_t BUFFER_SIZE = 1024;
-	char buffer[BUFFER_SIZE];
-	memset(buffer, '\0', BUFFER_SIZE);
-	read(fd, buffer, BUFFER_SIZE);
-	close(fd);
-	byte ok = 0;
-	for (char *p = buffer; *p; ++p) { 
-		const char *s = p, *t = sentinel;
-		while (*t && *s == *t) { ++s; ++t; }
-		if (*t == '\0') { ok = 1; break; }  // matched full sentinel
-	}
-	const char *result = ok 
-		? "The importer finished successfully." 
-		: "The importer ran into an error.";
-	kprintf("%s Check importer.log for more details.\n\n", result);
+	///* Janky way of detecting importer status on boot. */
+	//char sentinel[] = "Importer finished with no errors.";
+	//int16_t fd = open("importer.log");
+	//uint16_t BUFFER_SIZE = 1024;
+	//char buffer[BUFFER_SIZE];
+	//memset(buffer, '\0', BUFFER_SIZE);
+	//read(fd, buffer, BUFFER_SIZE);
+	//close(fd);
+	//byte ok = 0;
+	//for (char *p = buffer; *p; ++p) { 
+	//	const char *s = p, *t = sentinel;
+	//	while (*t && *s == *t) { ++s; ++t; }
+	//	if (*t == '\0') { ok = 1; break; }  // matched full sentinel
+	//}
+	//const char *result = ok 
+	//	? "The importer finished successfully." 
+	//	: "The importer ran into an error.";
+	//krprintf("%s Check importer.log for more details.\n\n", result);
 }
 
-static void sys_idle() { while(1); }
+static void sys_idle() { while (1); }
 
 static void root_thread(void) {
-	krprintf("This is a debug message indicating the root thread has spun up in virtual memory.\n");
 	display_welcome();
 	uint32_t idle_tid = create_thread(&sys_idle, "", 0);
 	resume_thread(idle_tid);
+	uint32_t reaper_tid = create_thread(&reaper, "", 0);
+	resume_thread(reaper_tid);
     uint32_t shell_tid = create_thread(&shell, "", 0);
     resume_thread(shell_tid);
     join_thread(shell_tid);
-	krprintf("The root thread has completed, waiting for the scheduler.\n");
 }
 
 /*
@@ -91,14 +91,8 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
 	initialize();
-	//set_s_interrupt(1 << 0x2);
-	//asm volatile("csrs sstatus, 0x2");
-	krprintf("This is a debug message indicating supervisor start has finished initializing.\n");
 	uint32_t root_tid = create_thread(&root_thread, "", 0);
-
-	current_thread = (uint32_t)root_tid;
-	thread_table[current_thread].state = TH_RUNNING;
-	ctxload(&thread_table[current_thread]);
+	context_load(&thread_table[current_thread], root_tid);
 	while(1);
 }
 

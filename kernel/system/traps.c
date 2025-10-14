@@ -19,8 +19,11 @@ volatile uint64_t signum;
  *  it to the 'syscall_table' below.
  */
 
+static inline void reserved(void) { return; }
+
 void (*syscall_table[]) (void) = {
-  resched
+  resched,
+  reserved
 };
 
 void handle_syscall(uint64_t* frame) {

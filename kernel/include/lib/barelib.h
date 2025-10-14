@@ -43,5 +43,6 @@ extern byte bss_start;     /*  Shares the address of the first uninitialized glo
 extern byte bss_end;       /*  Shares the address directly after the last uninitialized global/static variable  */
 extern byte mem_start;     /*  Shares the address of the first heap/stack value                                 */
 extern byte mem_end;       /*  Shares the address directly after the last possible heap/stack value             */
+#define offsetof(T, m) ((uint64_t)&(((T*)0)->m))
 
 #endif

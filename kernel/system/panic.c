@@ -67,7 +67,7 @@ static const char* scause_str(uint64_t sc) {
 }
 
 void panic(const char* format, ...) {
-    //panic_quiesce();
+    panic_quiesce();
 	va_list ap; 
 	va_start(ap, format);
 	vkrprintf(format, ap);

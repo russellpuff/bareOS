@@ -33,7 +33,7 @@ static uint64_t level_span_bytes(uint32_t level) {
 static void dump_pt_level(pte_t* table, uint32_t level, uint16_t vpn2, uint16_t vpn1, uint32_t indent);
 
 static void print_indent(uint32_t indent) {
-    for (uint32_t i = 0; i < indent; ++i) kprintf(" ");
+    for (uint32_t i = 0; i < indent; ++i) krprintf(" ");
 }
 
 static void dump_pt_entry(uint32_t level, uint16_t vpn2_idx, uint16_t vpn1_idx, uint16_t vpn0_idx,
@@ -62,7 +62,7 @@ static void dump_pt_entry(uint32_t level, uint16_t vpn2_idx, uint16_t vpn1_idx, 
 
         if (level == 2) {
             print_indent(indent);
-            kprintf("[L2 %u] Leaf -> VA[%s-%s] -> PA[%s-%s] flags=(V%u R%u W%u X%u U%u G%u A%u D%u)\n",
+            krprintf("[L2 %u] Leaf -> VA[%s-%s] -> PA[%s-%s] flags=(V%u R%u W%u X%u U%u G%u A%u D%u)\n",
                 vpn2_idx,
                 va_start_buf,
                 va_end_buf,
@@ -79,7 +79,7 @@ static void dump_pt_entry(uint32_t level, uint16_t vpn2_idx, uint16_t vpn1_idx, 
         }
         else if (level == 1) {
             print_indent(indent);
-            kprintf("[L1 %u:%u] Leaf -> VA[%s-%s] -> PA[%s-%s] flags=(V%u R%u W%u X%u U%u G%u A%u D%u)\n",
+            krprintf("[L1 %u:%u] Leaf -> VA[%s-%s] -> PA[%s-%s] flags=(V%u R%u W%u X%u U%u G%u A%u D%u)\n",
                 vpn2_idx,
                 vpn1_idx,
                 va_start_buf,
@@ -97,7 +97,7 @@ static void dump_pt_entry(uint32_t level, uint16_t vpn2_idx, uint16_t vpn1_idx, 
         }
         else {
             print_indent(indent);
-            kprintf("[L0 %u:%u:%u] Leaf -> VA[%s-%s] -> PA[%s-%s] flags=(V%u R%u W%u X%u U%u G%u A%u D%u)\n",
+            krprintf("[L0 %u:%u:%u] Leaf -> VA[%s-%s] -> PA[%s-%s] flags=(V%u R%u W%u X%u U%u G%u A%u D%u)\n",
                 vpn2_idx,
                 vpn1_idx,
                 vpn0_idx,
@@ -122,7 +122,7 @@ static void dump_pt_entry(uint32_t level, uint16_t vpn2_idx, uint16_t vpn1_idx, 
 
         if (level == 2) {
             print_indent(indent);
-            kprintf("[L2 %u] Branch -> child L1 at PPN=%s (PA=%s) covering VA[%s-%s] flags=(V%u)\n",
+            krprintf("[L2 %u] Branch -> child L1 at PPN=%s (PA=%s) covering VA[%s-%s] flags=(V%u)\n",
                 vpn2_idx,
                 ppn_buf,
                 pa_start_buf,
@@ -132,7 +132,7 @@ static void dump_pt_entry(uint32_t level, uint16_t vpn2_idx, uint16_t vpn1_idx, 
         }
         else if (level == 1) {
             print_indent(indent);
-            kprintf("[L1 %u:%u] Branch -> child L0 at PPN=%s (PA=%s) covering VA[%s-%s] flags=(V%u)\n",
+            krprintf("[L1 %u:%u] Branch -> child L0 at PPN=%s (PA=%s) covering VA[%s-%s] flags=(V%u)\n",
                 vpn2_idx,
                 vpn1_idx,
                 ppn_buf,
@@ -177,23 +177,23 @@ void dump_root_page(const char* label, uint64_t root_ppn) {
     const uint32_t columns = 32;
     pte_t* l2 = (pte_t*)PPN_TO_KVA(root_ppn);
 
-    kprintf("\n[vm] Root page dump for %s (PPN=%x)\n", label, (uint32_t)root_ppn);
+    krprintf("\n[vm] Root page dump for %s (PPN=%x)\n", label, (uint32_t)root_ppn);
     for (uint32_t i = 0; i < entries; ++i) {
         bool is_valid = l2[i].v;
         bool is_leaf = is_valid && (l2[i].r || l2[i].w || l2[i].x);
         char symbol = '.';
         if (is_leaf) symbol = 'L';
         else if (is_valid) symbol = 'P';
-        kprintf("%c", symbol);
+        krprintf("%c", symbol);
         if ((i + 1) % columns == 0) {
             uint32_t start = i + 1 - columns;
-            kprintf("  [%u-%u]\n", start, i);
+            krprintf("  [%u-%u]\n", start, i);
         }
     }
 
-    kprintf("Legend: '.'=empty  P=pointer  L=1GiB leaf\n");
+    krprintf("Legend: '.'=empty  P=pointer  L=1GiB leaf\n");
 
     dump_pt_level(l2, 2, 0, 0, 2);
 
-    kprintf("End of root page dump for %s\n\n", label);
+    krprintf("End of root page dump for %s\n\n", label);
 }

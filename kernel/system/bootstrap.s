@@ -25,7 +25,7 @@ _start:
 	la t1, _mstatus_init         # --
 	or t0, t0, t1                #  |    Enable interrupts and set running state to Supervisor mode
 	csrw mstatus, t0             # --
-	li t0, 0x222
+	li t0, 0x202
 	csrs mideleg, t0
 
 	la t0, __m_trap_vector       # --
@@ -50,7 +50,6 @@ _start:
 	csrw pmpaddr1, t2            # --
 
 	csrsi mie, 0x2
-	csrs mie, 0x2
 	call init_clk                # --    Initialize clock interrupts
 	call init_plic	             # --    Initialize external interrupts
 

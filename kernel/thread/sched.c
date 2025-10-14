@@ -1,37 +1,71 @@
 #include <system/thread.h>
 #include <system/syscall.h>
 #include <system/panic.h>
+#include <mm/vm.h>
 
 // todo: these panic wrongly if passed an invalid thread id, fix eventually
+static uint64_t get_satp(uint16_t asid, uint64_t root_ppn) {
+    return (8UL << 60) | ((uint64_t)asid << 44) | (root_ppn & ((1UL << 44) - 1));
+}
+
+void context_switch(thread_t* next, thread_t* prev) {
+    uint64_t satp = get_satp(next->asid, next->root_ppn);
+    ctxsw(prev->ctx, next->ctx, satp, (uint64_t)next->kstack_top);
+}
+
+void context_load(thread_t* first, uint32_t tid) {
+    current_thread = tid;
+    thread_table[current_thread].state = TH_RUNNING;
+    uint64_t satp = get_satp(first->asid, first->root_ppn);
+    if ((uint64_t)first->kstack_top < KVM_BASE) {
+        panic("first ktop wasn't virtual\n");
+    }
+    first->ctx->sp = (uint64_t)first->kstack_top - sizeof(trapframe);
+    ctxload(satp, (uint64_t)first->kstack_top);
+    first->tf = (trapframe*)((uint64_t)first->tf + KVM_BASE);
+    first->ctx = (sw_context*)((uint64_t)first->ctx + KVM_BASE);
+    trapret(first->tf);
+}
 
 /*  'resched' places the current running thread into the ready state  *
  *  and  places it onto  the tail of the  ready queue.  Then it gets  *
  *  the head  of the ready  queue  and sets this  new thread  as the  *
- *  'current_thread'.  Finally,  'resched' uses 'ctxsw' to swap from  *
+ *  'current_thread'.  Finally,  'resched' uses 'context_switch' to swap from  *
  *  the old thread to the new thread.                                 */
-#include <lib/bareio.h>
+
 void resched(void) {
     uint32_t new_thread = dequeue_thread(&ready_list);
     if (new_thread == -1) return;
+
+    if (!MMU_ENABLED) {
+        panic("Can't resched - MMU is not enabled.");
+    }
+
     if (thread_table[new_thread].root_ppn == NULL) {
         panic("A thread in the ready list had a null root ppn and was going to be resumed.\n");
     }
+
     uint32_t old_thread = current_thread;
     current_thread = new_thread;
     thread_table[new_thread].state = TH_RUNNING;
-    if (thread_table[old_thread].state == TH_RUNNING ||
-        thread_table[old_thread].state == TH_READY) {
+
+    if (thread_table[old_thread].state == TH_RUNNING || thread_table[old_thread].state == TH_READY) {
         thread_table[old_thread].state = TH_READY;
         queue_table[old_thread].key = thread_table[old_thread].priority;
         enqueue_thread(&ready_list, old_thread);
     }
-    ctxsw(&thread_table[new_thread], &thread_table[old_thread]);
-    while (reap_list.qnext != &reap_list) {
-        int32_t id = dequeue_thread(&reap_list);
-        if (id == -1) continue; /* Encountered a phantom thread. Not worth panicking over for now. */
-        kill_thread(id);
+
+    context_switch(&thread_table[new_thread], &thread_table[old_thread]);
+}
+
+void reaper(void) {
+    while (1) {
+        while (reap_list.qnext != &reap_list) {
+            int32_t id = dequeue_thread(&reap_list);
+            if (id == -1) continue; /* Encountered a phantom thread. Not worth panicking over for now. */
+            kill_thread(id);
+        }
     }
-    return;
 }
 
 /*  Takes a index into the thread table of a thread to resume.  If the thread is already  *
@@ -47,7 +81,7 @@ int32_t resume_thread(uint32_t threadid) {
     }
     thread_table[threadid].state = TH_READY;
     enqueue_thread(&ready_list, threadid);
-    raise_syscall(RESCHED);
+    //pend_syscall(RESCHED);
     return threadid;
 }
 
@@ -67,7 +101,7 @@ int32_t suspend_thread(uint32_t threadid) {
     }
 
     thread_table[threadid].state = TH_SUSPEND;
-    raise_syscall(RESCHED);
+    //pend_syscall(RESCHED);
     return threadid;
 }
 
@@ -82,7 +116,7 @@ int32_t sleep_thread(uint32_t threadid, uint32_t delay) {
     queue_t* node = &queue_table[threadid];
     node->key = delay;
     delta_enqueue(&sleep_list, threadid);
-    raise_syscall(RESCHED);
+    //pend_syscall(RESCHED);
     return 0;
 }
 
@@ -97,6 +131,6 @@ int32_t unsleep_thread(uint32_t threadid) {
     node->key = thread_table[threadid].priority;
     thread_table[threadid].state = TH_READY;
     enqueue_thread(&ready_list, threadid);
-    raise_syscall(RESCHED);
+    //pend_syscall(RESCHED);
     return 0;
 }

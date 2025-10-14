@@ -3,6 +3,7 @@
 #include <lib/barelib.h>
 #include <lib/string.h>
 #include <system/thread.h>
+#include <system/panic.h>
 
 #define FREEMASK_RANGE ((uint64_t)ALIGN_UP_2M(&mem_end - &text_start))
 #define FREEMASK_BITS (FREEMASK_RANGE / PAGE_SIZE)
@@ -52,7 +53,7 @@ static int64_t pfm_findfree_4k(void) {
 			}
 		}
 	}
-	return -1;
+	return NULL;
 }
 
 /* Returns a free megapage ppn */
@@ -67,7 +68,7 @@ static int64_t pfm_findfree_2m(void) {
 		if (j == chunksz)
 			return IDX_TO_PPN(i * 8);
 	}
-	return -1;
+	return NULL;
 }
 
 /* Marks a megapage starting at x as used. */
@@ -144,21 +145,21 @@ static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 	l1_page[idx] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
 }
 
-/* Maps a regular 4K page assuming you already have it */
-static void map_4k(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
-	bool R, bool W, bool X, bool G, bool U) {
-	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
-	uint64_t l1_idx = va_vpn1(virt_addr);
-	if (!l1_page[l1_idx].v) {
-		uint64_t l0_ppn = pfm_findfree_4k(); 
-		pfm_set(l0_ppn); 
-		clean_page(l0_ppn);
-		l1_page[l1_idx] = make_nonleaf(l0_ppn);
-	}
-	pte_t* l0 = (pte_t*)PPN_TO_KVA(l1_page[l1_idx].ppn);
-	uint64_t i0 = va_vpn0(virt_addr);
-	l0[i0] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
-}
+///* Maps a regular 4K page assuming you already have it */
+//static void map_4k(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
+//	bool R, bool W, bool X, bool G, bool U) {
+//	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
+//	uint64_t l1_idx = va_vpn1(virt_addr);
+//	if (!l1_page[l1_idx].v) {
+//		uint64_t l0_ppn = pfm_findfree_4k(); 
+//		pfm_set(l0_ppn); 
+//		clean_page(l0_ppn);
+//		l1_page[l1_idx] = make_nonleaf(l0_ppn);
+//	}
+//	pte_t* l0 = (pte_t*)PPN_TO_KVA(l1_page[l1_idx].ppn);
+//	uint64_t i0 = va_vpn0(virt_addr);
+//	l0[i0] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
+//}
 
 static void clone_page_tables(uint64_t dst_ppn, uint64_t src_ppn, byte level) {
 	byte* dst = (byte*)PPN_TO_KVA(dst_ppn);
@@ -223,6 +224,9 @@ void init_pages(void) {
 	MMU_ENABLED = false;
 
 	page_freemask = malloc(FREEMASK_SZ);
+	if (page_freemask == NULL) {
+		panic("Couldn't malloc enough space for the page freemask, cannot init pages.\n");
+	}
 	memset(page_freemask, 0, FREEMASK_SZ);
 
 	int64_t kernel_leaf_ppn = pfm_findfree_2m(); /* First 2M available is where the kernel lives */
@@ -235,6 +239,9 @@ void init_pages(void) {
 
 	/* Create root page for kernel */
 	kernel_root_ppn = pfm_findfree_4k();
+	if (kernel_root_ppn == NULL) {
+		panic("Couldn't find a free page for the kernel root, cannot init pages.\n");
+	}
 	pfm_set(kernel_root_ppn);
 	clean_page(kernel_root_ppn);
 
@@ -253,9 +260,12 @@ void init_pages(void) {
 
 	/* Get a page for supervisor interrupt stack */
 	uint64_t s_trap_ppn = pfm_findfree_4k();
+	if (s_trap_ppn == NULL) {
+		panic("Couldn't find a free page for the stack trap page, cannot init pages.\n");
+	}
 	pfm_set(s_trap_ppn);
 	clean_page(s_trap_ppn);
-	s_trap_top = (byte*)(PPN_TO_PA(s_trap_ppn) + KVM_BASE + PAGE_SIZE); /* For use by the trap handler */
+	s_trap_top = (byte*)(PPN_TO_PA(s_trap_ppn) + PAGE_SIZE); /* For use by the trap handler */
 
 	/* Map kernel-heap to kernel root */
 	for (uint64_t i = 0; i < 8; ++i) {
@@ -275,41 +285,43 @@ void init_pages(void) {
 }
 
 /* Rudimentary page allocator, allocates a static number of pages and returns  *
- * the root ppn of the newly allocated pages. Pass in an optional start ptr to *
- * get the start of the leaf ppn (for threads, etc.)                           */
-/* Implicitly enforces alignment... for now. Need MVP, will worry later        */
-/* No ASID explicitly set, ASID = thread ID into the static thread table.      */
-uint64_t alloc_page(prequest req_type, uint64_t* exec, uint64_t* stack) {
+ * the root ppn of the newly allocated pages.                                  *
+ * Implicitly enforces alignment... for now. Need MVP, will worry later        *
+ * Only allocs for processes which are given 4MiB of RAM to work with, for now */
+uint64_t alloc_page(uint32_t thread_id) {
+	if (thread_id > NTHREADS) return NULL;
 	int64_t leaf_ppn;
 	int64_t root_ppn = NULL;
-	if (req_type != ALLOC_PROC && req_type != ALLOC_IDLE) return NULL; // Other allocations unsupported for now because no context exists where they're used.
-	switch (req_type) {
-		case ALLOC_4K:
-			break;
-		case ALLOC_2M:
-			break;
-		case ALLOC_PROC: /* Allocator clones kernel instead of srubbing root page (implicit scrub). Not its job to scrub leaf pages. */
-			root_ppn = pfm_findfree_4k();
-			pfm_set(root_ppn); clone_kernel_map(root_ppn);
-			leaf_ppn = pfm_findfree_2m();
-			set_megapage(leaf_ppn);
-			int64_t leaf2_ppn = pfm_findfree_2m();
-			set_megapage(leaf2_ppn);
-			map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/0);
-			map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_PA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/0);
-			*exec = (uint64_t)PPN_TO_PA(leaf_ppn);
-			*stack = (uint64_t)PPN_TO_PA(leaf2_ppn);
-			return root_ppn;
-		case ALLOC_IDLE:
-			leaf_ppn = pfm_findfree_4k();
-			pfm_set(leaf_ppn);
-			clean_page(leaf_ppn);
-			map_4k(kernel_root_ppn, 0x81200000UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/0);
-			*exec = (uint64_t)PPN_TO_PA(leaf_ppn);
-			*stack = (uint64_t)NULL; /* for now */
-			return kernel_root_ppn;
+	/* Get root */
+	root_ppn = pfm_findfree_4k();
+	pfm_set(root_ppn); clone_kernel_map(root_ppn);
+	/* Get leaves */
+	leaf_ppn = pfm_findfree_2m();
+	set_megapage(leaf_ppn);
+	int64_t leaf2_ppn = pfm_findfree_2m();
+	set_megapage(leaf2_ppn);
+	/* Map leaves to root */
+	map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
+	map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_PA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
+	/* Get kstack. Assures leaves are consecutive in lieu of atomic operations */
+	int64_t kleaf, kleaf2;
+	while (1) {
+		kleaf = pfm_findfree_4k();
+		pfm_set(kleaf);
+		kleaf2 = pfm_findfree_4k();
+		pfm_set(kleaf2);
+		if (PPN_TO_PA(kleaf) + PAGE_SIZE != PPN_TO_PA(kleaf2)) {
+			pfm_clear(kleaf);
+			pfm_clear(kleaf2);
+		}
+		else break;
 	}
-	return NULL;
+	clean_page(kleaf);
+	clean_page(kleaf2);
+	/* Manual instead of to-KVA func because this is called once before MMU enabled */
+	thread_table[thread_id].kstack_base = (byte*)PPN_TO_KVA(kleaf); 
+	thread_table[thread_id].kstack_top = (byte*)(PPN_TO_KVA(kleaf2) + PAGE_SIZE);
+	return root_ppn;
 }
 
 /* Rudimentary page clearer. Should be able to free all children of a root page. */

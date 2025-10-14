@@ -12,7 +12,7 @@
  *  from the hardware timer.
  */
 
-#define TRAP_TIMER_ENABLE 0xa0
+#define TRAP_TIMER_ENABLE 0x80 | 0xa0
 #define CLINT_MTIME 0x0200BFF8
 const uint64_t timer_interval = 100000;
 const uint64_t clint_timer_addr = 0x2004000;
@@ -25,10 +25,11 @@ void init_clk(void) {
 	volatile uint64_t* mtime = (uint64_t*)CLINT_MTIME;
 	volatile uint64_t* mtimecmp = (uint64_t*)clint_timer_addr;
 	*mtimecmp = *mtime + timer_interval;
-	//set_m_interrupt(TRAP_TIMER_ENABLE);
+	set_m_interrupt(TRAP_TIMER_ENABLE);
 }
 #include <lib/bareio.h>
 void handle_clk(void) {
+	//krprintf("timer\n");
 	if (sleep_list.qnext != &sleep_list) {
 		if (sleep_list.qnext->key == 0) {
 			panic("The next thread in the sleep list had a timer of zero but was not dequeued.\n");

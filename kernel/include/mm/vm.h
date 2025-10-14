@@ -35,7 +35,7 @@ typedef struct {
 _Static_assert(sizeof(pte_t) == 8, "pte_t must be 8 bytes");
 
 void init_pages(void);
-uint64_t alloc_page(prequest, uint64_t*, uint64_t*);
+uint64_t alloc_page(uint32_t);
 void free_pages(uint64_t);
 
 extern uint64_t kernel_root_ppn;
