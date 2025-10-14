@@ -50,8 +50,8 @@ def prepare_generic_loader(env):
                     break
         if heap_addr is not None:
             print(f"[Info] Predicted heap start (mem_start): 0x{heap_addr:08x}")
-            #START_ADDR += heap_addr
-            START_ADDR += 0x8200000 # adjust for kernel megapage
+            START_ADDR += 0x80200000 if 0x80200000 > heap_addr else heap_addr # adjust for kernel megapage
+            print(f"[Info] Generic importer start location: 0x{START_ADDR:08x}")
         else:
             print("[Warning] Could not locate mem_start in linker map; skipping file load.")
     except Exception as e:
