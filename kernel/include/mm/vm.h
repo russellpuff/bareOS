@@ -11,10 +11,12 @@ extern volatile byte MMU_ENABLED;
 
 #define ALIGN_UP_4K(addr) ((void*)((((uint64_t)(addr)) + 0xFFFUL) & ~0xFFFUL))
 #define ALIGN_UP_2M(addr) ((void*)((((uint64_t)(addr)) + ((1ULL<<21) - 1)) & ~((1ULL<<21) - 1)))
-#define ADDR_TO_PPN(a) ((uint64_t)(a) >> PAGE_SHIFT)
+#define PA_TO_PPN(pa) ((uint64_t)(pa) >> PAGE_SHIFT)
 #define PA_TO_KVA(pa) ((void*)((uint64_t)(pa) + (MMU_ENABLED ? KVM_BASE : 0)))
+#define KVA_TO_PA(kva) ((void*)((uint64_t)(kva) - (MMU_ENABLED ? KVM_BASE : 0)))
 #define PPN_TO_PA(ppn) ((uint64_t)(ppn) << PAGE_SHIFT)
-#define PPN_TO_KVA(ppn) PA_TO_KVA(PPN_TO_PA(ppn))
+#define PPN_TO_KVA(ppn) (PA_TO_KVA(PPN_TO_PA(ppn)))
+#define KVA_TO_PPN(kva) (PA_TO_PPN(KVA_TO_PA(kva)))
 
 typedef enum { ALLOC_4K, ALLOC_2M, ALLOC_PROC, ALLOC_IDLE } prequest;
 
@@ -37,6 +39,7 @@ _Static_assert(sizeof(pte_t) == 8, "pte_t must be 8 bytes");
 void init_pages(void);
 uint64_t alloc_page(uint32_t);
 void free_pages(uint64_t);
+void free_process_pages(uint32_t);
 
 extern uint64_t kernel_root_ppn;
 extern byte* s_trap_top;

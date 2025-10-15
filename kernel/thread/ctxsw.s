@@ -1,7 +1,7 @@
     .section .text
     .align 2
 
-#  sw_context layout (must match thread.h) 
+#  context layout (must match thread.h) 
     .equ CTX_RA,   0
     .equ CTX_S0,   8
     .equ CTX_S1,   16
@@ -54,7 +54,7 @@
     .equ TF_SSTATUS, 256
     .equ TF_SIZE,    264
 
-#  void ctxsw(sw_context *prev, sw_context *next, uint64_t next_satp)
+#  void ctxsw(context *prev, context *next, uint64_t next_satp)
     .globl ctxsw
 ctxsw:
     # a0=prev, a1=next, a2=next satp, a3=next kstack top

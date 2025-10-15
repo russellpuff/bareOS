@@ -25,7 +25,7 @@ typedef struct {
 	uint64_t ra;    /* Return address              */
 	uint64_t s[12]; /* s0 ... s11                  */
 	uint64_t sp;    /* Kernel sp when switched out */
-} sw_context;
+} context;
 
 typedef struct {
 	uint64_t ra, sp, gp, tp;
@@ -49,7 +49,7 @@ typedef struct {
 	byte* kstack_base;  /* Kernel VA, bottom of stack                                              */
 	byte* kstack_top;   /* Kernel VA, top of stack                                                 */
 	trapframe* tf;      /* Trapframe, points inside kernel stack                                   */
-	sw_context* ctx;    /* Lives at base/top region of kernel stack or in struct                   */
+	context* ctx;    /* Lives at base/top region of kernel stack or in struct                   */
 	char* argptr;       /* Holds the arg to the process this thread runs with                      */
 } thread_t;
 
@@ -73,7 +73,7 @@ void reaper(void);
 void context_switch(thread_t*, thread_t*);
 void context_load(thread_t*, uint32_t);
 extern void trapret(trapframe*);
-extern void ctxsw(sw_context*, sw_context*, uint64_t, uint64_t);
+extern void ctxsw(context*, context*, uint64_t, uint64_t);
 extern void ctxload(uint64_t, uint64_t);
 
 #endif

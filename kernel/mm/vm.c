@@ -142,7 +142,7 @@ static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 	bool R, bool W, bool X, bool G, bool U) {
 	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
 	uint64_t idx = va_vpn1(virt_addr);
-	l1_page[idx] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
+	l1_page[idx] = make_leaf(PA_TO_PPN(page_addr), R, W, X, G, U);
 }
 
 ///* Maps a regular 4K page assuming you already have it */
@@ -158,7 +158,7 @@ static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 //	}
 //	pte_t* l0 = (pte_t*)PPN_TO_KVA(l1_page[l1_idx].ppn);
 //	uint64_t i0 = va_vpn0(virt_addr);
-//	l0[i0] = make_leaf(ADDR_TO_PPN(page_addr), R, W, X, G, U);
+//	l0[i0] = make_leaf(PA_TO_PPN(page_addr), R, W, X, G, U);
 //}
 
 static void clone_page_tables(uint64_t dst_ppn, uint64_t src_ppn, byte level) {
@@ -280,8 +280,8 @@ void init_pages(void) {
 	const uint64_t mmio_va0 = 0x00000000UL + KVM_BASE;
 	const uint64_t mmio_va1 = 0x40000000UL + KVM_BASE;
 	/* Yeah sure write anywhere to MMIO */
-	l2[va_vpn2(mmio_va0)] = make_leaf(ADDR_TO_PPN(0x00000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
-	l2[va_vpn2(mmio_va1)] = make_leaf(ADDR_TO_PPN(0x40000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[va_vpn2(mmio_va0)] = make_leaf(PA_TO_PPN(0x00000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[va_vpn2(mmio_va1)] = make_leaf(PA_TO_PPN(0x40000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
 }
 
 /* Rudimentary page allocator, allocates a static number of pages and returns  *
@@ -339,4 +339,12 @@ void free_pages(uint64_t root_ppn) {
 	}
 
 	pfm_clear(root_ppn);
+}
+
+void free_process_pages(uint32_t thread_id) {
+	uint64_t k1 = KVA_TO_PPN(thread_table[thread_id].kstack_base);
+	pfm_clear(k1);
+	uint64_t k2 = KVA_TO_PPN(thread_table[thread_id].kstack_base + PAGE_SIZE);
+	pfm_clear(k2);
+	free_pages(thread_table[thread_id].root_ppn);
 }

@@ -95,16 +95,16 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
         thread_table[new_id].argptr = NULL;
     }
 
-    /* Layout: [ kernel stack … ][ trapframe ][ sw_context ][TOP] */
+    /* Layout: [ kernel stack … ][ trapframe ][ context ][TOP] */
     byte* ktop = thread_table[new_id].kstack_top; /* Virtual if MMU on, physical if MMU off */
     if (ktop == NULL) {
         panic("kstack top pointer is null\n");
     }
     
-    sw_context* ctx = (sw_context*)(ktop - sizeof(sw_context));
+    context* ctx = (context*)(ktop - sizeof(context));
     trapframe* tf = (trapframe*)((byte*)ctx - sizeof(trapframe));
 
-    memset(ctx, 0, sizeof(sw_context));
+    memset(ctx, 0, sizeof(context));
     ctx->sp = (uint64_t)tf;  /* where kernel SP should be after a switch */
     ctx->ra = (uint64_t)landing_pad; /* Starter ret landing pad for new threads */
 
@@ -177,7 +177,7 @@ int32_t kill_thread(uint32_t thread_id) {
     }
 
     if (thread_table[thread_id].root_ppn != kernel_root_ppn) {
-        free_pages(thread_table[thread_id].root_ppn);   /*  Free pages associated with thread     */
+        free_process_pages(thread_id);   /*  Free pages associated with thread     */
     }
     thread_table[thread_id].root_ppn = NULL;
     post_sem(&thread_table[thread_id].sem); /* Notify waiting threads. */

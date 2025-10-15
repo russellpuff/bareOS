@@ -23,7 +23,7 @@ void context_load(thread_t* first, uint32_t tid) {
     first->ctx->sp = (uint64_t)first->kstack_top - sizeof(trapframe);
     ctxload(satp, (uint64_t)first->kstack_top);
     first->tf = (trapframe*)((uint64_t)first->tf + KVM_BASE);
-    first->ctx = (sw_context*)((uint64_t)first->ctx + KVM_BASE);
+    first->ctx = (context*)((uint64_t)first->ctx + KVM_BASE);
     trapret(first->tf);
 }
 
