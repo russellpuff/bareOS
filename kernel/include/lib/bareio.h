@@ -15,6 +15,7 @@ void kprintf(const char*, ...);
 void ksprintf(byte*, const char*, ...);
 void krprintf(const char*, ...);
 void vkrprintf(const char*, va_list);
+void kuprintf(const char*, uint32_t);
 uint16_t get_line(char*, uint16_t);
 
 #endif

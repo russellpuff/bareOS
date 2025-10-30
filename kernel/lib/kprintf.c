@@ -1,18 +1,14 @@
 #include <lib/bareio.h>
 #include <lib/barelib.h>
+#include <lib/printf.h>
 #include <mm/vm.h>
 
-#define MODE_REGULAR 0
-#define MODE_BUFFER 1
-//#define MODE_FILE 2
-#define MODE_RAW 3
-
-/* Helper functions. mode_put is the only thing that can advance the buffer pointer so always return it for updates */
-byte* mode_put(char c, byte mode, byte* ptr) {
+/* Helper functions. printf_putc is the only thing that can advance the buffer pointer so always return it for updates */
+byte* printf_putc(char c, byte mode, byte* ptr) {
     switch(mode) {
         case MODE_REGULAR: uart_putc(c); break;
         case MODE_BUFFER: *ptr++ = c; break;
-        case MODE_RAW:
+        case MODE_RAW: /* temporary implementation */
             #define UART0_CFG_REG 0x10000000
             #define UART0_RW_REG   0x0 
             #define UART0_STAT_REG 0x5
@@ -25,119 +21,17 @@ byte* mode_put(char c, byte mode, byte* ptr) {
     return ptr;
 }
 
-byte* put_number(uint64_t u, byte mode, byte* ptr) {
-    if(u == 0) { ptr = mode_put('0', mode, ptr); return ptr; }
-    char buff[20];
-    int16_t i = 0;
-    while(u) {
-        uint64_t r = u / 10;
-        buff[i++] = '0' + (char)(u - r * 10);
-        u = r;
-    }
-    while(i--) ptr = mode_put(buff[i], mode, ptr);
-    return ptr;
-} 
-
-byte* write_color_token(char t, byte mode, byte* ptr) {
-    switch(t){
-        case '0': uart_write("\x1b[0m");  break; // reset
-        case 'r': uart_write("\x1b[31m"); break; // red
-        case 'g': uart_write("\x1b[32m"); break; // green
-        case 'y': uart_write("\x1b[33m"); break; // yellow
-        case 'b': uart_write("\x1b[34m"); break; // blue
-        case 'm': uart_write("\x1b[35m"); break; // magenta
-        case 'c': uart_write("\x1b[36m"); break; // cyan
-        case 'w': uart_write("\x1b[37m"); break; // white
-        case 'x': uart_write("\x1b[01;32m"); break; // prompt bright green
-        default: // literal
-            ptr = mode_put('&', mode, ptr); 
-            ptr = mode_put(t, mode, ptr); 
-            break; 
-    }
-    return ptr;
-}
-
-/* Idk what to call this lmao. All kprintf calls route to this. */
-void master_kprintf(byte mode, byte* ptr, const char* format, va_list ap) {
-    while(*format != '\0') {
-        if(*format == '%') {
-            switch(*(++format)) {
-                case 'd':
-                    int32_t d = va_arg(ap, int32_t);
-                    if(d < 0) {
-                        ptr = mode_put('-', mode, ptr);
-                        d *= -1;
-                    }
-                    ptr = put_number((uint64_t)(uint32_t)d, mode, ptr);
-                    break;
-                case 'u':
-                    uint32_t ud = va_arg(ap, uint32_t);
-                    ptr = put_number((uint64_t)ud, mode, ptr);
-                    break;
-                case 'l':
-                    if(*(format + 1) == 'u') {
-                        ++format;
-                        uint64_t ul = va_arg(ap, uint64_t);
-                        ptr = put_number(ul, mode, ptr);
-                    } else {
-                        int64_t l = va_arg(ap, int64_t);
-                        ptr = put_number((uint64_t)l, mode, ptr);
-                    }
-                    break;
-                case 'x':
-                    uint32_t hex = va_arg(ap, uint32_t);
-                    ptr = mode_put('0', mode, ptr); ptr = mode_put('x', mode, ptr);
-                    if(hex == 0) { ptr = mode_put('0', mode, ptr); break; }
-                    bool lead_zero = true; // Ignore leading zeroes.  
-                    for(uint32_t i = 0, mask = 0xF0000000; i < 8; ++i, mask >>= 4) {
-                        uint32_t num = (hex & mask) >> (28 - (i * 4)); 
-                        char c;
-                        if(num < 10) { c = num + '0'; }
-                        else { c = num + 'W'; }
-                        if(c != '0' || !lead_zero) {
-                            ptr = mode_put(c, mode, ptr);
-                            lead_zero = false; // Once we hit a non-zero number, leading zeroes are done.
-                        }
-                    }
-                    break;
-                case 's': // lousy %s implementation
-                    char* str = va_arg(ap, char*);
-                    while(*str != '\0') {
-                        ptr = mode_put(*str++, mode, ptr);
-                    }
-                    break;
-                case ' ':
-                    /* Edge case where % was followed by a space.
-                    * When gcc compiles without warnings, behavior like "% text" will be read as "%t ext"
-                    * In this case, it WILL try to use its defined behavior for %t, it will also put a space BEFORE whatever it spits out.
-                    * I don't do this right now because I don't know what I want to do. 
-                    */
-                    break;
-                case '%':
-                    ptr = mode_put('%', mode, ptr);
-                default: // Print nothing for now. GCC will print nothing if there's no valid character following the %
-                    break;
-            }
-        } else if(*format == '&') { /* OC donut steel color handler. */
-            write_color_token(*++format, mode, ptr);
-        } else {
-            ptr = mode_put(*format, mode, ptr);
-        }
-    ++format;
-  }  
-}
-
 void kprintf(const char* format, ...) {
     va_list ap;
     va_start(ap, format);
-    master_kprintf(MODE_REGULAR, NULL, format, ap);
+    printf_core(MODE_REGULAR, NULL, format, ap);
     va_end(ap);
 }
 
 void ksprintf(byte* buff, const char* format, ...) {
     va_list ap;
     va_start(ap, format);
-    master_kprintf(MODE_BUFFER, buff, format, ap);
+    printf_core(MODE_BUFFER, buff, format, ap);
     va_end(ap);
 }
 
@@ -148,6 +42,12 @@ void krprintf(const char* format, ...) {
     va_end(ap);
 }
 
+/* Only panic() should use this */
 void vkrprintf(const char* format, va_list ap) {
-    master_kprintf(MODE_RAW, NULL, format, ap);
+    printf_core(MODE_RAW, NULL, format, ap);
+}
+
+/* Takes a preformatted user string and dumps it into the tty. Only for use with print syscall. */
+void kuprintf(const char* format, uint32_t len) {
+    for (int i = 0; i < len; ++i) printf_putc(*format++, MODE_REGULAR, NULL);
 }

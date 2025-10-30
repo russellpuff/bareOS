@@ -8,6 +8,12 @@ int16_t strcmp(const char* str1, const char* str2) {
   return (unsigned char)*str1 - (unsigned char)*str2;
 }
 
+uint64_t strlen(const char* str) {
+    char* s = str;
+    while (s++ != '\0');
+    return (int)(s - str);
+}
+
 void* memset(void* s, byte c, uint64_t n) {
     byte* p = (byte*)s;
     for(; n; --n) *p++ = c;
