@@ -11,7 +11,6 @@
 #include <mm/malloc.h>
 
 volatile uint64_t signum;
-#define ECALL_EXIT 93
 
 /*
  *  This file contains code for handling exceptions generated
@@ -91,30 +90,23 @@ void handle_ecall(uint64_t* frame_data, uint64_t call_id) {
     tf->sepc += 4;
 
     if (call_id == ECALL_EXIT && thread_table[current_thread].mode == MODE_U) {
-        thread_table[current_thread].retval = (byte)(tf->a0 & 0xFF);
-        thread_table[current_thread].state = TH_ZOMBIE;
-        if (thread_table[current_thread].argptr != NULL) {
-            free(thread_table[current_thread].argptr);
-            thread_table[current_thread].argptr = NULL;
-        }
-        enqueue_thread(&reap_list, current_thread);
-        while (1);
-        //signum = RESCHED;
-        //handle_syscall(frame_data);
-        //return;
+        user_thread_exit(tf);
     }
 
-    switch ((s_ecall_number)call_id) {
-    case S_ECALL_OPEN:
+    switch ((ecall_number)call_id) {
+    case ECALL_OPEN:
         break;
-    case S_ECALL_CLOSE:
+    case ECALL_CLOSE:
         break;
-    case S_ECALL_READ:
+    case ECALL_READ:
         break;
-    case S_ECALL_WRITE:
+    case ECALL_WRITE:
         handle_ecall_write((uint32_t)tf->a0, (char*)tf->a1, (char*)tf->a2, (uint32_t)tf->a3);
         break;
-    default:
+    case ECALL_EXIT:
+        if (thread_table[current_thread].mode == MODE_U) user_thread_exit(tf);
+        break;
+    case ECALL_SPAWN:
         break;
     }
 

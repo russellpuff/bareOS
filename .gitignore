@@ -13,3 +13,4 @@ load/
 .msfile
 kernel/include/app/version.h
 !/testing/**/*.elf
+!/testing/*.sh

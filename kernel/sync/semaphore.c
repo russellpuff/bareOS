@@ -56,7 +56,6 @@ int32_t free_sem(semaphore_t* sem) {
     }
     sem->state = S_FREE;
     release_mutex(&MUTEX_LOCK);
-    //pend_resched(RESCHED);
     return 0;
 }
 

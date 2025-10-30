@@ -81,7 +81,6 @@ int32_t resume_thread(uint32_t threadid) {
     }
     thread_table[threadid].state = TH_READY;
     enqueue_thread(&ready_list, threadid);
-    //pend_syscall(RESCHED);
     return threadid;
 }
 
@@ -101,7 +100,6 @@ int32_t suspend_thread(uint32_t threadid) {
     }
 
     thread_table[threadid].state = TH_SUSPEND;
-    //pend_syscall(RESCHED);
     return threadid;
 }
 
@@ -116,7 +114,6 @@ int32_t sleep_thread(uint32_t threadid, uint32_t delay) {
     queue_t* node = &queue_table[threadid];
     node->key = delay;
     delta_enqueue(&sleep_list, threadid);
-    //pend_syscall(RESCHED);
     return 0;
 }
 
@@ -131,6 +128,5 @@ int32_t unsleep_thread(uint32_t threadid) {
     node->key = thread_table[threadid].priority;
     thread_table[threadid].state = TH_READY;
     enqueue_thread(&ready_list, threadid);
-    //pend_syscall(RESCHED);
     return 0;
 }

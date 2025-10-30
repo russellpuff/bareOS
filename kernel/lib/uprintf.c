@@ -21,5 +21,5 @@ void printf(const char* format, ...) {
     printf_core(MODE_BUFFER, (byte*)buffer, format, ap);
     va_end(ap);
     uint64_t n = strlen(buffer);
-    s_ecall_write(UART_DEV_NUM, NULL, buffer, n);
+    ecall_write(UART_DEV_NUM, NULL, buffer, n);
 }

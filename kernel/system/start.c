@@ -13,8 +13,6 @@
 #include <fs/fs.h>
 #include <fs/importer.h>
 
-//#include <mm/vm_debugger.h>
-
 /*
  *  This file contains the C code entry point executed by the kernel.
  *  It is called by the bootstrap sequence once the hardware is configured.

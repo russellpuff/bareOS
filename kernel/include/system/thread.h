@@ -77,6 +77,7 @@ int32_t suspend_thread(uint32_t);
 int32_t resume_thread(uint32_t);
 int32_t sleep_thread(uint32_t, uint32_t);
 int32_t unsleep_thread(uint32_t);
+void user_thread_exit(trapframe* tf);
 
 void resched(void);
 void reaper(void);

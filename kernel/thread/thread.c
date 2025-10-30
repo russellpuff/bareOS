@@ -7,7 +7,6 @@
 #include <system/queue.h>
 #include <mm/malloc.h>
 
-/* TEMP */
 #define SSTATUS_SIE   (1UL << 1)
 #define SSTATUS_SPIE  (1UL << 5)
 #define SSTATUS_SPP   (1UL << 8)   /* 1 = S-mode */
@@ -37,7 +36,7 @@ void init_threads(void) {
     next_asid = 1;
 }
 
-/* This probably won't ever get called but who knows */
+/* This is where processes wait to be reaped. It's its own function for debugging clarity. */
 void wait_for_reaper(void) {
     while (1);
 }
@@ -56,8 +55,20 @@ void wrapper(byte(*proc)(char*)) {
     if(thread_table[current_thread].argptr != NULL) free(thread_table[current_thread].argptr);
     thread_table[current_thread].argptr = NULL;
     enqueue_thread(&reap_list, current_thread);
-    /* Wait for scheduler to pull away, this theoretically makes wait_for_reaper redundant but you never know */
-    while (1);
+    wait_for_reaper();
+}
+
+/* user_thread_exit is a jump point after a user process sends an ecall to exit */
+void user_thread_exit(trapframe* tf) {
+    thread_table[current_thread].retval = (byte)(tf->a0 & 0xFF);
+    thread_table[current_thread].state = TH_ZOMBIE;
+    if (thread_table[current_thread].argptr != NULL) {
+        free(thread_table[current_thread].argptr);
+        thread_table[current_thread].argptr = NULL;
+    }
+    enqueue_thread(&reap_list, current_thread);
+    tf->sstatus |= SSTATUS_SPP | SSTATUS_SPIE;
+    tf->sepc = (uint64_t)wait_for_reaper;
 }
 
 /*  `create_thread`  takes a pointer  to a function that  acts as the entry  *
