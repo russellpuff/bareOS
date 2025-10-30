@@ -1,6 +1,6 @@
 #include <lib/barelib.h>
 #include <lib/printf.h>
-#include <lib/uprintf.h>
+#include <lib/io.h>
 #include <lib/ecall.h>
 #include <lib/string.h>
 
@@ -22,4 +22,9 @@ void printf(const char* format, ...) {
     va_end(ap);
     uint64_t n = strlen(buffer);
     ecall_write(UART_DEV_NUM, NULL, buffer, n);
+}
+
+int32_t gets(char* buffer, uint32_t length) {
+    if (buffer == NULL || length == 0) return 0;
+    return (int32_t)ecall_read(UART_DEV_NUM, NULL, buffer, length);
 }

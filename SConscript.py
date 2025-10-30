@@ -14,8 +14,8 @@ def _normalize(path: str) -> str:
     return os.path.normpath(os.path.relpath(path, ROOT_DIR))
 
 BLACKLIST = {
-    _normalize(os.path.join("kernel", "lib", "uprintf.c")),
-    _normalize(os.path.join("kernel", "include", "lib", "uprintf.h")),
+    _normalize(os.path.join("kernel", "lib", "io.c")),
+    _normalize(os.path.join("kernel", "include", "lib", "io.h")),
 }
 
 # TODO: scons -c will check for blacklisted files for no good reason, fix that

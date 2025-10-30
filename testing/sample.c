@@ -1,4 +1,4 @@
-#include <lib/uprintf.h>
+#include <lib/io.h>
 
 /* This file is for testing various functions that will run entirely in user mode in virtual memory */
 
@@ -32,5 +32,9 @@ int main(void) {
     spin(DELAY_ITERS);
     printf("user task: done\n");
     */
+    char line[128];
+    printf("Type a line: ");
+    uint32_t count = (uint32_t)gets(line, sizeof(line));
+    printf("You typed (%u chars): %s\n", count, line);
     return 0;
 }

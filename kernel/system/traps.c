@@ -73,7 +73,19 @@ void m_handle_exception(void) {
     while (1);
 }
 
+//
+// ecall handlers
+//
+static uint32_t handle_ecall_read(uint32_t device, char* target, char* buffer, uint32_t length) {
+    (void)device;
+    (void)target;
+    if (buffer == NULL || length == 0) return 0;
+    return get_line(buffer, length);
+}
+
 static void handle_ecall_write(uint32_t device, char* target, char* buffer, uint32_t length) {
+    (void)device;
+    (void)target;
     /* TEMP - Only user-available device is the uart, organizing devices into a table is not supported yet. Keep disk ops kernel-only. */
     /* device == uart */
     /* target == NULL (for uart) */
@@ -83,32 +95,30 @@ static void handle_ecall_write(uint32_t device, char* target, char* buffer, uint
 
 void handle_ecall(uint64_t* frame_data, uint64_t call_id) {
     trapframe* tf = (trapframe*)frame_data;
-
     if (tf == NULL)
         return;
-
     tf->sepc += 4;
-
-    if (call_id == ECALL_EXIT && thread_table[current_thread].mode == MODE_U) {
-        user_thread_exit(tf);
-    }
+    uint32_t result = 0;
 
     switch ((ecall_number)call_id) {
+    case ECALL_GDEV:
+        break;
     case ECALL_OPEN:
         break;
     case ECALL_CLOSE:
         break;
     case ECALL_READ:
+        result = handle_ecall_read((uint32_t)tf->a0, (char*)tf->a1, (char*)tf->a2, (uint32_t)tf->a3);
         break;
     case ECALL_WRITE:
         handle_ecall_write((uint32_t)tf->a0, (char*)tf->a1, (char*)tf->a2, (uint32_t)tf->a3);
         break;
-    case ECALL_EXIT:
-        if (thread_table[current_thread].mode == MODE_U) user_thread_exit(tf);
-        break;
     case ECALL_SPAWN:
+        break;
+    case ECALL_EXIT: /* Currently assumes a supervisor process didn't call this. They have their own exit strategy. */
+        if (thread_table[current_thread].mode == MODE_U) user_thread_exit(tf);
         break;
     }
 
-    tf->a0 = 0;
+    tf->a0 = result;
 }

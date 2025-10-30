@@ -2,11 +2,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LIB_DIR="${ROOT_DIR}/testing/build/uprintf"
-LIB_PATH="${LIB_DIR}/libuprintf.a"
+LIB_DIR="${ROOT_DIR}/testing/build/io"
+LIB_PATH="${LIB_DIR}/libio.a"
 
 if [[ ! -f "${LIB_PATH}" ]]; then
-  echo "[error] ${LIB_PATH} not found. Run build_uprintf_lib.sh first." >&2
+  echo "[error] ${LIB_PATH} not found. Run build_io_lib.sh first." >&2
   exit 1
 fi
 

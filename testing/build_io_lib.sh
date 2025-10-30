@@ -28,7 +28,7 @@ fi
 CC="${CROSS_PREFIX}-gcc"
 AR="${CROSS_PREFIX}-ar"
 
-BUILD_DIR="${ROOT_DIR}/testing/build/uprintf"
+BUILD_DIR="${ROOT_DIR}/testing/build/io"
 mkdir -p "${BUILD_DIR}"
 
 CFLAGS=(
@@ -45,7 +45,7 @@ CFLAGS=(
 )
 
 SRCS=(
-  "kernel/lib/uprintf.c"
+  "kernel/lib/io.c"
   "kernel/lib/printf.c"
   "kernel/lib/string.c"
   "kernel/lib/ecall.c"
@@ -60,6 +60,6 @@ for src in "${SRCS[@]}"; do
   echo "built ${obj}" >&2
 done
 
-LIB_PATH="${BUILD_DIR}/libuprintf.a"
+LIB_PATH="${BUILD_DIR}/libio.a"
 "${AR}" rcs "${LIB_PATH}" "${OBJECTS[@]}"
 echo "archive created at ${LIB_PATH}" >&2
