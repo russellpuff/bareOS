@@ -3,12 +3,15 @@
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/syscall.h>
+#include <system/queue.h>
 #include <lib/ecall.h>
 #include <system/panic.h>
 #include <device/timer.h>
 #include <mm/vm.h>
+#include <mm/malloc.h>
 
 volatile uint64_t signum;
+#define ECALL_EXIT 93
 
 /*
  *  This file contains code for handling exceptions generated
@@ -86,6 +89,20 @@ void handle_ecall(uint64_t* frame_data, uint64_t call_id) {
         return;
 
     tf->sepc += 4;
+
+    if (call_id == ECALL_EXIT && thread_table[current_thread].mode == MODE_U) {
+        thread_table[current_thread].retval = (byte)(tf->a0 & 0xFF);
+        thread_table[current_thread].state = TH_ZOMBIE;
+        if (thread_table[current_thread].argptr != NULL) {
+            free(thread_table[current_thread].argptr);
+            thread_table[current_thread].argptr = NULL;
+        }
+        enqueue_thread(&reap_list, current_thread);
+        while (1);
+        //signum = RESCHED;
+        //handle_syscall(frame_data);
+        //return;
+    }
 
     switch ((s_ecall_number)call_id) {
     case S_ECALL_OPEN:

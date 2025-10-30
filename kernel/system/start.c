@@ -76,11 +76,11 @@ static void sys_idle() { while (1); }
 
 static void root_thread(void) {
 	display_welcome();
-	uint32_t idle_tid = create_thread(&sys_idle, "", 0);
+	uint32_t idle_tid = create_thread(&sys_idle, "", 0, MODE_S);
 	resume_thread(idle_tid);
-	uint32_t reaper_tid = create_thread(&reaper, "", 0);
+	uint32_t reaper_tid = create_thread(&reaper, "", 0, MODE_S);
 	resume_thread(reaper_tid);
-    uint32_t shell_tid = create_thread(&shell, "", 0);
+    uint32_t shell_tid = create_thread(&shell, "", 0, MODE_S);
     resume_thread(shell_tid);
     join_thread(shell_tid);
 }
@@ -91,7 +91,7 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
 	initialize();
-	uint32_t root_tid = create_thread(&root_thread, "", 0);
+	uint32_t root_tid = create_thread(&root_thread, "", 0, MODE_S);
 	context_load(&thread_table[current_thread], root_tid);
 	while(1);
 }

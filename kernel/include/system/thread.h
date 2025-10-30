@@ -4,6 +4,11 @@
 #include <lib/barelib.h>
 #include <system/semaphore.h>
 
+typedef enum {
+	MODE_S,
+	MODE_U
+} thread_mode;
+
 #define NTHREADS 20    /*  Maximum number of running threads  */
 
 #define THM_RUNNABLE  0x1  /*  These macros are not intended for  direct use.  Instead they  */
@@ -56,6 +61,7 @@ typedef struct {
 	trapframe* tf;      /* Pointer to trapframe living in kstack                                   */
 	context* ctx;       /* Pointer to context living in kstack                                     */
 	char* argptr;       /* Holds the arg to the process this thread runs with                      */
+	thread_mode mode;   /* Determines whether a thread is running in supervisor or user mode       */
 } thread_t;
 
 extern thread_t thread_table[];
@@ -64,7 +70,7 @@ extern queue_t sleep_list;
 
 /*  Thread related prototypes  */
 void init_threads(void);
-int32_t create_thread(void* proc, char* arg, uint32_t arglen);
+int32_t create_thread(void*, char*, uint32_t, thread_mode);
 int32_t join_thread(uint32_t);
 int32_t kill_thread(uint32_t);
 int32_t suspend_thread(uint32_t);

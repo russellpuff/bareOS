@@ -32,6 +32,7 @@ void init_threads(void) {
         thread_table[i].asid = i;
         thread_table[i].state = TH_FREE;
         thread_table[i].sem = create_sem(0);
+        thread_table[i].mode = MODE_S;
     }
     next_asid = 1;
 }
@@ -63,7 +64,7 @@ void wrapper(byte(*proc)(char*)) {
  *  point for a thread and selects an unused entry in the thread table.  It  *
  *  configures this  entry to represent a newly  created thread running the  *
  *  entry point function and places it in the suspended state.               */
-int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
+int32_t create_thread(void* proc, char* arg, uint32_t arglen, thread_mode mode) {
     uint64_t new_id;
     /* Statically allocated by the simple allocator */
     const uint64_t STACK_BASE = 0x200000UL;
@@ -109,11 +110,17 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
     ctx->ra = (uint64_t)landing_pad; /* Starter ret landing pad for new threads */
 
     memset(tf, 0, sizeof(trapframe));
-    tf->sstatus = SSTATUS_SPP | SSTATUS_SPIE | SSTATUS_SUM;
-    //tf->sstatus &= ~SSTATUS_SIE; // what is this for, again?
-    tf->sepc = (uint64_t)wrapper;             /* first PC */
-    tf->a0 = (uint64_t)proc;                  /* wrapper(proc) */
-    tf->ra = (uint64_t)wait_for_reaper;       /* if wrapper ever returns */
+    if (mode == MODE_S) {
+        tf->sstatus = SSTATUS_SPP | SSTATUS_SPIE | SSTATUS_SUM;
+        tf->sepc = (uint64_t)wrapper;             /* first PC */
+        tf->a0 = (uint64_t)proc;                  /* wrapper(proc) */
+        tf->ra = (uint64_t)wait_for_reaper;       /* if wrapper ever returns */
+    }
+    else {
+        tf->sstatus = SSTATUS_SPIE | SSTATUS_SUM;
+        tf->sepc = (uint64_t)proc;
+        tf->ra = 0;
+    }
     tf->sp = STACK_BASE + STACK_SIZE - 0x20;
     
     /* Publish into thread record */
@@ -126,6 +133,7 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen) {
     thread_table[new_id].priority = 0;
     thread_table[new_id].parent = current_thread;
     thread_table[new_id].sem = create_sem(0);
+    thread_table[new_id].mode = mode;
 
     /* First thread means these were set to physical and have to be virtual after being loaded */
     if (!MMU_ENABLED) {

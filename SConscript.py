@@ -155,7 +155,7 @@ def prepare_generic_loader(env):
             current += HEADER_SIZE
 
             # load file
-            load_flags += f"-device loader,file={path},addr=0x{current:08x} "
+            load_flags += f"-device loader,file={path},addr=0x{current:08x},force-raw=on "
             current += f_size
 
             total_bytes += HEADER_SIZE + f_size

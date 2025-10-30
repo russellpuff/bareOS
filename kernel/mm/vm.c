@@ -348,3 +348,75 @@ void free_process_pages(uint32_t thread_id) {
 	pfm_clear(k2);
 	free_pages(thread_table[thread_id].root_ppn);
 }
+
+/* Helper function finds the KVA that correlates to a user virtual address */
+void* translate_user_address(uint64_t root_ppn, uint64_t va) {
+	if (root_ppn == NULL) return NULL;
+
+	pte_t* l2 = (pte_t*)PPN_TO_KVA(root_ppn);
+	pte_t pte = l2[va_vpn2(va)];
+	if (!pte.v) return NULL;
+
+	if (pte.r || pte.w || pte.x) {
+		uint64_t pa = (pte.ppn << PAGE_SHIFT) | (va & ((1ULL << 30) - 1));
+		return PA_TO_KVA(pa);
+	}
+
+	pte_t* l1 = (pte_t*)PPN_TO_KVA(pte.ppn);
+	pte = l1[va_vpn1(va)];
+	if (!pte.v) return NULL;
+
+	if (pte.r || pte.w || pte.x) {
+		uint64_t pa = (pte.ppn << PAGE_SHIFT) | (va & ((1ULL << 21) - 1));
+		return PA_TO_KVA(pa);
+	}
+
+	pte_t* l0 = (pte_t*)PPN_TO_KVA(pte.ppn);
+	pte = l0[va_vpn0(va)];
+	if (!pte.v || !(pte.r || pte.w || pte.x)) return NULL;
+
+	uint64_t pa = (pte.ppn << PAGE_SHIFT) | (va & (PAGE_SIZE - 1));
+	return PA_TO_KVA(pa);
+}
+
+/* Copies data into user pages */
+int32_t copy_to_user(uint64_t root_ppn, uint64_t va, const void* src, uint64_t len) {
+	const byte* src_bytes = (const byte*)src;
+	uint64_t remaining = len;
+
+	while (remaining > 0) {
+		byte* dst = (byte*)translate_user_address(root_ppn, va);
+		if (dst == NULL) return -1;
+
+		uint64_t chunk = PAGE_SIZE - (va & (PAGE_SIZE - 1));
+		if (chunk > remaining) chunk = remaining;
+
+		memcpy(dst, src_bytes, chunk);
+
+		va += chunk;
+		src_bytes += chunk;
+		remaining -= chunk;
+	}
+
+	return 0;
+}
+
+/* Zeroes out user pages starting at va for len */
+int32_t zero_user(uint64_t root_ppn, uint64_t va, uint64_t len) {
+	uint64_t remaining = len;
+
+	while (remaining > 0) {
+		byte* dst = (byte*)translate_user_address(root_ppn, va);
+		if (dst == NULL) return -1;
+
+		uint64_t chunk = PAGE_SIZE - (va & (PAGE_SIZE - 1));
+		if (chunk > remaining) chunk = remaining;
+
+		memset(dst, 0, chunk);
+
+		va += chunk;
+		remaining -= chunk;
+	}
+
+	return 0;
+}

@@ -2,6 +2,7 @@
 #include <lib/barelib.h>
 #include <lib/string.h>
 #include <system/thread.h>
+#include <system/exec.h>
 #include <app/shell.h>
 
 #define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
@@ -69,11 +70,21 @@ byte shell(char* arg) {
         /* Try to run a built-in program. In the future, try calling a user-installed program too. */
         function_t func = get_command(arg0);
         if(func) {
-            uint32_t fid = create_thread(func, prompt, prompt_len);
+            uint32_t fid = create_thread(func, prompt, prompt_len, MODE_S);
             resume_thread(fid);
             last_retval = join_thread(fid);
         } else {
-            kprintf("%s: command not found\n", arg0);
+            int32_t tid = exec_elf(arg0);
+            if (tid >= 0) {
+                resume_thread(tid);
+                last_retval = join_thread(tid);
+            }
+            else if (tid == -2) {
+                kprintf("%s: command not found\n", arg0);
+            }
+            else {
+                last_retval = 1;
+            }
         }
     }
     return 0;
