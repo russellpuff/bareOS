@@ -1,5 +1,8 @@
 #include <lib/uprintf.h>
 
+/* This file is for testing various functions that will run entirely in user mode in virtual memory */
+
+/*
 __attribute__((noinline))
 static void spin(uint64_t iters) {
     byte stg_num = 1;
@@ -18,11 +21,16 @@ static void spin(uint64_t iters) {
         }
     }
 }
+*/
 
 int main(void) {
+    /* Spin test: force execution to take several sections to test whether the scheduler breaks anything */
+    /* Last result: everything works ok */
+    /*
     const uint64_t DELAY_ITERS = 250000000UL;
     printf("user task: start\n");
     spin(DELAY_ITERS);
     printf("user task: done\n");
+    */
     return 0;
 }

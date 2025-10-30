@@ -8,7 +8,7 @@
 #define SB_BIT 0                /* Alias for the super block index                            */
 #define BM_BIT 1                /* Alias for the bitmask block index                          */
 
-#define FILENAME_LEN 16         /* Maximum length of a filename in the FS                     */
+#define FILENAME_LEN 32         /* Maximum length of a filename in the FS                     */
 #define DIR_SIZE     16         /* Maximum number of files referenced in the root direcotry   */
 
 #define INODE_BLOCKS    64      /* Maximum number of blocks associated with each file inode   */

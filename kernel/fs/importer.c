@@ -5,13 +5,13 @@
 #include <lib/string.h>
 #include <mm/malloc.h>
 
-/* Mildly unsafe helper that reads the raw bytes from header to a uint16. */
-uint16_t bytes_to_u16(const byte* ptr) { 
-	uint16_t value = 0;
-	for (uint32_t i = 0; i < 16; ++i) {
-        value |= ((uint16_t)ptr[i]) << (8 * i);
-    }
-    return value;
+/* Mildly unsafe helper that reads the raw bytes from header to a uint32. */
+uint32_t bytes_to_u32(const byte* ptr) {
+	uint32_t value = 0;
+	for (uint32_t i = 0; i < 4; ++i) {
+		value |= ((uint32_t)ptr[i]) << (8 * i);
+	}
+	return value;
 }
 
 /* Important helper functon that mallocs enough bytes to handle maxing out the  *
@@ -19,7 +19,7 @@ uint16_t bytes_to_u16(const byte* ptr) {
  * the data injected by the generic loader is safe.                             */
 void* malloc_loaded_range(void) {
 	uint64_t MAX_FS_CAPACITY = INODE_BLOCKS * MDEV_BLOCK_SIZE * DIR_SIZE;
-	uint64_t HEAD_SIZE = FILENAME_LEN + 16;
+	uint64_t HEAD_SIZE = FILENAME_LEN + 4;
 	uint64_t TOTAL_HEAD_SIZE = HEAD_SIZE * DIR_SIZE;
 	uint64_t MASTER_HEAD_SIZE = 2;
 	uint64_t IMPORT_BYTES_NEEDED = MAX_FS_CAPACITY + TOTAL_HEAD_SIZE + MASTER_HEAD_SIZE;
@@ -52,8 +52,8 @@ byte generic_importer(byte* ptr) {
 			if(name[j] == '\0') { ptr += (FILENAME_LEN - j - 1); break; }
 		}
 		/* Write to fd */
-		uint16_t size = bytes_to_u16(ptr);
-		ptr += 16;
+		uint16_t size = bytes_to_u32(ptr);
+		ptr += 4;
 		if(create(name) == -1) {
 			status = -1;
 			break;

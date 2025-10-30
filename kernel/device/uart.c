@@ -88,11 +88,14 @@ void uart_handler(void) {
       }
     } else if(code == UART_TX_INTR) { /*  If interrupt was caused by UART awaiting char */
         if (tty_out.count > 0) {
-          char c = tty_out.buffer[tty_out.head];
-          tty_out.head = (tty_out.head + 1) % TTY_BUFFLEN;
-          uart[UART0_RW_REG] = c;
-          post_sem(&tty_out.sem);
-        if (--tty_out.count == 0) set_uart_interrupt(0);
+            while (tty_out.count > 0 && (uart[UART0_STAT_REG] & UART_IDLE)) {
+                char c = tty_out.buffer[tty_out.head];
+                tty_out.head = (tty_out.head + 1) % TTY_BUFFLEN;
+                uart[UART0_RW_REG] = c;
+                post_sem(&tty_out.sem);
+                --tty_out.count;
+            }
+            if (tty_out.count == 0) set_uart_interrupt(0);
         } else { set_uart_interrupt(0); }
     }
 }

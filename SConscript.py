@@ -101,7 +101,7 @@ def prepare_generic_loader(env):
     FILENAME_LEN = _const("FILENAME_LEN")
     DIR_SIZE = _const("DIR_SIZE")
     MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
-    HEADER_SIZE = FILENAME_LEN + 16
+    HEADER_SIZE = FILENAME_LEN + 4
 
     def do_name_bytes(filename: str) -> bytes:
         b = filename.encode('utf-8')
@@ -110,7 +110,7 @@ def prepare_generic_loader(env):
         return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\0')
 
     def do_size_bytes(size: int) -> bytes:
-        return int(size).to_bytes(16, 'little')
+        return int(size).to_bytes(4, 'little')
 
     #Load user filess from /load, this is attached to qflags
     load_flags = ""
