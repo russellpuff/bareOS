@@ -9,9 +9,9 @@ int16_t strcmp(const char* str1, const char* str2) {
 }
 
 uint64_t strlen(const char* str) {
-    char* s = str;
-    while (s++ != '\0');
-    return (int)(s - str);
+    const char* s = str;
+    while (*s) ++s;
+    return (uint64_t)(s - str);
 }
 
 void* memset(void* s, byte c, uint64_t n) {

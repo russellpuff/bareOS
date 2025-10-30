@@ -14,20 +14,29 @@ static byte* put_str(const char* s, byte mode, byte* ptr) {
     return ptr;
 }
 
-static byte* write_color_token(char t, byte mode, byte* ptr) {
+char* get_color_str(char t) {
     switch (t) {
-    case '0': ptr = put_str("\x1b[0m", mode, ptr);  break; /* reset */
-    case 'r': ptr = put_str("\x1b[31m", mode, ptr); break;
-    case 'g': ptr = put_str("\x1b[32m", mode, ptr); break;
-    case 'y': ptr = put_str("\x1b[33m", mode, ptr); break;
-    case 'b': ptr = put_str("\x1b[34m", mode, ptr); break;
-    case 'm': ptr = put_str("\x1b[35m", mode, ptr); break;
-    case 'c': ptr = put_str("\x1b[36m", mode, ptr); break;
-    case 'w': ptr = put_str("\x1b[37m", mode, ptr); break;
-    case 'x': ptr = put_str("\x1b[01;32m", mode, ptr); break;
-    default:  ptr = printf_putc('&', mode, ptr);
+        case '0': return "\x1b[0m";
+        case 'r': return "\x1b[31m";
+        case 'g': return "\x1b[32m";
+        case 'y': return "\x1b[33m";
+        case 'b': return "\x1b[34m";
+        case 'm': return "\x1b[35m";
+        case 'c': return "\x1b[36m";
+        case 'w': return "\x1b[37m";
+        case 'x': return "\x1b[01;32m";
+        default: return NULL;
+    }
+}
+
+static byte* write_color_token(char t, byte mode, byte* ptr) {
+    char* str = get_color_str(t);
+    if (str == NULL) {
+        ptr = printf_putc('&', mode, ptr);
         ptr = printf_putc(t, mode, ptr);
-        break;
+    }
+    else {
+        ptr = put_str(str, mode, ptr);
     }
     return ptr;
 }
@@ -77,9 +86,7 @@ void printf_core(byte mode, byte* ptr, const char* format, va_list ap) {
                 break;
             case 's': // lousy %s implementation
                 char* str = va_arg(ap, char*);
-                while (*str != '\0') {
-                    ptr = printf_putc(*str++, mode, ptr);
-                }
+                put_str(str, mode, ptr);
                 break;
             case ' ':
                 /* Edge case where % was followed by a space.

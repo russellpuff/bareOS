@@ -4,17 +4,45 @@ Import("env")
 
 img_file      = "bareOS.elf"
 HEAD_DIR = Dir('load').abspath
+ROOT_DIR = Dir('#').abspath
+KERNEL_ROOT = Dir('#/kernel').abspath
+
+def _normalize(path: str) -> str:
+    # Return a normalized path relative to the repository root.
+    if not os.path.isabs(path):
+        path = os.path.join(ROOT_DIR, path)
+    return os.path.normpath(os.path.relpath(path, ROOT_DIR))
+
+BLACKLIST = {
+    _normalize(os.path.join("kernel", "lib", "uprintf.c")),
+    _normalize(os.path.join("kernel", "include", "lib", "uprintf.h")),
+}
+
+# TODO: scons -c will check for blacklisted files for no good reason, fix that
+def _is_blacklisted(node) -> bool:
+    rel_path = _normalize(node.srcnode().get_abspath())
+    if rel_path in BLACKLIST:
+        print(f"[Info] Skipping blacklisted file: {rel_path}")
+        return True
+    return False
 
 def error(code, msg):
     print(msg)
     Exit(code)
+
 # auto get src directories
 kernel_dirs = [
     d
-    for d in os.listdir("kernel")
-    if os.path.isdir(os.path.join("kernel", d)) and d != "include"
+    for d in os.listdir(KERNEL_ROOT)
+    if os.path.isdir(os.path.join(KERNEL_ROOT, d)) and d != "include"
 ]
-kernel_files  = [Glob(os.path.join("kernel", d, "*.[cs]")) for d in kernel_dirs]
+kernel_files = []
+for directory in kernel_dirs:
+    pattern = os.path.join("kernel", directory, "*.[cs]")
+    for node in Glob(pattern):
+        if not _is_blacklisted(node):
+            kernel_files.append(node)
+
 def do_gdb(target, source, env):
     gdb_file = img_file
     os.system(f'{env["GDB"]} -ex "file {gdb_file}" -ex "target remote :{env["port"]}"')
