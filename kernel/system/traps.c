@@ -3,13 +3,12 @@
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/syscall.h>
+#include <lib/ecall.h>
 #include <system/panic.h>
 #include <device/timer.h>
 #include <mm/vm.h>
 
 volatile uint64_t signum;
-#define TF_A7_INDEX   15
-#define TF_SEPC_INDEX 29
 
 /*
  *  This file contains code for handling exceptions generated
@@ -41,12 +40,6 @@ void s_handle_exception(uint64_t* frame) {
 
     if ((cause & (1ULL << 63)) == 0) { /* Synchronous exception */
         uint64_t code = cause & 0xfffULL; /* Get exception code */
-        if (code == 8 || code == 9) { /* ecall from U or S mode */
-            signum = frame[TF_A7_INDEX];
-            frame[TF_SEPC_INDEX] = epc + 4;
-            handle_syscall(frame);
-            return;
-        }
         /* Placeholder for handling basic page faults without a crash */
         /* 12 = instruction page fault */
         /* 13 = load page fault        */
@@ -78,3 +71,35 @@ void m_handle_exception(void) {
     while (1);
 }
 
+static void handle_ecall_write(uint32_t device, char* target, char* buffer, uint32_t length) {
+    /* TEMP - Only user-available device is the uart, organizing devices into a table is not supported yet. Keep disk ops kernel-only. */
+    /* device == uart */
+    /* target == NULL (for uart) */
+    /* write: buffer = what to write */
+    kuprintf(buffer, length);
+}
+
+void handle_ecall(uint64_t* frame_data, uint64_t call_id) {
+    trapframe* tf = (trapframe*)frame_data;
+
+    if (tf == NULL)
+        return;
+
+    tf->sepc += 4;
+
+    switch ((s_ecall_number)call_id) {
+    case S_ECALL_OPEN:
+        break;
+    case S_ECALL_CLOSE:
+        break;
+    case S_ECALL_READ:
+        break;
+    case S_ECALL_WRITE:
+        handle_ecall_write((uint32_t)tf->a0, (char*)tf->a1, (char*)tf->a2, (uint32_t)tf->a3);
+        break;
+    default:
+        break;
+    }
+
+    tf->a0 = 0;
+}

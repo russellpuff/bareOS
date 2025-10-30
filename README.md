@@ -21,7 +21,7 @@ sudo apt-get install -y --no-install-recommends \
 pip install scons
 ```
 
-The build scripts automatically locate an available RISC-V cross compiler, if you installed the unknown-elf tollchain earlier, then that will be used by default. If multiple toolchains are installed you can select one explicitly with `scons arch=<prefix>` (for example, `scons arch=riscv64-linux-gnu`).
+The build scripts automatically locate an available RISC-V cross compiler, if you installed the unknown-elf toolchain earlier, then that will be used by default. If multiple toolchains are installed you can select one explicitly with `scons arch=<prefix>` (for example, `scons arch=riscv64-linux-gnu`).
 
 ### Building and Running
 

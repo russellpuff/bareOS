@@ -21,12 +21,17 @@
 #define TH_WAITING (THM_QUEUED | THM_PAUSED)
 #define TH_ZOMBIE (THM_RUNNABLE | THM_DEAD)
 
+/* The context struct is used to hold information about kernel context during a context switch */
 typedef struct {
-	uint64_t ra;    /* Return address              */
-	uint64_t s[12]; /* s0 ... s11                  */
-	uint64_t sp;    /* Kernel sp when switched out */
+	uint64_t ra;
+	uint64_t s[12];
+	uint64_t sp;
 } context;
 
+/* Trapframe is a more robust struct used to hold GSRs and privledged registers to assure full *
+ * resume when exiting a trap. Both this and context are stored in a dedicated per-process     *
+ * kernel stack region which is used to safely stash this info during traps/ctxsw to prevent   *
+ * data corruption in more complicated use cases                                               */
 typedef struct {
 	uint64_t ra, sp, gp, tp;
 	uint64_t t0, t1, t2, t3, t4, t5, t6;
@@ -48,8 +53,8 @@ typedef struct {
 	semaphore_t sem;    /* Semaphore for the current thread                                        */
 	byte* kstack_base;  /* Kernel VA, bottom of stack                                              */
 	byte* kstack_top;   /* Kernel VA, top of stack                                                 */
-	trapframe* tf;      /* Trapframe, points inside kernel stack                                   */
-	context* ctx;    /* Lives at base/top region of kernel stack or in struct                   */
+	trapframe* tf;      /* Pointer to trapframe living in kstack                                   */
+	context* ctx;       /* Pointer to context living in kstack                                     */
 	char* argptr;       /* Holds the arg to the process this thread runs with                      */
 } thread_t;
 

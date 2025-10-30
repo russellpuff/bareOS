@@ -45,5 +45,5 @@ void handle_clk(void) {
 		}
 	}
 	
-	pend_syscall(RESCHED);
+	pend_resched(RESCHED);
 }

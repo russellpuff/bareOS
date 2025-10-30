@@ -4,10 +4,13 @@
     .equ STIP_BIT,       0x20
     .equ TICK,           100000
     .equ TF_SP,      8
+    .equ TF_A7,      240
     .equ TF_SEPC,    248
     .equ TF_SSTATUS, 256
     .equ TF_QWORDS,  33
     .equ TF_SIZE,    (TF_QWORDS*8)   # 264
+    .equ SCAUSE_ECALL_U, 8 # ecall from U mode
+    .equ SCAUSE_ECALL_S, 9 # ecall from S mode
 
 # god save my fucking soul
 .globl handle_trap
@@ -38,6 +41,11 @@ handle_trap:
     csrr   t0, scause
     bltz   t0, .L_irq
 
+    li     t1, SCAUSE_ECALL_U
+    beq    t0, t1, .L_ecall
+    li     t1, SCAUSE_ECALL_S
+    beq    t0, t1, .L_ecall
+
     mv     a0, sp
     jal    s_handle_exception
     j      .L_exit
@@ -48,6 +56,12 @@ handle_trap:
     beq    t0, t1, .L_sys
 
     jal    handle_plic            # SEIP
+    j      .L_exit
+
+.L_ecall:
+    mv     a0, sp
+    ld     a1, TF_A7(sp)
+    jal    handle_ecall
     j      .L_exit
 
 .L_clk:
@@ -122,8 +136,8 @@ raise_syscall:
     csrs sip, t1
     ret
 
-.globl pend_syscall
-pend_syscall:
+.globl pend_resched
+pend_resched:
     la   t0, signum
     sd   a0, 0(t0)        
     li   t1, 0x2
