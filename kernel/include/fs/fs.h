@@ -11,8 +11,8 @@
 #define FILENAME_LEN 16         /* Maximum length of a filename in the FS                     */
 #define DIR_SIZE     16         /* Maximum number of files referenced in the root direcotry   */
 
-#define INODE_BLOCKS    12      /* Maximum number of blocks associated with each file inode   */
-#define MDEV_BLOCK_SIZE 512     /* Size of each block in bytes                                */
+#define INODE_BLOCKS    64      /* Maximum number of blocks associated with each file inode   */
+#define MDEV_BLOCK_SIZE 2048    /* Size of each block in bytes                                */
 #define MDEV_NUM_BLOCKS 512     /* Number of blocks in the block device                       */
 
 #define FSTATE_CLOSED 0         /* Used when opening and closing files to indicate the state  */

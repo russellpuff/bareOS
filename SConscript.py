@@ -103,9 +103,9 @@ def prepare_generic_loader(env):
     MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
     HEADER_SIZE = FILENAME_LEN + 16
 
-    def do_name_bytes(stem: str) -> bytes:
-        b = stem.encode('utf-8')
-        if len(stem) > FILENAME_LEN - 1: # account for null terminator fs needs
+    def do_name_bytes(filename: str) -> bytes:
+        b = filename.encode('utf-8')
+        if len(filename) > FILENAME_LEN - 1: # account for null terminator fs needs
             return None
         return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\0')
 
@@ -130,20 +130,19 @@ def prepare_generic_loader(env):
         total_bytes = 0
         valid_files = 0
 
-        for f in files:
+        for filename in files:
             if valid_files == DIR_SIZE:
                 break
-            stem = os.path.splitext(f)[0]
-            name_bytes = do_name_bytes(stem)
+            name_bytes = do_name_bytes(filename)
             if name_bytes is None:
                 continue
 
-            path = os.path.join(LOAD_DIR, f)
+            path = os.path.join(LOAD_DIR, filename)
             f_size = os.path.getsize(path)
             if f_size > MAX_FILE_SIZE:
                 continue
 
-            header_path = os.path.join(HEAD_DIR, stem + ".gih")
+            header_path = os.path.join(HEAD_DIR, f"{filename}.gih")
 
             # Force rewrite header.
             header = name_bytes + do_size_bytes(f_size)

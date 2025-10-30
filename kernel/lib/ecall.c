@@ -32,5 +32,5 @@ uint32_t s_ecall_write(uint32_t device, char* target, char* buffer, uint32_t len
         : "r"(a1), "r"(a2), "r"(a3), "r"(a7)
         : "memory");
 
-    return (uint32_t)a0;
+    return 0;
 }

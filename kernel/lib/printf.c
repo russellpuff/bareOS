@@ -86,7 +86,9 @@ void printf_core(byte mode, byte* ptr, const char* format, va_list ap) {
                 break;
             case 's': // lousy %s implementation
                 char* str = va_arg(ap, char*);
-                put_str(str, mode, ptr);
+                while (*str != '\0') {
+                    ptr = printf_putc(*str++, mode, ptr);
+                }
                 break;
             case ' ':
                 /* Edge case where % was followed by a space.
