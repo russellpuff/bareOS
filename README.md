@@ -28,8 +28,10 @@ The build scripts automatically locate an available RISC-V cross compiler, if yo
 
 ```sh
 git clone git@github.com:russellpuff/bareOS.git
-cd bareOS
-mkdir load                    # optional: add files here to preload them into the ramdisk
+cd bareOS/user/
+scons build lib               # build user libraries
+scons build shell             # build the shell (mandatory)
+cd ..
 scons run                     # build and launch bareOS in QEMU
 ```
 

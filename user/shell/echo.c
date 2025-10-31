@@ -11,11 +11,11 @@
 byte builtin_echo(char* arg) {
   const uint32_t LINE_SIZE = 1024;
   uint32_t char_cnt = 0;
-  if(!strcmp(arg, "echo") || !strcmp(arg, "echo ")) {
+  if(strlen(arg) <= 5) {  /* arg0 - "echo" w/ space */
     while(1) { 
       char line[LINE_SIZE]; 
       char_cnt += gets(line, LINE_SIZE);
-      if(!strcmp(line, "")) { return char_cnt; }
+      if(strlen(line) == 0) { return char_cnt; }
       printf("%s\n", line);
     }
   } else {

@@ -8,7 +8,7 @@
  * If no text exists, print and error and return 1 instead.
  */
 byte builtin_hello(char* arg) {
-  if(!strcmp(arg, "hello") || !strcmp(arg, "hello ")) {
+  if(strlen(arg) <= 6) {  /* arg0 - "hello" w/ space */
     printf("Error - bad argument\n");
     return 1;
   }

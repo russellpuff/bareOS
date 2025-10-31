@@ -24,6 +24,13 @@ void printf(const char* format, ...) {
     ecall_write(UART_DEV_NUM, NULL, buffer, n);
 }
 
+void sprintf(byte* buffer, const char* format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    printf_core(MODE_BUFFER, buffer, format, ap);
+    va_end(ap);
+}
+
 int32_t gets(char* buffer, uint32_t length) {
     if (buffer == NULL || length == 0) return 0;
     return (int32_t)ecall_read(UART_DEV_NUM, NULL, buffer, length);

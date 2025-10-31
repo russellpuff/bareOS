@@ -2,7 +2,7 @@
 #include <lib/bareio.h>
 #include <lib/string.h>
 #include <lib/ecall.h>
-#include <app/version.h>
+#include <system/version.h>
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/queue.h>
@@ -78,6 +78,10 @@ static void root_thread(void) {
 	resume_thread(idle_tid);
 	uint32_t reaper_tid = create_thread(&reaper, "", 0, MODE_S);
 	resume_thread(reaper_tid);
+	int32_t f = open("shell.elf");
+	if (f < 0)
+		panic("Critical error: no shell to run on boot.\n");
+	close(f);
 	ecall_spawn("shell", NULL);
 }
 

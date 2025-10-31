@@ -38,7 +38,7 @@ int main(void) {
     while (1) {
         printf("[%u] &x%s&0", last_retval, PROMPT);
         char line[LINE_SIZE];
-        uint32_t len = gets(line, LINE_SIZE);
+        gets(line, LINE_SIZE);
 
         /* Extract first argument (program name). */
         char arg0[MAX_ARG0_SIZE + 1]; /* factor in null character */
@@ -50,24 +50,21 @@ int main(void) {
         arg0[ctr] = '\0';
 
         /* Replace line placeholders with enviornment variables. */
-        //byte chSz = DIGITS(last_retval);
+        byte chSz = DIGITS(last_retval);
         char prompt[LINE_SIZE + 64]; /* Arbitrary extra space. */
-        /*
         char* l_ptr = line;
         char* p_ptr = prompt;
         while (*l_ptr != '\0') {
             if (*l_ptr == '$' && *(l_ptr + 1) == '?') {
-                ksprintf((byte*)p_ptr, "%u", last_retval);
+                sprintf((byte*)p_ptr, "%u", last_retval);
                 p_ptr += chSz;
                 l_ptr += 2;
             }
             else *p_ptr++ = *l_ptr++;
         }
         *p_ptr = '\0';
-        uint64_t prompt_len = (uint64_t)(p_ptr - prompt + 1);
-        */
+        //uint64_t prompt_len = (uint64_t)(p_ptr - prompt + 1);
 
-        memcpy(prompt, line, len); /* temp until sprintf is implemented */
         function_t func = get_command(arg0);
         if(func) { last_retval = func(prompt); } 
         else { last_retval = ecall_spawn(arg0, prompt); }
