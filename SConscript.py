@@ -177,6 +177,8 @@ def run_qemu(target, source, env):
         print(load_flags)
 
     args = [env['QEMU'], '-kernel', str(source[0])] + env['qflags'].split()
+    if "debug" not in COMMAND_LINE_TARGETS:
+        subprocess.run("clear", shell=True, check=True)
     return subprocess.call(args)
 
 run = env.Command(target="run_cmd", source=img_file, action=run_qemu)

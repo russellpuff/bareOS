@@ -4,7 +4,7 @@
 bin/
 obj/
 load/
-testing/build/
+user/build/
 *.dblite
 *.img
 *.elf
@@ -13,4 +13,4 @@ testing/build/
 *.vcxproj*
 .msfile
 kernel/include/app/version.h
-!/testing/*.sh
+!/user/*.sh

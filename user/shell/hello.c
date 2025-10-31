@@ -1,7 +1,6 @@
-#include <lib/bareio.h>
-#include <lib/barelib.h>
+#include <lib/io.h>
 #include <lib/string.h>
-#include <app/shell.h>
+#include "shell.h"
 
 /*
  * 'builtin_hello' prints "Hello, <text>!\n" where <text> is the contents 
@@ -10,10 +9,10 @@
  */
 byte builtin_hello(char* arg) {
   if(!strcmp(arg, "hello") || !strcmp(arg, "hello ")) {
-    kprintf("Error - bad argument\n");
+    printf("Error - bad argument\n");
     return 1;
   }
   arg += 6;
-  kprintf("Hello, %s!\n", arg);
+  printf("Hello, %s!\n", arg);
   return 0;
 }

@@ -1,7 +1,7 @@
 #include <lib/barelib.h>
 #include <lib/bareio.h>
 #include <lib/string.h>
-#include <app/shell.h>
+#include <lib/ecall.h>
 #include <app/version.h>
 #include <system/thread.h>
 #include <system/interrupts.h>
@@ -78,9 +78,7 @@ static void root_thread(void) {
 	resume_thread(idle_tid);
 	uint32_t reaper_tid = create_thread(&reaper, "", 0, MODE_S);
 	resume_thread(reaper_tid);
-    uint32_t shell_tid = create_thread(&shell, "", 0, MODE_S);
-    resume_thread(shell_tid);
-    join_thread(shell_tid);
+	ecall_spawn("shell", NULL);
 }
 
 /*
