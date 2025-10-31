@@ -8,11 +8,6 @@ ARCHES=(
   "riscv64-linux-gnu"
 )
 
-if [[ ${#ARCHES[@]} -eq 0 ]]; then
-  echo "[error] internal arch list is empty" >&2
-  exit 1
-fi
-
 for candidate in "${ARCHES[@]}"; do
   if command -v "${candidate}-gcc" >/dev/null 2>&1; then
     CROSS_PREFIX="${candidate}"
@@ -28,7 +23,8 @@ fi
 CC="${CROSS_PREFIX}-gcc"
 AR="${CROSS_PREFIX}-ar"
 
-BUILD_DIR="${ROOT_DIR}/user/build/io"
+BUILD_DIR="${ROOT_DIR}/user/build/string"
+rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
 
 CFLAGS=(
@@ -44,22 +40,11 @@ CFLAGS=(
   -I"${ROOT_DIR}/kernel/include"
 )
 
-SRCS=(
-  "kernel/lib/io.c"
-  "kernel/lib/printf.c"
-  "kernel/lib/string.c"
-  "kernel/lib/ecall.c"
-)
+SRC="kernel/lib/string.c"
+OBJ="${BUILD_DIR}/string.o"
+"${CC}" "${CFLAGS[@]}" -c "${ROOT_DIR}/${SRC}" -o "${OBJ}"
+echo "built ${OBJ}" >&2
 
-OBJECTS=()
-for src in "${SRCS[@]}"; do
-  base="$(basename "${src}")"
-  obj="${BUILD_DIR}/${base%.c}.o"
-  "${CC}" "${CFLAGS[@]}" -c "${ROOT_DIR}/${src}" -o "${obj}"
-  OBJECTS+=("${obj}")
-  echo "built ${obj}" >&2
-done
-
-LIB_PATH="${BUILD_DIR}/libio.a"
-"${AR}" rcs "${LIB_PATH}" "${OBJECTS[@]}"
+LIB_PATH="${BUILD_DIR}/libstring.a"
+"${AR}" rcs "${LIB_PATH}" "${OBJ}"
 echo "archive created at ${LIB_PATH}" >&2
