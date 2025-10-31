@@ -12,5 +12,5 @@ user/build/
 *.sln
 *.vcxproj*
 .msfile
-kernel/include/app/version.h
+kernel/include/system/version.h
 !/user/*.sh

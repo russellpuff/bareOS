@@ -1,6 +1,7 @@
 /* File contains definitions for all shell based filesystem utility commands. */
 #include <lib/bareio.h>
 #include <lib/barelib.h>
+#include <lib/string.h>
 #include <mm/malloc.h>
 #include <fs/fs.h>
 
@@ -13,7 +14,11 @@ byte redirect_file(char* arg, char* filename) {
 /* builtin_cat takes a file name and attempts to print its contents. *
  * It just assumes the files is in the current directory right now.  */
 byte builtin_cat(char* arg) {
-    arg += 4; /* Jump past arg0. TODO: This is very unsafe if you just type "cat". */
+    if (strlen(arg) <= 4) { /* arg0 - "cat" w/ space */
+        kprintf("Nothing to cat\n");
+        return 0;
+    }
+    arg += 4; /* Jump past arg0. */
     int16_t fd = open(arg);
     if(fd == -1) {
         kprintf("%s - File not found.\n", arg);

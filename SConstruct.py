@@ -76,7 +76,7 @@ GDB    = "-".join([arch, "gdb"])
 
 # Generate version.h -----------------------------------------------------------------------------------
 
-header_path = os.path.join("kernel", "include", "app", "version.h")
+header_path = os.path.join("kernel", "include", "system", "version.h")
 try:
     rev = subprocess.check_output([
         "git", "rev-list", "--tags", "--max-count=1"

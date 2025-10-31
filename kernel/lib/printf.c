@@ -104,7 +104,7 @@ void printf_core(byte mode, byte* ptr, const char* format, va_list ap) {
             }
         }
         else if (*format == '&') { /* OC donut steel color handler. */
-            write_color_token(*++format, mode, ptr);
+            ptr = mode == MODE_BUFFER ? printf_putc('&', mode, ptr) : write_color_token(*++format, mode, ptr);
         }
         else {
             ptr = printf_putc(*format, mode, ptr);

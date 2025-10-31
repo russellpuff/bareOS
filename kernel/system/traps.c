@@ -113,7 +113,7 @@ static byte handle_ecall_spawn(char* name, char* arg) {
 
 void signal_syscon(uint16_t signal) {
     const char* what = signal == SYSCON_SHUTDOWN ? "shut down" : "reboot";
-    kprintf("The system will %s now.\n", what);
+    krprintf("The system will %s now.\n", what);
     *(uint16_t*)PA_TO_KVA(SYSCON_ADDR) = signal;
     while (1);
 }

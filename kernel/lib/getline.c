@@ -23,5 +23,6 @@ uint32_t get_line(char* buffer, uint32_t size) {
                 if (ptr < end) *ptr++ = ch;
                 break;
         }
+        if (ptr == end) return (uint32_t)(end - buffer);
     }
 }
