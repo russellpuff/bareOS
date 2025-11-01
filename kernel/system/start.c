@@ -88,7 +88,7 @@ static void root_thread(void) {
 void supervisor_start(void) {
 	initialize();
 	uint32_t root_tid = create_thread(&root_thread, "", 0, MODE_S);
-	context_load(&thread_table[current_thread], root_tid);
+	context_load(&thread_table[root_tid], root_tid);
 	while(1);
 }
 

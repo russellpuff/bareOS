@@ -33,7 +33,20 @@ void context_load(thread_t* first, uint32_t tid) {
  *  'current_thread'.  Finally,  'resched' uses 'context_switch' to swap from  *
  *  the old thread to the new thread.                                 */
 
-void resched(void) {
+#include <system/semaphore.h>
+extern void handle_syscall(uint64_t*);
+
+void resched(void* caller) {
+    /* DO NOT CHANGE THIS LIST OF APPROVED CALLERS!                *
+     * THERE IS ZERO REASON TO EVER CHANGE THIS LIST!              *
+     * IF YOU WANT TO CHANGE THIS LIST, TOO BAD!                   *
+     * CALLING resched() OUTSIDE OF AN APPROVED CONTEXT IS UNSAFE! *
+     * DANGEROUSLY UNSAFE, YOU WILL BREAK THE KERNEL!              *
+     * UNLESS YOU GET APPROVAL FROM THE REPO OWNER (Robin),        *
+     * DO NOT CHANGE THE FUCKING LIST!                             */
+    if (caller != &handle_syscall && caller != &wait_sem) /* This is a weak check, if you spoof this to violate policy I'm going to break your kneecaps */
+        panic("Policy violation detected, the scheduler was prompted in an inappropriate context.");
+
     uint32_t new_thread = dequeue_thread(&ready_list);
     if (new_thread == -1) return;
 

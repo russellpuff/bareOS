@@ -76,7 +76,17 @@ int32_t wait_sem(semaphore_t* sem) {
 	thread_table[current_thread].state = TH_WAITING;
 	sem_enqueue(&sem->queue, current_thread);
 	release_mutex(&MUTEX_LOCK);
-	resched(); /* TEMP SOLUTION - pend_resched causes thread execution to erroneously continue without waiting */
+	//
+	// Policy violation call 
+	// Reason for violation: pend_resched causes thread execution to erroneously continue without waiting
+	// Policy exception requested by: Robin
+	// Approved by: Robin
+	// Notes: This is a blocker that prevents the kernel from leaving alpha so long as this policy is violated
+	//
+	resched(&wait_sem); 
+	//
+	//
+	//
  	return 0;
 }
 

@@ -21,9 +21,9 @@ volatile uint64_t signum;
  *  it to the 'syscall_table' below.
  */
 
-static inline void reserved(void) { return; }
+static inline void reserved(void*) { return; }
 
-void (*syscall_table[]) (void) = {
+void (*syscall_table[])(void*) = {
   resched,
   reserved
 };
@@ -32,7 +32,7 @@ void handle_syscall(uint64_t* frame) {
     (void)frame;
     int32_t table_size = sizeof(syscall_table) / sizeof(uint32_t (*)(void));
     if (signum < table_size)
-        syscall_table[signum]();
+        syscall_table[signum](&handle_syscall);
 }
 
 void s_handle_exception(uint64_t* frame) {
