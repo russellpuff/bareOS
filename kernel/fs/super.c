@@ -4,7 +4,10 @@
 #include <mm/malloc.h>
 
 #include <lib/bareio.h>
+/* TODO: put these somewhere better */
 fsystem_t* boot_fsd; /* Active fsd the system boots with. */
+drv_reg* reg_drives = NULL;
+mount_t* mounted = NULL;
 
 /* Initializes a blank filesystem and block device and writes it to its own super block * 
  * registers the new fs as a newly-discovered drive                                     */
@@ -15,11 +18,13 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
     temp_fsd.super.magic = FS_MAGIC;
     temp_fsd.super.version = FS_VERSION;
     temp_fsd.super.fat_head = FT_BIT;
+    temp_fsd.super.fat_size = FT_LEN;
     temp_fsd.super.intable_head = IN_BIT;
-    temp_fsd.super.intable_size = blocksize / sizeof(inode_t);
+    temp_fsd.super.intable_size = blocksize / sizeof(inode_t); /* times numblks, which is just 1 for a new fs */
     temp_fsd.super.root_inode = 0;
     temp_fsd.super.intable_blocks[0] = IN_BIT;
     temp_fsd.super.intable_numblks = 1;
+    temp_fsd.device = malloc(sizeof(bdev_t));
     if (mk_ramdisk(blocksize, numblocks, &temp_fsd) == -1) {
         // todo: handle error based on whether it's critical or not
         // critical = there's no other fs on the system and we're trying to create a blank one to run on
@@ -45,7 +50,7 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
     /* The 'mk_dir' will set up an empty root directory, then we discard the dirent_t  *
      * This function expects this to be the first inode created, thus root gets index  *
      * 0 by default, for now there's no reason to validate this                        */
-    dirent_t root = mk_dir("", temp_fsd.super.root_inode);
+    mk_dir("", temp_fsd.super.root_inode);
 
     /* Write super to the super block. It will be restored to the real fsd if this blank *
      * filesystem is mounted by the user                                                 */
@@ -82,6 +87,8 @@ byte discover_drive(byte* ramdisk) {
    
     drv_reg* new = malloc(sizeof(drv_reg));
     if (new == NULL) return 3; /* OOM */
+    new->next = NULL;
+
     if (reg_drives == NULL) {
         reg_drives = new;
         new->drive.id = 0;
@@ -96,8 +103,10 @@ byte discover_drive(byte* ramdisk) {
     new->drive.mounted = false;
 
     /* Read serialized bdev size info. */
-    memcpy(&new->drive, ramdisk + sizeof(fsuper_t), sizeof(bdev_t));
+    memset(&new->drive.bdev, 0, sizeof(bdev_t));
+    memcpy(&new->drive.bdev, ramdisk + sizeof(fsuper_t), sizeof(bdev_t));
     new->drive.bdev.ramdisk = ramdisk; /* Set ramdisk ptr */
+    new->drive.fsd = NULL;
 
     return 0;
 }
@@ -109,10 +118,16 @@ uint32_t mount_fs(drive_t* drive, const char* mount_point) {
     /* Allocate memory for the drive.fsd */
     drive->fsd = (fsystem_t*)malloc(sizeof(fsystem_t));
     if (drive->fsd == NULL) return 1; /* Not enough memory. */
+    drive->fsd->device = &drive->bdev;
+
+    fsystem_t* old_fsd = boot_fsd;
+    boot_fsd = drive->fsd; /* temp while functions still only use this */
 
     /* Copy in super from the super block. */
     read_bdev(SB_BIT, 0, &drive->fsd->super, sizeof(fsuper_t));
     if (drive->fsd->super.magic != FS_MAGIC || drive->fsd->super.version != FS_VERSION) { free(drive->fsd); return 2; } /* Filesystem mismatch */
+
+    boot_fsd = old_fsd;
 
     /* Init oft */
     for (byte i = 0; i < OFT_MAX; ++i) {
@@ -125,27 +140,30 @@ uint32_t mount_fs(drive_t* drive, const char* mount_point) {
         memset(&drive->fsd->oft[i].inode, 0, sizeof(inode_t));
     }
 
-    /* Set fsd ref to bdev. */
-    drive->fsd->device = &drive->bdev;
-
     /* Add to mounted list */
     /* malloc space for the entry*/
-    mount_t mnt = malloc(sizeof(mount_t));
-    if (mnt == NULL) return 1;
+    mount_t* mnt = (mount_t*)malloc(sizeof(mount_t));
+    if ((byte*)mnt == NULL) return 1;
 
     /* copy in mount point, TODO: validate this somewhere */
     uint32_t n = strlen(mount_point);
-    memcpy(mnt.mp, mount_point, n);
-    mnt.mp[n] = '\0';
+    mnt->mp = malloc(n + 1);
+    if (mnt->mp == NULL) return 1;
+    memcpy(mnt->mp, mount_point, n);
+    mnt->mp[n] = '\0';
+
+    mnt->fsd = drive->fsd;
+    mnt->next = NULL;
 
     if (mounted == NULL) mounted = mnt;
     else {
-        mount_t iter = mounted;
-        while (iter.next != NULL) iter = iter.next;
-        iter.next = mnt;
+        mount_t* iter = mounted;
+        while (iter->next != NULL) iter = iter->next;
+        iter->next = mnt;
     }
 
     drive->mounted = true;
+
     return 0;
 }
 

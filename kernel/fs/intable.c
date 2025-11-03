@@ -1,10 +1,10 @@
 #include <fs/fs.h>
 #include <lib/string.h>
 
-#define IN_PER_BLOCK (uint16_t)(boot_fsd->device.block_size / sizeof(inode_t))
+#define IN_PER_BLOCK (uint16_t)(boot_fsd->device->block_size / sizeof(inode_t))
 
 static inline byte* get_block(uint16_t index) {
-	return boot_fsd->device.ramdisk + (index * boot_fsd->device.block_size);
+	return boot_fsd->device->ramdisk + (index * boot_fsd->device->block_size);
 }
 
 /* 'in_find_free' walks the inode table through its secret FAT path known to *
@@ -12,7 +12,7 @@ static inline byte* get_block(uint16_t index) {
  * will try to allocate a new block for the table and then returns an index  */
 uint16_t in_find_free(void) {
 	for (byte blk_idx = 0; blk_idx < boot_fsd->super.intable_numblks; ++blk_idx) {
-		inode_t* block = get_block(boot_fsd->super.intable_blocks[blk_idx]);
+		inode_t* block = (inode_t*)get_block(boot_fsd->super.intable_blocks[blk_idx]);
 		for (byte in = 0; in < IN_PER_BLOCK; ++in) {
 			inode_t* inode = &block[in];
 			if (inode->type == FREE) { /* A previously-freed or zeroed-out block should work here. */
@@ -29,8 +29,8 @@ uint16_t in_find_free(void) {
 		bm_set(blk_idx);
 		fat_set(blk_idx, FAT_RSVD); /* Mark as reserved in the FAT table to obfuscate contents. */
 		boot_fsd->super.intable_blocks[boot_fsd->super.intable_numblks++] = blk_idx;
-		inode_t* block = get_block(blk_idx);
-		memset((byte*)block, 0, boot_fsd->device.block_size); /* Zero whole block in case of leftover junk. */
+		inode_t* block = (inode_t*)get_block(blk_idx);
+		memset((byte*)block, 0, boot_fsd->device->block_size); /* Zero whole block in case of leftover junk. */
 		block->type = BUSY; /* Prevent theft. */
 		write_super();
 		return ((uint16_t)boot_fsd->super.intable_numblks - 1) * IN_PER_BLOCK;

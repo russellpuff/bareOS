@@ -35,7 +35,7 @@ void initialize(void) {
 	// mount the lone ramdisk and set it as the boot_fsd
 	// no point in bothering with any more than that until we can persist the disk
 	mkfs(BDEV_BLOCK_SIZE, BDEV_NUM_BLOCKS);
-	mount_fs(reg_drives->drive);
+	mount_fs(&reg_drives->drive, "/");
 	boot_fsd = reg_drives->drive.fsd;
 
 	//generic_importer(imp);

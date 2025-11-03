@@ -103,14 +103,14 @@ typedef struct {
  * a drive becomes available for mount                                                     */
 typedef struct drv_reg {
 	drive_t drive;
-	drv_reg* next;
+	struct drv_reg* next;
 } drv_reg;
 
 /* 'mount_t' is a simple linked list of actively mounted drives that exposes their fsd and mount point (mp) */
-typedef struct mount {
+typedef struct mount_t {
 	fsystem_t* fsd;
-	const char* mp;
-	mount_t* next;
+	char* mp;
+	struct mount_t* next;
 } mount_t;
 
 #endif

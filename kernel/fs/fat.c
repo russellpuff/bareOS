@@ -4,8 +4,8 @@
  * after the current index. Or a status code if the     *
  * block is reserved or free.                           */
 int16_t fat_get(int16_t i) {
-	if (i > boot_fsd->device.num_blocks - 1 || i < 0) return FAT_BAD;
-	byte* base = boot_fsd->device.ramdisk + (boot_fsd->super.fat_head * boot_fsd->device.block_size);
+	if (i > boot_fsd->device->num_blocks - 1 || i < 0) return FAT_BAD;
+	byte* base = boot_fsd->device->ramdisk + (boot_fsd->super.fat_head * boot_fsd->device->block_size);
 	int16_t* fat = (int16_t*)base;
 	return fat[i];
 }
@@ -14,9 +14,9 @@ int16_t fat_get(int16_t i) {
  * block index. On a success, it returns the value     *
  * written to the table entry.                         */
 int16_t fat_set(int16_t i, int16_t v) {
-	if (i > boot_fsd->device.num_blocks - 1 || i < 0
-		|| v > boot_fsd->device.num_blocks - 1) return FAT_BAD;
-	byte* base = boot_fsd->device.ramdisk + (boot_fsd->super.fat_head * boot_fsd->device.block_size);
+	if (i > boot_fsd->device->num_blocks - 1 || i < 0
+		|| v > boot_fsd->device->num_blocks - 1) return FAT_BAD;
+	byte* base = boot_fsd->device->ramdisk + (boot_fsd->super.fat_head * boot_fsd->device->block_size);
 	int16_t* fat = (int16_t*)base;
 	fat[i] = v;
 	return v;

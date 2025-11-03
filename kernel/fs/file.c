@@ -1,117 +1,32 @@
 #include <fs/fs.h>
+#include <mm/malloc.h>
 #include <lib/string.h>
 
-/*  Search for 'filename' in the root directory.  If the  *
- *  file exists,  returns an error.  Otherwise, create a  *
- *  new file  entry in the  root directory, a llocate an  *
- *  unused  block in the block  device and  assign it to  *
- *  the new file.                                         */
+/* Resolve the directory from the provided filepath, if invalid or the file  *
+ * already exists at that path, return an error. Otherwise create a new      *
+ * dirent for that directory for this file, create an inode, and assign the  *
+ * new file a single block as its head block.                                */
 int32_t create(char* filename) {
-	if (boot_fsd->root_dir.numentries == DIR_SIZE) return -1;
-
-	/* Try to find a slot. */
-	for (uint32_t i = 0; i < boot_fsd->root_dir.numentries; ++i) {
-		if (!strcmp(filename, boot_fsd->root_dir.entry[i].name))
-			return -1;
-	}
-	/* Use next available slot (no way to delete files so whatever). */
-	int32_t slot = boot_fsd->root_dir.numentries;
-
-	/* Find bit to use. */
-	uint32_t b = 0;
-	for (; b < boot_fsd->device.nblocks; ++b)
-		if (!bm_get(b)) break;
-	if (b == boot_fsd->device.nblocks) return -1;
-
-	/* Copy in filename. */
-	memset(boot_fsd->root_dir.entry[slot].name, '\0', (uint64_t)FILENAME_LEN);
-	byte ncopy = 0;
-	while (ncopy < (FILENAME_LEN - 1) && filename[ncopy] != '\0') ++ncopy;
-	memcpy(boot_fsd->root_dir.entry[slot].name, filename, ncopy);
-
-	for (byte n = 0; filename[n] && n < FILENAME_LEN - 1; ++n)
-		boot_fsd->root_dir.entry[slot].name[n] = filename[n];
-
-	boot_fsd->root_dir.entry[slot].inode_block = b;
-	/* Construct inode. */
-	inode_t inode;
-	inode.id = b;
-	inode.size = 0;
-	for (uint16_t i = 0; i < INODE_BLOCKS; ++i)
-		inode.blocks[i] = EMPTY;
-	if (write_bdev(b, 0, &inode, sizeof(inode_t)) == -1) return -1;
-
-	++boot_fsd->root_dir.numentries;
-	bm_set(b);
-
-	if (write_bdev(BM_BIT, 0, boot_fsd->freemask, boot_fsd->freemasksz) == -1) return -1; /* write back */
-	if (write_bdev(SB_BIT, 0, boot_fsd, sizeof(fsystem_t)) == -1) return -1; /* write super */
+	/* TEMP: No mechanism exists to resolve a path yet, until then, 
+	   assume the file is being created in the current (root) directory */
 	return 0;
 }
 
-/*  Search for a filename  in the directory, if the file doesn't exist  *
- *  or it is  already  open, return  an error.   Otherwise find a free  *
- *  slot in the open file table and initialize it to the corresponding  *
- *  inode in the root directory.                                        *
- *  'head' is initialized to the start of the file.                     */
+/* Resolve the directory from the provided filepath, if invalid or the  *
+ * file does not exist in the target directory, return an error.        *
+ * otherwise find a free slot in the fsd's open file table and init for *
+ * further operations on the file. Return an fd (index to oft)          */
 int32_t open(char* filename) {
-	/* Try to find the file by name. */
-	int16_t slot = -1;
-	for (int16_t i = 0; i < DIR_SIZE; ++i) {
-		if (!boot_fsd->root_dir.entry[i].name[0]) {
-			continue;
-		}
-		if (!strcmp(filename, boot_fsd->root_dir.entry[i].name)) {
-			slot = i;
-			break;
-		}
-	}
-	if (slot == -1) return -1;
-
-	/* Check if it's open. */
-	for (int16_t i = 0; i < NUM_FD; ++i)
-		if (oft[i].direntry == slot && oft[i].state == FSTATE_OPEN) return -1;
-
-	/* Look for available oft slot. */
-	int16_t fd = -1;
-	for (byte i = 0; i < NUM_FD; ++i) {
-		if (oft[i].state == FSTATE_CLOSED) {
-			fd = i;
-			break;
-		}
-	}
-	if (fd == -1) return -1;
-
-	/* Read inode. */
-	inode_t inode;
-	if (read_bdev(boot_fsd->root_dir.entry[slot].inode_block, 0, &inode, sizeof(inode_t)) == -1) return -1;
-
-	/* Populate oft slot with info. */
-	oft[fd].state = FSTATE_OPEN;
-	oft[fd].head = 0;
-	oft[fd].direntry = slot;
-	oft[fd].inode = inode;
-
+	/* TEMP: No mechanism exists to resolve a path yet, until then,
+	   assume the target file is in the current (root) directory    */
+	int32_t fd = 0;
 	return fd;
 }
 
-/*  Modify  the state  of the open  file table to  close  *
- *  the 'fd' index and write the inode back to the block  *
-	device.  If the  entry is already closed,  return an  *
- *  error.                                                */
+/* Takes an index into the oft and closes the file in the table. *
+ * Finishes up by writing the inode back to the inode table and  *
+ * any other cleanup work required.                              */
 int32_t close(int32_t fd) {
-	if (fd < 0 || fd >= NUM_FD) return -1;
-	if (oft[fd].state == FSTATE_CLOSED) return -1;
-
-	/* Write back inode. */
-	int16_t b = boot_fsd->root_dir.entry[oft[fd].direntry].inode_block;
-	if (write_bdev(b, 0, &oft[fd].inode, sizeof(inode_t)) == -1) return -1;
-
-	/* Clear the entry and set status to close. */
-	oft[fd].state = FSTATE_CLOSED;
-	oft[fd].head = 0;
-	oft[fd].direntry = EMPTY;
-
 	return 0;
 }
 
@@ -155,8 +70,11 @@ dirent_t mk_dir(char* name, uint16_t parent) {
 	if (dir.inode != ino.parent) {
 		/* Write dirent to parent if self isn't parent. */
 		inode_t p_ino = get_inode(parent);
-		inode_write(&p_ino, &dir, p_ino.size, sizeof(dir)); /* TODO: if this returns a value not equal to sizeof(dir), we're out of blocks. */
+		char* buff = malloc(sizeof(dir));
+		memcpy(buff, &dir, sizeof(dir)); /* seems dumb, maybe change one day? */
+		iwrite(&p_ino, buff, p_ino.size, sizeof(dir)); /* TODO: if this returns a value not equal to sizeof(dir), we're out of blocks. */
 		write_inode(&p_ino, parent);
+		free(buff);
 	}
 
 	return dir;

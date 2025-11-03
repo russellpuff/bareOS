@@ -1,6 +1,6 @@
 #include <fs/fs.h>
 
-static inline byte* bm_base(void) { return boot_fsd->device.ramdisk + ((uint32_t)BM_BIT * boot_fsd->device.block_size); }
+static inline byte* bm_base(void) { return boot_fsd->device->ramdisk + ((uint32_t)BM_BIT * boot_fsd->device->block_size); }
 
 /* Sets the block at index 'x' as used in the bitmask block. */
 void bm_set(uint32_t x) {
@@ -26,7 +26,7 @@ byte bm_get(uint32_t x) {
 /* Finds the next free block in the block device. */
 int32_t bm_findfree(void) {
 	byte* b = bm_base();
-	for (uint16_t i = 0; i < boot_fsd->device.block_size; ++i) {
+	for (uint16_t i = 0; i < boot_fsd->device->block_size; ++i) {
 		if (b[i] != 0xFF) {
 			for (byte j = 0; j < 8; ++j) {
 				if (((b[i] >> j) & 0x1) == 0x0) {

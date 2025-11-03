@@ -29,9 +29,9 @@ void bm_clear(uint32_t); /* Mark a block as unused    */
 byte bm_get(uint32_t); /* Get the state of a block  */
 int32_t bm_findfree(void); /* Find a free block. */
 
-bdev_t mkfs(uint32_t, uint32_t); /* Create a blank file system               */
+byte mkfs(uint32_t, uint32_t); /* Create a blank file system               */
 byte discover_drive(byte*); /* Try to discover a drive from a ramdisk in memory */
-uint32_t mount_fs(drive_t*);       /* Build the structures for the file system */
+uint32_t mount_fs(drive_t*, const char*);       /* Build the structures for the file system */
 uint32_t umount_fs(void);      /* Clear the structures for the file system */
 
 int16_t fat_get(int16_t);          /* Get the next FAT index at the current block. */
@@ -44,7 +44,7 @@ inode_t get_inode(uint16_t);          /* Get a live copy of the inode at index *
 int32_t create(char*);                    /* Create a file and save it to the block device */
 int32_t open(char*);                      /* Open a file                                   */
 int32_t close(int32_t);                   /* Close a file                                  */
-int32_t inode_write(inode_t*, char*, uint32_t, uint32_t); /* Write to an inode's blocks    */
+int32_t iwrite(inode_t*, char*, uint32_t, uint32_t); /* Write to an inode's blocks    */
 int32_t write(uint32_t, char*, uint32_t); /* Write to a file                               */
 int32_t read(uint32_t,char*,uint32_t);    /* Read from file                                */
 uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
@@ -52,7 +52,7 @@ dirent_t mk_dir(char*, uint16_t);         /* Create an empty directory          
 dirent_t resolve_dir(const char*);        /* Resolves the lowest directory from a path     */
 
 extern fsystem_t* boot_fsd;
-static drv_reg* reg_drives = NULL;
-static mount_t* mounted = NULL;
+extern drv_reg* reg_drives;
+extern mount_t* mounted;
 
 #endif

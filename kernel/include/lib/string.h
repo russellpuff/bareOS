@@ -4,8 +4,9 @@
 #include <lib/barelib.h>
 
 int16_t strcmp(const char*, const char*);
-uint32_t strlen(const char*);
-void* memset(void*, byte, int32_t);
+uint64_t strlen(const char*);
+void* memset(void*, byte, uint64_t);
 void* memcpy(void*, const void*, uint64_t);
+int16_t memcmp(const void*, const void*, uint64_t);
 
 #endif
