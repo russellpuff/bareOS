@@ -194,3 +194,20 @@ dirent_t mk_dir(char* name, uint16_t parent) {
 
 	return dir;
 }
+
+byte dir_open(uint16_t inode_idx, dir_iter_t* it) {
+    if (it == NULL) return 1;
+    inode_t inode = get_inode(inode_idx);
+    if (inode.type != DIR) return 1;
+    it->inode = inode;
+    it->in_idx = inode_idx;
+    it->offset = 0;
+    it->sz = inode.size;
+    return 0;
+}
+
+/* Not that useful for now */
+void dir_close(dir_iter_t* it) {
+    if (it == NULL) return;
+    memset(it, 0, sizeof(*it));
+}

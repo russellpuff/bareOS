@@ -16,6 +16,8 @@ typedef enum { SEEK_START, SEEK_END, SEEK_HEAD } SEEK_POS;
 /* FAT_BAD: returned when an invalid request was made     */
 typedef enum { FAT_FREE = 0, FAT_END = -1, FAT_RSVD = -2, FAT_BAD = -3 } FAT_FLAG;
 
+typedef struct { inode_t inode; uint32_t offset; uint32_t in_idx; uint32_t sz; } dir_iter_t;
+
 /* Function prototypes used in the file system */
 uint32_t mk_ramdisk(uint32_t, uint32_t, fsystem_t*);      /* Build the block device                      */
 uint32_t free_ramdisk(void);                              /* Free resources associated with block device */
@@ -51,8 +53,13 @@ uint32_t write(uint32_t, byte*, uint32_t); /* Write to a file                   
 uint32_t read(uint32_t, byte*, uint32_t);    /* Read from file                                */
 uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
 dirent_t mk_dir(char*, uint16_t);         /* Create an empty directory                     */
-dirent_t resolve_dir(const char*);        /* Resolves the lowest directory from a path     */
+byte resolve_dir(const char*);        /* Resolves the lowest directory from a path     */
 int16_t index_to_block(inode_t*, uint32_t);
+int16_t dir_next(dir_iter_t*, dirent_t*);
+uint16_t dir_collect(dirent_t, dirent_t*, uint16_t);
+byte dir_open(uint16_t, dir_iter_t*);
+void dir_close(dir_iter_t*);
+
 
 extern fsystem_t* boot_fsd;
 extern drv_reg* reg_drives;

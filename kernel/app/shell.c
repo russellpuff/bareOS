@@ -4,7 +4,7 @@
 #include <system/thread.h>
 #include <app/shell.h>
 
-#define PROMPT "bareOS$ "  /*  Prompt printed by the shell to the user  */
+#define PROMPT "bareOS"  /*  Prompt printed by the shell to the user  */
 /* Arbitrary limits. */
 #define LINE_SIZE 1024
 #define MAX_ARG0_SIZE 128
@@ -18,6 +18,8 @@ command_t builtin_commands[] = {
     //{ "reboot", (function_t)builtin_reboot },
     { "clear", (function_t)builtin_clear },
     { "ls", (function_t)builtin_ls },
+    { "cd", (function_t)builtin_cd },
+    { "mkdir", (function_t)builtin_mkdir },
     { NULL, NULL }
 };
 

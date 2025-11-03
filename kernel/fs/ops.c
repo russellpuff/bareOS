@@ -268,3 +268,29 @@ uint32_t iwrite(inode_t* inode, byte* buff, uint32_t offset, uint32_t len) {
 
     return (int32_t)written;
 }
+
+/* Finds the next non-free entry in a directory and puts it in 'out' *
+ * Returns 1 if found, 0 if not found, or -1 on an error             */
+int16_t dir_next(dir_iter_t* it, dirent_t* out) {
+    if (it == NULL) return -1;
+    while (it->offset + sizeof(dirent_t) <= it->sz) {
+        if (iread(&it->inode, (byte*)out, it->offset, sizeof(dirent_t)) != sizeof(dirent_t)) return -1;
+        it->offset += sizeof(dirent_t);
+        if (out->type == FREE) continue;
+        return 1;
+    }
+    return 0;
+}
+
+/* 'dir_collect' gathers all the valid children of a directory  *
+ * under the assumption that 'out' is an array of dirent_t for  *
+ * outputting the result up to size 'max'                       */
+uint16_t dir_collect(dirent_t dir, dirent_t* out, uint16_t max) {
+    dir_iter_t iter;
+    if (dir_open(dir.inode, &iter)) return 0;
+    dirent_t e;
+    uint16_t i = 0;
+    while(i < cap && &&dir_next(&it, &e) == 1) out[i++] = e;
+    dir_close(&it);
+    return i;
+}
