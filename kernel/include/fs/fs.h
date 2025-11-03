@@ -21,8 +21,9 @@ uint32_t mk_ramdisk(uint32_t, uint32_t, fsystem_t*);      /* Build the block dev
 uint32_t free_ramdisk(void);                              /* Free resources associated with block device */
 uint32_t read_bdev(uint32_t, uint32_t, void*, uint32_t);  /* Read a block from the block device          */
 uint32_t write_bdev(uint32_t, uint32_t, void*, uint32_t); /* Write a block to the block device           */
-uint32_t write_super(void);
-void bdev_zero_blocks(uint16_t, uint16_t);
+uint32_t write_super(void);                               /* Write the super in memory to the device     */
+void bdev_zero_blocks(uint16_t, uint16_t);                /* Zeroes out blocks at a start index          */
+int32_t allocate_block(void);                             /* Finds a free block and returns it           */
 
 void bm_set(uint32_t);   /* Mark a block as used      */
 void bm_clear(uint32_t); /* Mark a block as unused    */
@@ -44,12 +45,14 @@ inode_t get_inode(uint16_t);          /* Get a live copy of the inode at index *
 int32_t create(char*);                    /* Create a file and save it to the block device */
 int32_t open(char*);                      /* Open a file                                   */
 int32_t close(int32_t);                   /* Close a file                                  */
-int32_t iwrite(inode_t*, char*, uint32_t, uint32_t); /* Write to an inode's blocks    */
-int32_t write(uint32_t, char*, uint32_t); /* Write to a file                               */
-int32_t read(uint32_t,char*,uint32_t);    /* Read from file                                */
+uint32_t iread(inode_t*, byte*, uint32_t, uint32_t);
+uint32_t iwrite(inode_t*, byte*, uint32_t, uint32_t); /* Write to an inode's blocks         */
+uint32_t write(uint32_t, byte*, uint32_t); /* Write to a file                               */
+uint32_t read(uint32_t, byte*, uint32_t);    /* Read from file                                */
 uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
 dirent_t mk_dir(char*, uint16_t);         /* Create an empty directory                     */
 dirent_t resolve_dir(const char*);        /* Resolves the lowest directory from a path     */
+int16_t index_to_block(inode_t*, uint32_t);
 
 extern fsystem_t* boot_fsd;
 extern drv_reg* reg_drives;

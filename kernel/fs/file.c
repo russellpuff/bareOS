@@ -7,9 +7,73 @@
  * dirent for that directory for this file, create an inode, and assign the  *
  * new file a single block as its head block.                                */
 int32_t create(char* filename) {
-	/* TEMP: No mechanism exists to resolve a path yet, until then, 
-	   assume the file is being created in the current (root) directory */
-	return 0;
+    /* TEMP: No mechanism exists to resolve a path yet, until then,
+        assume the file is being created in the current (root) directory */
+    if (filename == NULL) return -1;
+    uint32_t name_len = strlen(filename);
+    if (name_len == 0 || name_len >= FILENAME_LEN) return -1;
+
+    uint16_t dir_index = boot_fsd->super.root_inode;
+    inode_t dir_inode = get_inode(dir_index);
+
+    uint32_t entries = dir_inode.size / sizeof(dirent_t);
+    uint32_t free_offset = 0xFFFFFFFF;
+    dirent_t entry;
+
+    for (uint32_t idx = 0; idx < entries; ++idx) {
+        if (iread(&dir_inode, (byte*)&entry, idx * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
+        if (entry.type == FREE) {
+            if (free_offset == 0xFFFFFFFF) free_offset = idx * sizeof(dirent_t);
+            continue;
+        }
+        if (!strcmp(entry.name, filename)) return -1;
+    }
+
+    uint32_t target_offset = (free_offset == 0xFFFFFFFF) ? dir_inode.size : free_offset;
+
+    uint16_t inode_index = in_find_free();
+    if (inode_index == IN_ERR) return -1;
+
+    inode_t node;
+    memset(&node, 0, sizeof(node));
+    node.type = FILE;
+    node.parent = dir_index;
+    node.size = 0;
+    node.modified = 0;
+
+    int16_t head = allocate_block();
+    if (head == FAT_BAD) {
+        inode_t reset;
+        memset(&reset, 0, sizeof(reset));
+        reset.type = FREE;
+        write_inode(&reset, inode_index);
+        return -1;
+    }
+    node.head = head;
+
+    write_inode(&node, inode_index);
+
+    dirent_t new_entry;
+    memset(&new_entry, 0, sizeof(new_entry));
+    new_entry.inode = inode_index;
+    new_entry.type = FILE;
+    memcpy(new_entry.name, filename, name_len);
+    new_entry.name[name_len] = '\0';
+
+    int32_t written = iwrite(&dir_inode, (byte*)&new_entry, target_offset, sizeof(new_entry));
+    if (written != sizeof(new_entry)) {
+        bm_clear(head);
+        fat_set(head, FAT_FREE);
+        inode_t reset;
+        memset(&reset, 0, sizeof(reset));
+        reset.type = FREE;
+        write_inode(&reset, inode_index);
+        return -1;
+    }
+
+    write_inode(&dir_inode, dir_index);
+
+    return 0;
 }
 
 /* Resolve the directory from the provided filepath, if invalid or the  *
@@ -17,17 +81,68 @@ int32_t create(char* filename) {
  * otherwise find a free slot in the fsd's open file table and init for *
  * further operations on the file. Return an fd (index to oft)          */
 int32_t open(char* filename) {
-	/* TEMP: No mechanism exists to resolve a path yet, until then,
-	   assume the target file is in the current (root) directory    */
-	int32_t fd = 0;
-	return fd;
+    /* TEMP: No mechanism exists to resolve a path yet, until then,
+        assume the target file is in the current (root) directory    */
+    if (filename == NULL) return -1;
+    uint64_t name_len = strlen(filename);
+    if (name_len == 0 || name_len >= FILENAME_LEN) return -1;
+
+    uint16_t dir_index = boot_fsd->super.root_inode; /* TODO: replace with resolved parent dir */
+    inode_t dir_inode = get_inode(dir_index);
+    uint32_t entries = dir_inode.size / sizeof(dirent_t);
+    dirent_t entry;
+    bool found = false;
+
+    for (uint32_t idx = 0; idx < entries; ++idx) {
+        if (iread(&dir_inode, (byte*)&entry, idx * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
+        if (entry.type == FREE) continue;
+        if (!strcmp(entry.name, filename)) { found = true; break; }
+    }
+
+    if (!found || entry.type != FILE) return -1;
+
+    int32_t fd = -1;
+    for (uint32_t i = 0; i < OFT_MAX; ++i) {
+        if (boot_fsd->oft[i].state == CLOSED) {
+            fd = (int32_t)i;
+            break;
+        }
+    }
+    if (fd == -1) return -1;
+
+    filetable_t* file = &boot_fsd->oft[fd];
+    file->state = OPEN;
+    file->mode = RDWR;
+    file->inode = get_inode(entry.inode);
+    file->in_index = entry.inode;
+    file->in_dirty = false;
+    file->curr_index = 0;
+    file->curr_block = (file->inode.size == 0) ? 0xFFFF : (uint16_t)file->inode.head;
+
+    return fd;
 }
 
 /* Takes an index into the oft and closes the file in the table. *
  * Finishes up by writing the inode back to the inode table and  *
  * any other cleanup work required.                              */
 int32_t close(int32_t fd) {
-	return 0;
+    if (fd < 0 || fd >= OFT_MAX) return -1;
+    filetable_t* file = &boot_fsd->oft[fd];
+    if (file->state != OPEN) return -1;
+
+    if (file->in_dirty) {
+        write_inode(&file->inode, file->in_index);
+        file->in_dirty = false;
+    }
+
+    file->state = CLOSED;
+    file->mode = RD_ONLY;
+    file->curr_block = 0xFFFF;
+    file->curr_index = 0;
+    file->in_index = IN_ERR;
+    memset(&file->inode, 0, sizeof(inode_t));
+
+    return 0;
 }
 
 dirent_t get_dot_entry(uint16_t inode, const char* name) {
@@ -70,7 +185,7 @@ dirent_t mk_dir(char* name, uint16_t parent) {
 	if (dir.inode != ino.parent) {
 		/* Write dirent to parent if self isn't parent. */
 		inode_t p_ino = get_inode(parent);
-		char* buff = malloc(sizeof(dir));
+		byte* buff = malloc(sizeof(dir));
 		memcpy(buff, &dir, sizeof(dir)); /* seems dumb, maybe change one day? */
 		iwrite(&p_ino, buff, p_ino.size, sizeof(dir)); /* TODO: if this returns a value not equal to sizeof(dir), we're out of blocks. */
 		write_inode(&p_ino, parent);

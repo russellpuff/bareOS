@@ -39,7 +39,7 @@ byte* run_to_nc(byte* ptr) {
 byte generic_importer(byte* ptr) {
 	byte status = 0;
 	const uint16_t BUFFER_SIZE = 1024;
-	char buffer[BUFFER_SIZE];
+	byte buffer[BUFFER_SIZE];
 	byte* bptr = (byte*)buffer;
 	memset(buffer, '\0', BUFFER_SIZE);
 	byte num_files = *(ptr++);
@@ -60,7 +60,7 @@ byte generic_importer(byte* ptr) {
 			break;
 		}
 		uint32_t fd = open(name);
-		write(fd, (char*)ptr, size);
+		write(fd, ptr, size);
 		close(fd);
 		ksprintf(bptr, "Importer wrote %s (%u bytes).\n", name, size);
 		bptr = run_to_nc(bptr);
@@ -74,7 +74,7 @@ byte generic_importer(byte* ptr) {
 	char n[] = "importer.log\0";
 	create(n);
 	uint32_t nfd = open(n);
-	write(nfd, buffer, (bptr - (byte*)buffer) + 1);
+	write(nfd, buffer, bptr - buffer + 1);
 	close(nfd);
     return 0;
 }

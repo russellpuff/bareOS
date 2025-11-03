@@ -16,15 +16,6 @@ uint32_t mk_ramdisk(uint32_t blocksize, uint32_t numblocks, fsystem_t* temp_fsd)
   return (temp_fsd->device->ramdisk == NULL ? -1 : 0);
 }
 
-/* Frees the memory used by the block device. */
-//uint32_t free_ramdisk(void) {
-//  if (boot_fsd->device->ramdisk == NULL) {
-//    return -1;
-//  }
-//  free(boot_fsd->device->ramdisk);
-//  return 0;
-//}
-
 /* Takes a block, offset within, output buffer, and length to read. Checks if the block is valid, *
  * then copies the data from the block to the output buffer.                                      */
 uint32_t read_bdev(uint32_t block, uint32_t offset, void* buf, uint32_t len) { 
@@ -59,4 +50,14 @@ void bdev_zero_blocks(uint16_t start, uint16_t count) {
 uint32_t write_super(void) {
     write_bdev(SB_BIT, 0, &boot_fsd->super, sizeof(fsuper_t));
     return 0;
+}
+
+/* Helper function allocates a block for the caller */
+int32_t allocate_block(void) {
+    int32_t blk = bm_findfree();
+    if (blk == -1) return FAT_BAD;
+    bm_set(blk);
+    fat_set(blk, FAT_END);
+    bdev_zero_blocks(blk, 1);
+    return blk;
 }
