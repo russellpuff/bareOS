@@ -139,7 +139,7 @@ dirent_t mk_dir(char* name, uint16_t parent) {
 	ino.head = bm_findfree();
 	bm_set(ino.head);
 	fat_set(ino.head, FAT_END);
-	bdev_zero_blocks(&boot_fsd->device, ino.head, 1);
+	bdev_zero_blocks(ino.head, 1);
 	ino.parent = parent;
 	ino.type = DIR;
 	ino.size = sizeof(dirent_t) * 2;

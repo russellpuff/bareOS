@@ -28,11 +28,18 @@ void initialize(void) {
 	init_threads();
 	init_queues();
 	init_heap();
-	byte* imp = malloc_loaded_range(); /* QEMU loader injects at top of freelist. So we steal it asap. */
-	bdev_t default = mkfs(BDEV_BLOCK_SIZE, BDEV_NUM_BLOCKS);
-	mount_fs(default);
-	generic_importer(imp);
-	free(imp); 
+	//byte* imp = malloc_loaded_range(); /* QEMU loader injects at top of freelist. So we steal it asap. */
+	
+	// temporary fs behavior:
+	// create new ramdisk on boot (no persistence between boots)
+	// mount the lone ramdisk and set it as the boot_fsd
+	// no point in bothering with any more than that until we can persist the disk
+	mkfs(BDEV_BLOCK_SIZE, BDEV_NUM_BLOCKS);
+	mount_fs(reg_drives->drive);
+	boot_fsd = reg_drives->drive.fsd;
+
+	//generic_importer(imp);
+	//free(imp); 
 }
 
 /* This function displays the welcome screen when the system and shell boot. */
@@ -46,24 +53,24 @@ void display_welcome(void) {
 		(unsigned long)&mem_start,
 		(unsigned long)(&mem_end - &mem_start));
 	
-	/* Janky way of detecting importer status on boot. */
-	char sentinel[] = "Importer finished with no errors.";
-	int16_t fd = open("importer.log");
-	uint16_t BUFFER_SIZE = 1024;
-	char buffer[BUFFER_SIZE];
-	memset(buffer, '\0', BUFFER_SIZE);
-	read(fd, buffer, BUFFER_SIZE);
-	close(fd);
-	byte ok = 0;
-	for (char *p = buffer; *p; ++p) { 
-		const char *s = p, *t = sentinel;
-		while (*t && *s == *t) { ++s; ++t; }
-		if (*t == '\0') { ok = 1; break; }  // matched full sentinel
-	}
-	const char *result = ok 
-		? "The importer finished successfully." 
-		: "The importer ran into an error.";
-	kprintf("%s Check importer.log for more details.\n\n", result);
+	///* Janky way of detecting importer status on boot. */
+	//char sentinel[] = "Importer finished with no errors.";
+	//int16_t fd = open("importer.log");
+	//uint16_t BUFFER_SIZE = 1024;
+	//char buffer[BUFFER_SIZE];
+	//memset(buffer, '\0', BUFFER_SIZE);
+	//read(fd, buffer, BUFFER_SIZE);
+	//close(fd);
+	//byte ok = 0;
+	//for (char *p = buffer; *p; ++p) { 
+	//	const char *s = p, *t = sentinel;
+	//	while (*t && *s == *t) { ++s; ++t; }
+	//	if (*t == '\0') { ok = 1; break; }  // matched full sentinel
+	//}
+	//const char *result = ok 
+	//	? "The importer finished successfully." 
+	//	: "The importer ran into an error.";
+	//kprintf("%s Check importer.log for more details.\n\n", result);
 }
 
 static void sys_idle() { while(1); }

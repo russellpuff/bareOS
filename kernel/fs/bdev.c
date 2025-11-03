@@ -13,7 +13,7 @@ uint32_t mk_ramdisk(uint32_t blocksize, uint32_t numblocks, fsystem_t* temp_fsd)
   temp_fsd->device.num_blocks = (numblocks == NULL ? BDEV_NUM_BLOCKS : numblocks);
   temp_fsd->device.ramdisk = malloc((uint64_t)temp_fsd->device.block_size * temp_fsd->device.num_blocks);
 
-  return (temp_fsd->device.ramdisk == (void*)-1 ? -1 : 0);
+  return (temp_fsd->device.ramdisk == NULL ? -1 : 0);
 }
 
 /* Frees the memory used by the block device. Still assumes the fsd has the only bdev. */
@@ -52,5 +52,10 @@ uint32_t write_bdev(uint32_t block, uint32_t offset, void* buf, uint32_t len) {
 /* Simple helper to zero out blocks starting at 'start' with length 'count' */
 void bdev_zero_blocks(uint16_t start, uint16_t count) {
     byte* ptr = boot_fsd->device.ramdisk + (start * boot_fsd->device.block_size);
-    memset(ptr, 0x0, boot_fsd->device.block_size * start);
+    memset(ptr, 0x0, boot_fsd->device.block_size * count);
+}
+
+/* Simple helper to write the in-memory super back to the hardcopy version on disk */
+void write_super(void) {
+    write_bdev(SB_BIT, 0, &boot_fsd.super, sizeof(fsuper_t));
 }

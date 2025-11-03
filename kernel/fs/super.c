@@ -3,11 +3,12 @@
 #include <lib/limits.h>
 #include <mm/malloc.h>
 
+#include <lib/bareio.h>
 fsystem_t* boot_fsd; /* Active fsd the system boots with. */
 
 /* Initializes a blank filesystem and block device and writes it to its own super block * 
  * registers the new fs as a newly-discovered drive                                     */
-bdev_t mkfs(uint32_t blocksize, uint32_t numblocks) {
+byte mkfs(uint32_t blocksize, uint32_t numblocks) {
     /* Set up a fresh fsd and blank block range to associate with it. */
     fsystem_t temp_fsd;
     boot_fsd = &temp_fsd; /* For functions that operate on the fsd, this avoids passing a reference to all of them. */
@@ -19,7 +20,13 @@ bdev_t mkfs(uint32_t blocksize, uint32_t numblocks) {
     temp_fsd.super.root_inode = 0;
     temp_fsd.super.intable_blocks[0] = IN_BIT;
     temp_fsd.super.intable_numblks = 1;
-    mk_ramdisk(blocksize, numblocks, &temp_fsd);
+    if (mk_ramdisk(blocksize, numblocks, &temp_fsd) == -1) {
+        // todo: handle error based on whether it's critical or not
+        // critical = there's no other fs on the system and we're trying to create a blank one to run on
+        // panic() doesn't exist on this branch
+        kprintf("couldn't malloc space for the ramdisk");
+        while (1);
+    }
 
     /* Clear the super, bitmask, and FAT tables and mark them as used.*/
     bdev_zero_blocks(SB_BIT, 1);
@@ -51,7 +58,20 @@ bdev_t mkfs(uint32_t blocksize, uint32_t numblocks) {
     write_bdev(SB_BIT, sizeof(fsuper_t), &temp, sizeof(bdev_t));
 
     boot_fsd = NULL;
-    return *temp_fsd.device;
+
+    byte status = discover_drive(temp_fsd.device->ramdisk);
+    if (status != 0) {
+        // todo: same error conditions as above
+        const char* str = "couldn't discover new fs:";
+        switch (status) {
+        case 1: kprintf("%s not readable", str); break;
+        case 2: kprintf("%s too many discovered drives", str); break; /* TODO: prompt user to destroy or preserve drive */
+        case 3: kprintf("%s out of memory", str); break;
+        }
+        while (1);
+    }
+    
+    return 0;
 }
 
 /* Since drives right now are stored in RAM as ramdisk, the only way to discover them is *
@@ -59,13 +79,20 @@ bdev_t mkfs(uint32_t blocksize, uint32_t numblocks) {
  * try to guess whether the pointer is valid. Only mounting it is definitive proof.      */
 byte discover_drive(byte* ramdisk) {
     if (*(uint32_t*)ramdisk != FS_MAGIC) return 1; /* Not a readable drive. */
-    drv_reg* iter = reg_drives;
-    while (iter->next != NULL) iter = iter->next;
-    if (iter->drive.id == 255) return 2; /* Too many discovered drives. */
+   
     drv_reg* new = malloc(sizeof(drv_reg));
     if (new == NULL) return 3; /* OOM */
-    iter->next = new;
-    new->drive.id = iter->drive.id + 1;
+    if (reg_drives == NULL) {
+        reg_drives = new;
+        new->drive.id = 0;
+    }
+    else {
+        drv_reg* iter = reg_drives;
+        while (iter->next != NULL) iter = iter->next;
+        if (iter->drive.id == 255) return 2; /* Too many discovered drives. */
+        iter->next = new;
+        new->drive.id = iter->drive.id + 1;
+    }
     new->drive.mounted = false;
 
     /* Read serialized bdev size info. */
@@ -78,7 +105,7 @@ byte discover_drive(byte* ramdisk) {
 /* Take a drive_t with an initialized block device and attach   *
  * it to a fresh fsd. Reads the super from the bdev super block *
  * and sets the device as mounted for system use.               */
-uint32_t mount_fs(drive_t* drive) {
+uint32_t mount_fs(drive_t* drive, const char* mount_point) {
     /* Allocate memory for the drive.fsd */
     drive->fsd = (fsystem_t*)malloc(sizeof(fsystem_t));
     if (drive->fsd == NULL) return 1; /* Not enough memory. */
@@ -101,19 +128,27 @@ uint32_t mount_fs(drive_t* drive) {
     /* Set fsd ref to bdev. */
     drive->fsd->device = &drive->bdev;
 
+    /* Add to mounted list */
+    /* malloc space for the entry*/
+    mount_t mnt = malloc(sizeof(mount_t));
+    if (mnt == NULL) return 1;
+
+    /* copy in mount point, TODO: validate this somewhere */
+    uint32_t n = strlen(mount_point);
+    memcpy(mnt.mp, mount_point, n);
+    mnt.mp[n] = '\0';
+
+    if (mounted == NULL) mounted = mnt;
+    else {
+        mount_t iter = mounted;
+        while (iter.next != NULL) iter = iter.next;
+        iter.next = mnt;
+    }
+
     drive->mounted = true;
     return 0;
 }
 
-
-/*  Write the current state of the file system to a block device and  *
- *  free the resources for the file system.                           */
 uint32_t umount_fs(void) {
-    //write_bs(BM_BIT, 0, fsd->freemask, fsd->freemasksz);     /*  Write the bitmask and super blocks to  */
-    //write_bs(SB_BIT, 0, fsd, sizeof(fsystem_t));             /*  their respective block device blocks   */
-    //
-    //free(fsd->freemask);                                     /*  Free memory used for the filesystem    */
-    //free((void*)fsd);                                        /*                                         */
-
     return 0;
 }

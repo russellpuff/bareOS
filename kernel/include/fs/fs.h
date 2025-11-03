@@ -49,6 +49,7 @@ int32_t write(uint32_t, char*, uint32_t); /* Write to a file                    
 int32_t read(uint32_t,char*,uint32_t);    /* Read from file                                */
 uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
 dirent_t mk_dir(char*, uint16_t);         /* Create an empty directory                     */
+dirent_t resolve_dir(const char*);        /* Resolves the lowest directory from a path     */
 
 extern fsystem_t* boot_fsd;
 static drv_reg* reg_drives = NULL;

@@ -142,7 +142,7 @@ if "debug" in COMMAND_LINE_TARGETS:
 
 def run_qemu(target, source, env):
     # This has to happen immediately prior to QEMU spinup so the helper can read the memmap.
-    load_flags = prepare_generic_loader(env)
+    load_flags = None #prepare_generic_loader(env)
     print(env['qflags'])
     if load_flags:
         env.Append(qflags=" " + load_flags)
