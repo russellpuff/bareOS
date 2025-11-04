@@ -1,23 +1,5 @@
 import os, shutil, re, subprocess
-from SCons.Script import GetOption
-
-# Disable out of date targets --------------------------------------------------------------------------
-
-try:
-    # Remove '' target if present
-    if "" in COMMAND_LINE_TARGETS:
-        print("[Info] '' target has been removed; ignoring it.")
-        COMMAND_LINE_TARGETS[:] = [t for t in COMMAND_LINE_TARGETS if t != ""]
-except Exception:
-    pass
-
-try:
-    # Disable 'build' target
-    if "build" in COMMAND_LINE_TARGETS:
-        print("[Warning] 'build' target is disabled. Use `scons run`.")
-        Exit(1)
-except Exception:
-    pass
+from SCons.Script import GetOption, COMMAND_LINE_TARGETS
 
 # QEMU Setup -------------------------------------------------------------------------------------------
 
@@ -32,10 +14,6 @@ options:
 description: SCons entry points.
 
 Commands:
-  build
-    usage: scons [build]
-    description: (Disabled) Relied on obsolete testutils.c.
-
   run
     usage: scons run [debug]
 
@@ -61,9 +39,9 @@ inc_dir   = os.path.join("kernel", "include")
 ld_file   = os.path.join("kernel", "kernel.ld")
 map_file  = File(os.path.join(build_dir, "kernel.map"))
 
-
+# Rare issue causes total build corruption after scons -c, fixed only by nuking everything. 
+# So just nuke by default on clean.
 def _safe_remove(path: str) -> None:
-    #Remove build artifacts while handling any cleanup errors gracefully.
     try:
         if os.path.isdir(path):
             print(f"scons: Removing build directory: {path}")
@@ -74,15 +52,18 @@ def _safe_remove(path: str) -> None:
     except OSError as exc:
         print(f"scons: Failed to remove {path}: {exc}")
 
-
-if GetOption("clean"):
+def _perform_clean():
     _safe_remove(build_dir)
     _safe_remove(".sconsign.dblite")
 
-PORT = 6999
-logfile = ARGUMENTS.get("logfile", "")
-logfile = f",logfile={logfile}" if logfile else ""
 
+if GetOption("clean"):
+    _perform_clean()
+
+if "debug" in COMMAND_LINE_TARGETS:
+    _perform_clean()
+
+PORT = 6999
 CC     = "-".join([arch, "gcc"])
 cflags = "-std=gnu2x -Wall -Werror -fno-builtin -nostdlib -nostdinc -march=rv64imac_zicsr -mabi=lp64 -mcmodel=medany -O0 -g "
 LD     = "-".join([arch, "ld"])
@@ -90,12 +71,12 @@ lflags = f"-nostdlib -Map {map_file} -T {ld_file} "
 AS     = "-".join([arch, "as"])
 aflags = "-march=rv64imac_zicsr -mabi=lp64 -g "
 QEMU   = "qemu-system-riscv64"
-qflags = f"-M virt -bios none -m 128M -chardev stdio,id=uart0{logfile} -serial chardev:uart0 -display none"
+qflags = f"-M virt -bios none -cpu rv64,sstc=false -m 128M -chardev stdio,id=uart0 -serial chardev:uart0 -display none"
 GDB    = "-".join([arch, "gdb"])
 
 # Generate version.h -----------------------------------------------------------------------------------
 
-header_path = os.path.join("kernel", "include", "app", "version.h")
+header_path = os.path.join("kernel", "include", "system", "version.h")
 try:
     rev = subprocess.check_output([
         "git", "rev-list", "--tags", "--max-count=1"

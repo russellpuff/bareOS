@@ -16,6 +16,7 @@ typedef struct _queue {
 
 extern queue_t queue_table[];
 extern queue_t ready_list;
+extern queue_t reap_list;
 
 /*  thread related prototypes  */
 int32_t enqueue_thread(queue_t*, uint32_t);

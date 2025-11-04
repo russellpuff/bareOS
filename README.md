@@ -6,6 +6,7 @@ bareOS is a small RISC-V operating system that began at Indiana University and n
 - 64-bit RISC-V kernel that runs under QEMU.
 - Preemptive threading and basic synchronization primitives.
 - Simple RAM-disk file system and a minimal shell.
+- Basic virtual memory support, user binaries can be imported and run and programs.
 
 ## Getting Started
 
@@ -21,14 +22,16 @@ sudo apt-get install -y --no-install-recommends \
 pip install scons
 ```
 
-The build scripts automatically locate an available RISC-V cross compiler, if you installed the unknown-elf tollchain earlier, then that will be used by default. If multiple toolchains are installed you can select one explicitly with `scons arch=<prefix>` (for example, `scons arch=riscv64-linux-gnu`).
+The build scripts automatically locate an available RISC-V cross compiler, if you installed the unknown-elf toolchain earlier, then that will be used by default. If multiple toolchains are installed you can select one explicitly with `scons arch=<prefix>` (for example, `scons arch=riscv64-linux-gnu`).
 
 ### Building and Running
 
 ```sh
 git clone git@github.com:russellpuff/bareOS.git
-cd bareOS
-mkdir load                    # optional: add files here to preload them into the ramdisk
+cd bareOS/user/
+scons build lib               # build user libraries
+scons build shell             # build the shell (mandatory)
+cd ..
 scons run                     # build and launch bareOS in QEMU
 ```
 

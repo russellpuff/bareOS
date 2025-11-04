@@ -3,7 +3,7 @@
 
 #include <system/semaphore.h>
 
-#define TTY_BUFFLEN 128
+#define TTY_BUFFLEN 512
 
 typedef struct {
   semaphore_t sem;           /* Semaphore used to lock the ring buffer while waiting for data */

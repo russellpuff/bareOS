@@ -4,17 +4,45 @@ Import("env")
 
 img_file      = "bareOS.elf"
 HEAD_DIR = Dir('load').abspath
+ROOT_DIR = Dir('#').abspath
+KERNEL_ROOT = Dir('#/kernel').abspath
+
+def _normalize(path: str) -> str:
+    # Return a normalized path relative to the repository root.
+    if not os.path.isabs(path):
+        path = os.path.join(ROOT_DIR, path)
+    return os.path.normpath(os.path.relpath(path, ROOT_DIR))
+
+BLACKLIST = {
+    _normalize(os.path.join("kernel", "lib", "io.c")),
+    _normalize(os.path.join("kernel", "include", "lib", "io.h")),
+}
+
+# TODO: scons -c will check for blacklisted files for no good reason, fix that
+def _is_blacklisted(node) -> bool:
+    rel_path = _normalize(node.srcnode().get_abspath())
+    if rel_path in BLACKLIST:
+        print(f"[Info] Skipping blacklisted file: {rel_path}")
+        return True
+    return False
 
 def error(code, msg):
     print(msg)
     Exit(code)
+
 # auto get src directories
 kernel_dirs = [
     d
-    for d in os.listdir("kernel")
-    if os.path.isdir(os.path.join("kernel", d)) and d != "include"
+    for d in os.listdir(KERNEL_ROOT)
+    if os.path.isdir(os.path.join(KERNEL_ROOT, d)) and d != "include"
 ]
-kernel_files  = [Glob(os.path.join("kernel", d, "*.[cs]")) for d in kernel_dirs]
+kernel_files = []
+for directory in kernel_dirs:
+    pattern = os.path.join("kernel", directory, "*.[cs]")
+    for node in Glob(pattern):
+        if not _is_blacklisted(node):
+            kernel_files.append(node)
+
 def do_gdb(target, source, env):
     gdb_file = img_file
     os.system(f'{env["GDB"]} -ex "file {gdb_file}" -ex "target remote :{env["port"]}"')
@@ -50,7 +78,8 @@ def prepare_generic_loader(env):
                     break
         if heap_addr is not None:
             print(f"[Info] Predicted heap start (mem_start): 0x{heap_addr:08x}")
-            START_ADDR += heap_addr
+            START_ADDR += 0x80200000 if 0x80200000 > heap_addr else heap_addr # adjust for kernel megapage
+            print(f"[Info] Generic importer start location: 0x{START_ADDR:08x}")
         else:
             print("[Warning] Could not locate mem_start in linker map; skipping file load.")
     except Exception as e:
@@ -72,16 +101,16 @@ def prepare_generic_loader(env):
     FILENAME_LEN = _const("FILENAME_LEN")
     DIR_SIZE = _const("DIR_SIZE")
     MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
-    HEADER_SIZE = FILENAME_LEN + 16
+    HEADER_SIZE = FILENAME_LEN + 4
 
-    def do_name_bytes(stem: str) -> bytes:
-        b = stem.encode('utf-8')
-        if len(stem) > FILENAME_LEN - 1: # account for null terminator fs needs
+    def do_name_bytes(filename: str) -> bytes:
+        b = filename.encode('utf-8')
+        if len(filename) > FILENAME_LEN - 1: # account for null terminator fs needs
             return None
         return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\0')
 
     def do_size_bytes(size: int) -> bytes:
-        return int(size).to_bytes(16, 'little')
+        return int(size).to_bytes(4, 'little')
 
     #Load user filess from /load, this is attached to qflags
     load_flags = ""
@@ -101,20 +130,19 @@ def prepare_generic_loader(env):
         total_bytes = 0
         valid_files = 0
 
-        for f in files:
+        for filename in files:
             if valid_files == DIR_SIZE:
                 break
-            stem = os.path.splitext(f)[0]
-            name_bytes = do_name_bytes(stem)
+            name_bytes = do_name_bytes(filename)
             if name_bytes is None:
                 continue
 
-            path = os.path.join(LOAD_DIR, f)
+            path = os.path.join(LOAD_DIR, filename)
             f_size = os.path.getsize(path)
             if f_size > MAX_FILE_SIZE:
                 continue
 
-            header_path = os.path.join(HEAD_DIR, stem + ".gih")
+            header_path = os.path.join(HEAD_DIR, f"{filename}.gih")
 
             # Force rewrite header.
             header = name_bytes + do_size_bytes(f_size)
@@ -127,7 +155,7 @@ def prepare_generic_loader(env):
             current += HEADER_SIZE
 
             # load file
-            load_flags += f"-device loader,file={path},addr=0x{current:08x} "
+            load_flags += f"-device loader,file={path},addr=0x{current:08x},force-raw=on "
             current += f_size
 
             total_bytes += HEADER_SIZE + f_size
@@ -149,6 +177,8 @@ def run_qemu(target, source, env):
         print(load_flags)
 
     args = [env['QEMU'], '-kernel', str(source[0])] + env['qflags'].split()
+    if "debug" not in COMMAND_LINE_TARGETS:
+        subprocess.run("clear", shell=True, check=True)
     return subprocess.call(args)
 
 run = env.Command(target="run_cmd", source=img_file, action=run_qemu)

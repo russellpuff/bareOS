@@ -4,7 +4,7 @@
 #include <system/syscall.h>
 #include <system/thread.h>
 
-static byte MUTEX_LOCK;
+static uint32_t MUTEX_LOCK;
 
 /* This function is to avoid a possible pitfall involving
    threads with their own priorities being ordered wrongly
@@ -56,7 +56,6 @@ int32_t free_sem(semaphore_t* sem) {
     }
     sem->state = S_FREE;
     release_mutex(&MUTEX_LOCK);
-    raise_syscall(RESCHED);
     return 0;
 }
 
@@ -77,7 +76,17 @@ int32_t wait_sem(semaphore_t* sem) {
 	thread_table[current_thread].state = TH_WAITING;
 	sem_enqueue(&sem->queue, current_thread);
 	release_mutex(&MUTEX_LOCK);
-	raise_syscall(RESCHED);
+	//
+	// Policy violation call 
+	// Reason for violation: pend_resched causes thread execution to erroneously continue without waiting
+	// Policy exception requested by: Robin
+	// Approved by: Robin
+	// Notes: This is a blocker that prevents the kernel from leaving alpha so long as this policy is violated
+	//
+	resched(&wait_sem); 
+	//
+	//
+	//
  	return 0;
 }
 

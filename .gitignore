@@ -4,6 +4,7 @@
 bin/
 obj/
 load/
+user/build/
 *.dblite
 *.img
 *.elf
@@ -11,4 +12,5 @@ load/
 *.sln
 *.vcxproj*
 .msfile
-kernel/include/app/version.h
+kernel/include/system/version.h
+!/user/*.sh

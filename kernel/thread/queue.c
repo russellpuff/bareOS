@@ -9,19 +9,21 @@
 
 queue_t queue_table[NTHREADS];   /*  Array of queue elements          */
 queue_t ready_list;              /*  Struct with the ready_list root  */
+queue_t reap_list;
 
 /* 'init_queues' sets all entries in the queue_table to initial values so they   *
  *  can be used safely later during OS operations.                               */
 void init_queues(void) {
-  for(byte i = 0; i < NTHREADS; ++i) {
+  for(uint32_t i = 0; i < NTHREADS; ++i) {
 	queue_table[i].key = -1;
 	queue_table[i].qnext = NULL;
 	queue_table[i].qprev = NULL;
   }
-  ready_list.key = 0;
+  ready_list.key = sleep_list.key = reap_list.key = 0;
   ready_list.qnext = ready_list.qprev = &ready_list;
-  sleep_list.key = 0;
   sleep_list.qnext = sleep_list.qprev = &sleep_list;
+  reap_list.qnext = reap_list.qprev = &reap_list;
+
   return;
 }
 
@@ -84,7 +86,7 @@ int32_t dequeue_thread(queue_t* queue) {
 		return -1;
 	queue_t* node = queue->qnext;
 	
-	byte threadid = 0;
+	uint32_t threadid = 0;
 	for(; threadid < NTHREADS; ++threadid)
 		if(&queue_table[threadid] == node) break;
 	if(threadid == NTHREADS) return -1;

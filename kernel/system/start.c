@@ -1,12 +1,14 @@
 #include <lib/barelib.h>
 #include <lib/bareio.h>
 #include <lib/string.h>
-#include <app/shell.h>
-#include <app/version.h>
+#include <lib/ecall.h>
+#include <system/version.h>
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/queue.h>
+#include <system/panic.h>
 #include <mm/malloc.h>
+#include <mm/vm.h>
 #include <device/tty.h>
 #include <fs/fs.h>
 #include <fs/importer.h>
@@ -21,10 +23,9 @@
  *  This function calls any initialization functions to set up
  *  devices and other systems.
  */
-void initialize(void) {
+static void initialize(void) {
 	init_tty();
 	init_uart();
-	init_interrupts();
 	init_threads();
 	init_queues();
 	init_heap();
@@ -43,15 +44,15 @@ void initialize(void) {
 }
 
 /* This function displays the welcome screen when the system and shell boot. */
-void display_welcome(void) {
+static void display_welcome(void) {
 	kprintf("Welcome to bareOS alpha%d-%d.%d.%d (qemu-system-riscv64)\n\n", VERSION_ALPHA, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 	kprintf("  Kernel information as of Who Knows When\n\n");
 	kprintf("  Kernel start: %x\n  Kernel size: %d\n  Globals start: %x\n  Heap/Stack start: %x\n  Free Memory Available: %d\n\n",
-		(unsigned long)&text_start,
-		(unsigned long)(&data_start - &text_start),
-		(unsigned long)&data_start,
-		(unsigned long)&mem_start,
-		(unsigned long)(&mem_end - &mem_start));
+		(uint64_t)&text_start,
+		(uint64_t)(&data_start - &text_start),
+		(uint64_t)&data_start,
+		(uint64_t)&mem_start,
+		(uint64_t)(&mem_end - &mem_start));
 	
 	///* Janky way of detecting importer status on boot. */
 	//char sentinel[] = "Importer finished with no errors.";
@@ -73,15 +74,19 @@ void display_welcome(void) {
 	//kprintf("%s Check importer.log for more details.\n\n", result);
 }
 
-static void sys_idle() { while(1); }
+static void sys_idle() { while (1); }
 
 static void root_thread(void) {
-    uint32_t idleTID = create_thread(&sys_idle, "", 0);
-    resume_thread(idleTID);
-    uint32_t sh = create_thread(&shell, "", 0);
-    resume_thread(sh);
-    join_thread(sh);
-    while(1);
+	display_welcome();
+	uint32_t idle_tid = create_thread(&sys_idle, "", 0, MODE_S);
+	resume_thread(idle_tid);
+	uint32_t reaper_tid = create_thread(&reaper, "", 0, MODE_S);
+	resume_thread(reaper_tid);
+	int32_t f = open("shell.elf");
+	if (f < 0)
+		panic("Critical error: no shell to run on boot.\n");
+	close(f);
+	ecall_spawn("shell", NULL);
 }
 
 /*
@@ -89,8 +94,9 @@ static void root_thread(void) {
  *  Used to initialize devices before starting steady state behavior
  */
 void supervisor_start(void) {
-  initialize();
-  display_welcome();
-  root_thread();
+	initialize();
+	uint32_t root_tid = create_thread(&root_thread, "", 0, MODE_S);
+	context_load(&thread_table[root_tid], root_tid);
+	while(1);
 }
 

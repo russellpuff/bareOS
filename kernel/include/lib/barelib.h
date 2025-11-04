@@ -13,8 +13,8 @@
  *  used by the kernel.
  */
 
-#define m_interrupt __attribute__ ((interrupt ("machine"))) void
-#define s_interrupt __attribute__ ((interrupt ("supervisor"))) void
+//#define m_interrupt __attribute__ ((interrupt ("machine"))) void
+//#define s_interrupt __attribute__ ((interrupt ("supervisor"))) void
 
 #define NULL 0x0
 #define va_copy(dst, src)       __builtin_va_copy(dst, src)    /*                                      */
@@ -43,5 +43,6 @@ extern byte bss_start;     /*  Shares the address of the first uninitialized glo
 extern byte bss_end;       /*  Shares the address directly after the last uninitialized global/static variable  */
 extern byte mem_start;     /*  Shares the address of the first heap/stack value                                 */
 extern byte mem_end;       /*  Shares the address directly after the last possible heap/stack value             */
+#define offsetof(T, m) ((uint64_t)&(((T*)0)->m))
 
 #endif

@@ -14,12 +14,11 @@ byte redirect_file(char* arg, char* filename) {
 /* builtin_cat takes a file name and attempts to print its contents. *
  * It just assumes the files is in the current directory right now.  */
 byte builtin_cat(char* arg) {
-    if (strlen(arg) <= 4 || arg[4] == '\0') { /* arg0 - "cat" w/ space */
+    if (strlen(arg) <= 4) { /* arg0 - "cat" w/ space */
         kprintf("Nothing to cat\n");
         return 0;
     }
-    arg += 4; /* wonky, maybe unsafe, hopes shell passed in good arg */
-
+    arg += 4; /* Jump past arg0. */
     int16_t fd = open(arg);
     if(fd == -1) {
         kprintf("%s - File not found.\n", arg);

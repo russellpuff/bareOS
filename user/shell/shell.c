@@ -1,9 +1,7 @@
-#include <lib/bareio.h>
-#include <lib/barelib.h>
+#include <lib/io.h>
 #include <lib/string.h>
-#include <system/thread.h>
-#include <app/shell.h>
-#include <fs/format.h>
+#include <lib/ecall.h>
+#include "shell.h"
 
 #define PROMPT "bareOS"  /*  Prompt printed by the shell to the user  */
 /* Arbitrary limits. */
@@ -16,7 +14,7 @@ dirent_t cwd;
 command_t builtin_commands[] = {
     { "hello", (function_t)builtin_hello },
     { "echo", (function_t)builtin_echo },
-    { "cat", (function_t)builtin_cat },
+    //{ "cat", (function_t)builtin_cat },
     { "shutdown", (function_t)builtin_shutdown },
     //{ "reboot", (function_t)builtin_reboot },
     { "clear", (function_t)builtin_clear },
@@ -27,7 +25,7 @@ command_t builtin_commands[] = {
 };
 
 function_t get_command(const char* name) {
-    for(byte i = 0; builtin_commands[i].name != NULL; ++i) {
+    for(uint32_t i = 0; builtin_commands[i].name != NULL; ++i) {
         if(!strcmp(name, builtin_commands[i].name)) {
             return builtin_commands[i].func;
         }
@@ -39,12 +37,12 @@ function_t get_command(const char* name) {
  * 'shell' loops forever, prompting the user for input, then calling a function based
  * on the text read in from the user.
  */
-byte shell(char* arg) {
+int main(void) {
     byte last_retval = 0;
     while (1) {
-        kprintf("&x%s&0", PROMPT);
+        printf("[%u] &x%s&0", last_retval, PROMPT);
         char line[LINE_SIZE];
-        uint32_t chars_read = get_line(line, LINE_SIZE);
+        gets(line, LINE_SIZE);
 
         /* Extract first argument (program name). */
         char arg0[MAX_ARG0_SIZE + 1]; /* factor in null character */
@@ -62,23 +60,18 @@ byte shell(char* arg) {
         char* p_ptr = prompt;
         while (*l_ptr != '\0') {
             if (*l_ptr == '$' && *(l_ptr + 1) == '?') {
-                ksprintf((byte*)p_ptr, "%u", last_retval);
+                sprintf((byte*)p_ptr, "%u", last_retval);
                 p_ptr += chSz;
                 l_ptr += 2;
             }
             else *p_ptr++ = *l_ptr++;
         }
         *p_ptr = '\0';
+        //uint64_t prompt_len = (uint64_t)(p_ptr - prompt + 1);
 
-        /* Try to run a built-in program. In the future, try calling a user-installed program too. */
         function_t func = get_command(arg0);
-        if(func) {
-            uint32_t fid = create_thread(func, prompt, chars_read);
-            resume_thread(fid);
-            last_retval = join_thread(fid);
-        } else {
-            kprintf("%s: command not found\n", arg0);
-        }
+        if(func) { last_retval = func(prompt); } 
+        else { last_retval = ecall_spawn(arg0, prompt); }
     }
     return 0;
 }

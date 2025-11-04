@@ -19,8 +19,8 @@ int32_t free_sem(semaphore_t*);
 int32_t wait_sem(semaphore_t*);
 int32_t post_sem(semaphore_t*);
 
-void create_mutex(byte*);
-void lock_mutex(byte*);
-void release_mutex(byte*);
+void create_mutex(uint32_t*);
+void lock_mutex(uint32_t*);
+void release_mutex(uint32_t*);
 
 #endif

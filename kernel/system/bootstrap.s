@@ -8,6 +8,14 @@
 	.file "bootstrap.s"
 	.equ _mstatus_init,       0x880
 
+.section .bss
+.align 7
+.globl m_trap_stack
+m_trap_stack:
+        .skip 1024
+.globl m_trap_stack_top
+m_trap_stack_top:
+
 .section .text.entry
 .globl _start
 _start:
@@ -17,17 +25,22 @@ _start:
 	la t1, _mstatus_init         # --
 	or t0, t0, t1                #  |    Enable interrupts and set running state to Supervisor mode
 	csrw mstatus, t0             # --
-	li t0, 0x222
+	li t0, 0x202
 	csrs mideleg, t0
 
 	la t0, __m_trap_vector       # --
 	addi t0, t0, 0x1             #  |    Set exception and interrupt vector to the '__traps' label
 	csrw mtvec, t0               # --
 
+	li t0, 0xB300			     # -.
+	csrs medeleg, t0			 # -'    Delegate page faults and ecall to supervisor
+
 	la gp, _kmap_global_ptr      # --
-	la sp, _kmap_kstack_top      #  |    Set initial stack pointer, global pointer,
-	la t0, supervisor_start      #  |    and system entry function
-	csrw mepc, t0                # --
+    la sp, _kmap_kstack_top      #  |    Set initial stack pointer, global pointer,
+    la t0, m_trap_stack_top      #  |    Provide stack space for machine-mode traps
+    csrw mscratch, t0            #  |    and system entry function
+    la t0, supervisor_start      #  |    
+    csrw mepc, t0                # --
 
 	li t0, 0x0f0f                # --
 	li t1, 0x20000000            #  |
@@ -43,6 +56,6 @@ _start:
 	la ra, idle                  # -.    Set the return point for the kernel to idle
 	mret                         # -'    Return to Supervisor mode at 'initialize'
 
-idle:                                # --
+idle:                            # --
 	wfi                          #  | Loop forever if not hart0
 	j idle                       # --

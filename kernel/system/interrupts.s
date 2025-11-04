@@ -1,92 +1,236 @@
 /* --  Supervisor mode interrupt management functions -- */
 
+    .equ CLINT_MTIMECMP, 0x02004000
+    .equ STIP_BIT,       0x20
+    .equ TICK,           100000
+    .equ TF_SP,      8
+    .equ TF_A7,      240
+    .equ TF_SEPC,    248
+    .equ TF_SSTATUS, 256
+    .equ TF_QWORDS,  33
+    .equ TF_SIZE,    (TF_QWORDS*8)   # 264
+    .equ SCAUSE_ECALL_U, 8 # ecall from U mode
+    .equ SCAUSE_ECALL_S, 9 # ecall from S mode
+
+# god save my fucking soul
 .globl handle_trap
 handle_trap:
-	sd t0, -0x08(sp)
-	sd t1, -0x10(sp)
-	csrr t0, scause
-	andi t0, t0, 0x1FF
-	li t1, 0x5
-	bne t0, t1, 1f
-	ld t0, -0x08(sp)
-	ld t1, -0x10(sp)
-	j handle_clk
-1:
-	li t1, 0x1
-	bne t0, t1, 1f
-	ld t0, -0x08(sp)
-	ld t1, -0x10(sp)
-	csrci sip, 0x2
-	j handle_syscall
-1:
-	ld t0, -0x08(sp)
-	ld t1, -0x10(sp)
-	j handle_plic
+    mv    t0, sp
+    csrr  t1, sscratch
+    andi  t1, t1, -16
+    mv    sp, t1
+    addi  sp, sp, -TF_SIZE
+
+    sd ra,   0(sp)
+    sd t0, TF_SP(sp)
+    sd gp,  16(sp)
+    sd tp,  24(sp)
+    sd t0,  32(sp);  sd t1, 40(sp);  sd t2, 48(sp)
+    sd t3,  56(sp);  sd t4, 64(sp);  sd t5, 72(sp);  sd t6, 80(sp)
+    sd s0,  88(sp);  sd s1, 96(sp);  sd s2, 104(sp); sd s3, 112(sp)
+    sd s4, 120(sp);  sd s5, 128(sp); sd s6, 136(sp); sd s7, 144(sp)
+    sd s8, 152(sp);  sd s9, 160(sp); sd s10,168(sp); sd s11,176(sp)
+    sd a0, 184(sp);  sd a1, 192(sp); sd a2, 200(sp); sd a3, 208(sp)
+    sd a4, 216(sp);  sd a5, 224(sp); sd a6, 232(sp); sd a7, 240(sp)
+
+    csrr   t1, sstatus
+    csrr   t2, sepc
+    sd     t1, TF_SSTATUS(sp)
+    sd     t2, TF_SEPC(sp)
+
+    csrr   t0, scause
+    bltz   t0, .L_irq
+
+    li     t1, SCAUSE_ECALL_U
+    beq    t0, t1, .L_ecall
+    li     t1, SCAUSE_ECALL_S
+    beq    t0, t1, .L_ecall
+
+    mv     a0, sp
+    jal    s_handle_exception
+    j      .L_exit
+
+.L_irq:
+    andi   t0, t0, 0x1FF
+    li     t1, 1                  # SSIP
+    beq    t0, t1, .L_sys
+
+    jal    handle_plic            # SEIP
+    j      .L_exit
+
+.L_ecall:
+    mv     a0, sp
+    ld     a1, TF_A7(sp)
+    jal    handle_ecall
+    j      .L_exit
+
+.L_clk:
+    csrci sip, 0x2
+    jal   handle_clk
+    j     .L_exit
+
+.L_sys:
+    csrci  sip, 0x2
+    la    t2, signum
+    ld    t3, 0(t2)
+    li    t4, 1 # tick
+    beq   t3, t4, .L_clk
+
+    mv     a0, sp
+    jal    handle_syscall
+    j .L_exit
+
+.L_exit:
+    csrci sstatus, 0x2           # clear SIE to avoid nesting while exiting
+
+    ld   t2, TF_SEPC(sp)
+    ld   t1, TF_SSTATUS(sp)
+    csrw sepc, t2
+
+    li   t3, ~0x2
+    and  t1, t1, t3              # keep SPIE/SPP, ensure SIE=0
+    csrw sstatus, t1
+
+    # restore GPRs
+    ld ra,   0(sp);  ld gp,  16(sp);  ld tp,  24(sp)
+    ld t0,  32(sp);  ld t1,  40(sp);  ld t2,  48(sp)
+    ld t3,  56(sp);  ld t4,  64(sp);  ld t5,  72(sp);  ld t6,  80(sp)
+    ld s0,  88(sp);  ld s1,  96(sp);  ld s2, 104(sp);  ld s3, 112(sp)
+    ld s4, 120(sp);  ld s5, 128(sp);  ld s6, 136(sp);  ld s7, 144(sp)
+    ld s8, 152(sp);  ld s9, 160(sp);  ld s10,168(sp);  ld s11,176(sp)
+    ld a0, 184(sp);  ld a1, 192(sp);  ld a2, 200(sp);  ld a3, 208(sp)
+    ld a4, 216(sp);  ld a5, 224(sp);  ld a6, 232(sp);  ld a7, 240(sp)
+
+    ld t0, TF_SP(sp)
+    addi sp, sp, TF_SIZE
+    mv sp, t0            # restore interrupted sp
+    sret
 
 .globl init_interrupts
-init_interrupts:                # --
-	la t0, handle_trap      #  |  Setup the interrupt handler for any interrupts that are delegated
-	csrw stvec, t0          #  |  to Supervisor mode.  (Must be called from Supervisor mode)
-	csrsi sstatus, 0x2      #  |
-	ret                     # --
+init_interrupts:
+    la   t0, s_trap_top
+    ld   t0, 0(t0)
+    csrw sscratch, t0
+
+    la   t1, handle_trap
+    csrw stvec, t1 
+
+    li   t2, ((1<<1) | (1<<5) | (1<<9))   # SSIE | STIE | SEIE 
+    csrs sie, t2
+
+    li   t3, 0x2
+    csrs sstatus, t3
+    ret
 
 .globl acknowledge_interrupt
-acknowledge_interrupt:          # --
-	li a0, 0x20             #  |  Untrigger a Supervisor interrupt.  This is necessary for software
-	csrrc a0, sie, a0       #  |  timers since the STIP bit does not automatically clear.
-	ret                     # --
-
-.globl signum
-.align 4
-signum:
-	.dword 0
+acknowledge_interrupt:        # --
+	csrrc zero, sip, a0       #  |  Untrigger a Supervisor interrupt.  This is necessary for software
+    ret                       #  |  timers since the STIP bit does not automatically clear.
+                              # --
 	
 .globl raise_syscall
 raise_syscall:
 	la t0, signum
-	sd a0, 0(t0)
-	csrwi sip, 0x2
-	ret
+    sd a0, 0(t0)
+    li t1, 0x2
+    csrs sip, t1
+    ret
+
+.globl pend_resched
+pend_resched:
+    la   t0, signum
+    sd   a0, 0(t0)        
+    li   t1, 0x2
+    csrs sip, t1
+    ret
+
+.globl set_s_interrupt          
+set_s_interrupt:               
+	csrrs a0, sie, a0
+	ret 
 
 /* --  Machine mode interrupt management functions -- */
 
-.globl set_interrupt          # --
-set_interrupt:                #  |  Enables a class of interrupts to trigger the corresponding handler.
-	csrrs a0, mie, a0     #  |  Disabled through the general mstatus/sstatus bits.
-	ret                   # --
+.globl set_m_interrupt          # --
+set_m_interrupt:                #  |  Enables a class of interrupts to trigger the corresponding handler.
+	csrrs a0, mie, a0           #  |  Disabled through the general mstatus/sstatus bits.
+	ret                         # --
 
 /*
  * The '__m_trap_vector' label is a table of functions that handle various special interrupts
  * and exceptions generated by the hardware. The '__m_trap_vector' label is set through the 'mtvec'
  * register.  (see bootstrap.s)
 */
+
 __noop:	mret
+
+.global delegate_clk
+delegate_clk:
+    csrrw sp, mscratch, sp
+    la sp, m_trap_stack_top
+
+    addi sp, sp, -32
+    sd   t0,  0(sp)
+    sd   t1,  8(sp)
+    sd   t2, 16(sp)
+    sd   t3, 24(sp)
+
+    li   t0, CLINT_MTIMECMP
+    ld   t1, 0(t0)            
+    li   t3, TICK        
+    add  t1, t1, t3
+    sd   t1, 0(t0)
+
+    la t0, signum
+    la t1, 1 # TICK
+    sd t1, 0(t0)
+    li   t2, 0x2
+    csrs sip, t2
+
+    ld   t3, 24(sp)
+    ld   t2, 16(sp)
+    ld   t1,  8(sp)
+    ld   t0,  0(sp)
+    addi sp, sp, 32
+
+    csrrw sp, mscratch, sp
+    mret
+
+.global m_exception_trampoline
+m_exception_trampoline:
+    csrrw sp, mscratch, sp
+    la sp, m_trap_stack_top
+
+    j m_handle_exception
+
+    csrrw sp, mscratch, sp
+    mret
 
 .globl __m_trap_vector
 .align 8
-__m_trap_vector:            # Interrupt table index | Cause
-.org __m_trap_vector + 0*4  #-----------------------+---------------------------------------
- 	j handle_exception  #  0                    | SOFTWARE interrupt [User] or Exception
-.org __m_trap_vector + 1*4  #-----------------------+---------------------------------------
-	j __noop            #  1                    | SOFTWARE interrupt [Supervisor]
-.org __m_trap_vector + 2*4  #-----------------------+---------------------------------------
-	j __noop            #  2                    | ------ /reserved/
-.org __m_trap_vector + 3*4  #-----------------------+---------------------------------------
-	j __noop            #  3                    | SOFTWARE interrupt [Machine]
-.org __m_trap_vector + 4*4  #-----------------------+---------------------------------------
-	j __noop            #  4                    | TIMER interrupt    [User]
-.org __m_trap_vector + 5*4  #-----------------------+---------------------------------------
-	j __noop            #  5                    | TIMER interrupt    [Supervisor]
-.org __m_trap_vector + 6*4  #-----------------------+---------------------------------------
-	j __noop            #  6                    | ------ /reserved/
-.org __m_trap_vector + 7*4  #-----------------------+---------------------------------------
-	j delegate_clk      #  7                    | TIMER interrupt    [Machine]
-.org __m_trap_vector + 8*4  #-----------------------+---------------------------------------
-	j __noop            #  8                    | EXTERNAL interrupt [User]
-.org __m_trap_vector + 9*4  #-----------------------+---------------------------------------
-	j __noop            #  9                    | EXTERNAL interrupt [Supervisor]
-.org __m_trap_vector + 10*4 #-----------------------+---------------------------------------
-	j __noop            # 10                    | ----- /reserved/
-.org __m_trap_vector + 11*4 #-----------------------+---------------------------------------
-	j __noop            # 11                    | EXTERNAL interrupt [Machine]
-                            #-----------------------+---------------------------------------
+__m_trap_vector:             # Interrupt table index | Cause
+.org __m_trap_vector + 0*4   #-----------------------+---------------------------------------
+ 	j m_exception_trampoline #  0                    | SOFTWARE interrupt [User] or Exception
+.org __m_trap_vector + 1*4   #-----------------------+---------------------------------------
+	j __noop                 #  1                    | SOFTWARE interrupt [Supervisor]
+.org __m_trap_vector + 2*4   #-----------------------+---------------------------------------
+	j __noop                 #  2                    | ------ /reserved/
+.org __m_trap_vector + 3*4   #-----------------------+---------------------------------------
+	j __noop                 #  3                    | SOFTWARE interrupt [Machine]
+.org __m_trap_vector + 4*4   #-----------------------+---------------------------------------
+	j __noop                 #  4                    | TIMER interrupt    [User]
+.org __m_trap_vector + 5*4   #-----------------------+---------------------------------------
+	j __noop                 #  5                    | TIMER interrupt    [Supervisor]
+.org __m_trap_vector + 6*4   #-----------------------+---------------------------------------
+	j __noop                 #  6                    | ------ /reserved/
+.org __m_trap_vector + 7*4   #-----------------------+---------------------------------------
+	j delegate_clk           #  7                    | TIMER interrupt    [Machine]
+.org __m_trap_vector + 8*4   #-----------------------+---------------------------------------
+	j __noop                 #  8                    | EXTERNAL interrupt [User]
+.org __m_trap_vector + 9*4   #-----------------------+---------------------------------------
+	j __noop                 #  9                    | EXTERNAL interrupt [Supervisor]
+.org __m_trap_vector + 10*4  #-----------------------+---------------------------------------
+	j __noop                 # 10                    | ----- /reserved/
+.org __m_trap_vector + 11*4  #-----------------------+---------------------------------------
+	j __noop                 # 11                    | EXTERNAL interrupt [Machine]
+                             #-----------------------+---------------------------------------
