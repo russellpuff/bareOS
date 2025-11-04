@@ -3,6 +3,16 @@
 
 #include <lib/barelib.h>
 
+/* TEMPORARY */
+#define UART_DEV_NUM 0
+#define DISK_DEV_NUM 1
+
+/* Options for io ecall request */
+/* Maybe this should be in io.h but it's not included in the kernel... */
+typedef struct {
+    uint32_t length;
+} io_dev_opts;
+
 /* Enum assigns identifying numbers to different ecalls    *
  * This is based on common linux numbering but not exactly */
 typedef enum {
@@ -17,11 +27,11 @@ typedef enum {
     ECALL_EXIT  = 93   /* Exit a user process                   */
 } ecall_number;
 
-uint32_t ecall_open(uint32_t, char*);
-uint32_t ecall_close(uint32_t, char*);
-uint32_t ecall_read(uint32_t, char*, char*, uint32_t);
-uint32_t ecall_write(uint32_t, char*, char*, uint32_t);
-uint32_t ecall_spawn(char*, char*);
+uint64_t ecall_open(uint32_t, byte*);
+uint64_t ecall_close(uint32_t, byte*);
+uint64_t ecall_read(uint32_t, byte*, byte*);
+uint64_t ecall_write(uint32_t, byte*, byte*);
+uint64_t ecall_spawn(char*, char*);
 void ecall_pwoff(void);
 void ecall_rboot(void);
 

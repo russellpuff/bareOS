@@ -46,9 +46,3 @@ void krprintf(const char* format, ...) {
 void vkrprintf(const char* format, va_list ap) {
     printf_core(MODE_RAW, NULL, format, ap);
 }
-
-/* Takes a preformatted user string and dumps it into the tty. Only for use with print syscall. */
-void kuprintf(const char* format, uint32_t len) {
-    kprintf(format);
-    //for (int i = 0; i < len; ++i) printf_putc(*format++, MODE_REGULAR, NULL);
-}

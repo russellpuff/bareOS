@@ -9,7 +9,7 @@
 #define MAX_ARG0_SIZE 128
 #define DIGITS(n) ((n) < 10 ? 1 : ((n) < 100 ? 2 : 3)) /* Swift way of discerning the char size of retval. */
 
-dirent_t cwd;
+//dirent_t cwd;
 
 command_t builtin_commands[] = {
     { "hello", (function_t)builtin_hello },
@@ -18,9 +18,9 @@ command_t builtin_commands[] = {
     { "shutdown", (function_t)builtin_shutdown },
     //{ "reboot", (function_t)builtin_reboot },
     { "clear", (function_t)builtin_clear },
-    { "ls", (function_t)builtin_ls },
-    { "cd", (function_t)builtin_cd },
-    { "mkdir", (function_t)builtin_mkdir },
+    //{ "ls", (function_t)builtin_ls },
+    //{ "cd", (function_t)builtin_cd },
+    //{ "mkdir", (function_t)builtin_mkdir },
     { NULL, NULL }
 };
 

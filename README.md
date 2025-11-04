@@ -6,7 +6,7 @@ bareOS is a small RISC-V operating system that began at Indiana University and n
 - 64-bit RISC-V kernel that runs under QEMU.
 - Preemptive threading and basic synchronization primitives.
 - Simple RAM-disk file system and a minimal shell.
-- Basic virtual memory support, user binaries can be imported and run and programs.
+- Basic virtual memory support, user binaries can be imported and run as programs.
 
 ## Getting Started
 

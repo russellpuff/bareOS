@@ -48,7 +48,7 @@ static void cleanup_failed_thread(uint32_t tid) {
     thread_table[tid].stackptr = NULL;
 }
 
-int32_t exec_elf(const char* program_name) {
+int32_t exec(const char* program_name) {
     if (program_name == NULL) return -2;
 
     const char suffix[] = ".elf";
@@ -69,7 +69,7 @@ int32_t exec_elf(const char* program_name) {
         return -1;
     }
 
-    char* buffer = malloc(file_size);
+    byte* buffer = malloc(file_size);
     if (buffer == NULL) {
         close(fd);
         kprintf("%s: insufficient memory\n", program_name);

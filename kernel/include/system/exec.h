@@ -78,6 +78,6 @@ typedef struct {
 
 _Static_assert(sizeof(elf64_phdr) == 56, "elf64_phdr must be 56 bytes");
 
-int32_t exec_elf(const char*);
+int32_t exec(const char*);
 
 #endif

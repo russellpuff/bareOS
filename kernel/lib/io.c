@@ -5,7 +5,6 @@
 #include <lib/string.h>
 
 #define UPRINTF_BUFF_SIZE 1024
-#define UART_DEV_NUM 0
 
 byte* printf_putc(char c, byte mode, byte* ptr) {
     (void)mode;
@@ -20,8 +19,9 @@ void printf(const char* format, ...) {
     va_start(ap, format);
     printf_core(MODE_BUFFER, (byte*)buffer, format, ap);
     va_end(ap);
-    uint64_t n = strlen(buffer);
-    ecall_write(UART_DEV_NUM, NULL, buffer, n);
+    io_dev_opts req;
+    req.length = strlen(buffer);
+    ecall_write(UART_DEV_NUM, (byte*)&req, (byte*)buffer);
 }
 
 void sprintf(byte* buffer, const char* format, ...) {
@@ -33,5 +33,7 @@ void sprintf(byte* buffer, const char* format, ...) {
 
 int32_t gets(char* buffer, uint32_t length) {
     if (buffer == NULL || length == 0) return 0;
-    return (int32_t)ecall_read(UART_DEV_NUM, NULL, buffer, length);
+    io_dev_opts req;
+    req.length = length;
+    return (int32_t)ecall_read(UART_DEV_NUM, (byte*)&req, (byte*)buffer);
 }
