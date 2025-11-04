@@ -21,7 +21,6 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
     temp_fsd.super.fat_size = FT_LEN;
     temp_fsd.super.intable_head = IN_BIT;
     temp_fsd.super.intable_size = blocksize / sizeof(inode_t); /* times numblks, which is just 1 for a new fs */
-    temp_fsd.super.root_inode = 0;
     temp_fsd.super.intable_blocks[0] = IN_BIT;
     temp_fsd.super.intable_numblks = 1;
     temp_fsd.device = malloc(sizeof(bdev_t));
@@ -47,10 +46,10 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
     fat_set(IN_BIT, FAT_RSVD);
     for (uint16_t i = 0; i < FT_LEN; ++i) fat_set(FT_BIT + i, FAT_RSVD);
 
-    /* The 'mk_dir' will set up an empty root directory, then we discard the dirent_t  *
-     * This function expects this to be the first inode created, thus root gets index  *
-     * 0 by default, for now there's no reason to validate this                        */
-    mk_dir("", temp_fsd.super.root_inode);
+    /* Create root directory once everything is set up    *
+     * assumes this is the first dir created, thus parent *
+     * is self (inode 0)                                  */
+    temp_fsd.super.root_dirent = mk_dir("/", 0);
 
     /* Write super to the super block. It will be restored to the real fsd if this blank *
      * filesystem is mounted by the user                                                 */
@@ -133,8 +132,7 @@ uint32_t mount_fs(drive_t* drive, const char* mount_point) {
     for (byte i = 0; i < OFT_MAX; ++i) {
         drive->fsd->oft[i].state = CLOSED;
         drive->fsd->oft[i].mode = RD_ONLY;
-        drive->fsd->oft[i].curr_block = 0xFFFF;
-        drive->fsd->oft[i].curr_index = 0xFFFF;
+        drive->fsd->oft[i].curr_index = 0;
         drive->fsd->oft[i].in_index = IN_ERR;
         drive->fsd->oft[i].in_dirty = false;
         memset(&drive->fsd->oft[i].inode, 0, sizeof(inode_t));

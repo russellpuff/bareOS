@@ -59,14 +59,6 @@ uint32_t read(uint32_t fd, byte* buff, uint32_t len) {
     }
 
     file->curr_index += bytes_read;
-    if (file->curr_index >= file->inode.size) {
-        file->curr_block = 0xFFFF;
-    } else {
-        uint32_t new_block_idx = file->curr_index / block_size;
-        int16_t new_block = index_to_block(&file->inode, new_block_idx);
-        file->curr_block = (new_block < 0) ? 0xFFFF : (uint16_t)new_block;
-    }
-
     return (int32_t)bytes_read;
 }
 
@@ -91,16 +83,6 @@ uint32_t write(uint32_t fd, byte* buff, uint32_t len) {
     file->curr_index += written;
     file->in_dirty = true;
 
-    uint32_t block_size = boot_fsd->device->block_size;
-    if (file->curr_index >= file->inode.size) {
-        file->curr_block = 0xFFFF;
-    }
-    else {
-        uint32_t block_idx = file->curr_index / block_size;
-        int16_t block = index_to_block(&file->inode, block_idx);
-        file->curr_block = (block < 0) ? 0xFFFF : (uint16_t)block;
-    }
-
     return written;
 }
 
@@ -110,7 +92,7 @@ uint32_t write(uint32_t fd, byte* buff, uint32_t len) {
  *                                                                           *
  *  returns - 'fs_seek' should return the new position of the file head      */
 uint32_t seek(uint32_t fd, uint32_t offset, uint32_t relative) {
-    /* unimplemented */
+    /* TODO: implement seek using file->curr_index when future work requires it. */
     return 0;
 }
 
@@ -290,7 +272,7 @@ uint16_t dir_collect(dirent_t dir, dirent_t* out, uint16_t max) {
     if (dir_open(dir.inode, &iter)) return 0;
     dirent_t e;
     uint16_t i = 0;
-    while(i < cap && &&dir_next(&it, &e) == 1) out[i++] = e;
-    dir_close(&it);
+    while(i < max && dir_next(&iter, &e) == 1) out[i++] = e;
+    dir_close(&iter);
     return i;
 }

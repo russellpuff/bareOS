@@ -18,6 +18,8 @@ byte builtin_shutdown(char*);
 byte builtin_reboot(char*);
 byte builtin_clear(char*);
 byte builtin_ls(char*);
+byte builtin_cd(char*);
+byte builtin_mkdir(char*);
 function_t get_command(const char* name);
 
 extern command_t builtin_commands[];

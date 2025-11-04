@@ -3,12 +3,15 @@
 #include <lib/string.h>
 #include <system/thread.h>
 #include <app/shell.h>
+#include <fs/format.h>
 
 #define PROMPT "bareOS"  /*  Prompt printed by the shell to the user  */
 /* Arbitrary limits. */
 #define LINE_SIZE 1024
 #define MAX_ARG0_SIZE 128
 #define DIGITS(n) ((n) < 10 ? 1 : ((n) < 100 ? 2 : 3)) /* Swift way of discerning the char size of retval. */
+
+dirent_t cwd;
 
 command_t builtin_commands[] = {
     { "hello", (function_t)builtin_hello },

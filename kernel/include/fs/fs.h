@@ -53,7 +53,7 @@ uint32_t write(uint32_t, byte*, uint32_t); /* Write to a file                   
 uint32_t read(uint32_t, byte*, uint32_t);    /* Read from file                                */
 uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
 dirent_t mk_dir(char*, uint16_t);         /* Create an empty directory                     */
-byte resolve_dir(const char*);        /* Resolves the lowest directory from a path     */
+byte resolve_dir(const char*, const dirent_t*, dirent_t*); /* Resolves the lowest directory from a path     */
 int16_t index_to_block(inode_t*, uint32_t);
 int16_t dir_next(dir_iter_t*, dirent_t*);
 uint16_t dir_collect(dirent_t, dirent_t*, uint16_t);

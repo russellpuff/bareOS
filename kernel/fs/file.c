@@ -13,8 +13,7 @@ int32_t create(char* filename) {
     uint32_t name_len = strlen(filename);
     if (name_len == 0 || name_len >= FILENAME_LEN) return -1;
 
-    uint16_t dir_index = boot_fsd->super.root_inode;
-    inode_t dir_inode = get_inode(dir_index);
+    inode_t dir_inode = get_inode(boot_fsd->super.root_dirent.inode);
 
     uint32_t entries = dir_inode.size / sizeof(dirent_t);
     uint32_t free_offset = 0xFFFFFFFF;
@@ -37,7 +36,7 @@ int32_t create(char* filename) {
     inode_t node;
     memset(&node, 0, sizeof(node));
     node.type = FILE;
-    node.parent = dir_index;
+    node.parent = boot_fsd->super.root_dirent.inode;
     node.size = 0;
     node.modified = 0;
 
@@ -71,7 +70,7 @@ int32_t create(char* filename) {
         return -1;
     }
 
-    write_inode(&dir_inode, dir_index);
+    write_inode(&dir_inode, boot_fsd->super.root_dirent.inode);
 
     return 0;
 }
@@ -86,9 +85,9 @@ int32_t open(char* filename) {
     if (filename == NULL) return -1;
     uint64_t name_len = strlen(filename);
     if (name_len == 0 || name_len >= FILENAME_LEN) return -1;
-
-    uint16_t dir_index = boot_fsd->super.root_inode; /* TODO: replace with resolved parent dir */
-    inode_t dir_inode = get_inode(dir_index);
+    /* TODO: replace with resolved parent dir */
+    
+    inode_t dir_inode = get_inode(boot_fsd->super.root_dirent.inode);
     uint32_t entries = dir_inode.size / sizeof(dirent_t);
     dirent_t entry;
     bool found = false;
@@ -117,7 +116,6 @@ int32_t open(char* filename) {
     file->in_index = entry.inode;
     file->in_dirty = false;
     file->curr_index = 0;
-    file->curr_block = (file->inode.size == 0) ? 0xFFFF : (uint16_t)file->inode.head;
 
     return fd;
 }
@@ -137,7 +135,6 @@ int32_t close(int32_t fd) {
 
     file->state = CLOSED;
     file->mode = RD_ONLY;
-    file->curr_block = 0xFFFF;
     file->curr_index = 0;
     file->in_index = IN_ERR;
     memset(&file->inode, 0, sizeof(inode_t));

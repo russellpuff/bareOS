@@ -59,8 +59,7 @@ typedef struct {
 typedef struct {
 	FSTATE state;        /* The current state of the entry, either FSTATE OPEN or CLOSED        */
 	FMODE mode;          /* The current ops mode. Read, write, read/write, or append            */
-	uint16_t curr_block; /* The FAT index of the current block being looked at by ops           */
-	uint16_t curr_index; /* Which MDEV_BLOCK_SIZE-sized chunk in the file curr_block represents */
+	uint16_t curr_index; /* Current offset within the file                                      */
 	inode_t inode;       /* In-memory copy of the inode.                                        */
 	uint16_t in_index;   /* Index of file's inode                                               */
 	bool in_dirty;       /* A flag saying whether the inode copy has to be written back         */
@@ -76,7 +75,7 @@ typedef struct {
 	uint16_t fat_size;     /* The number of blocks the FAT table occupies               */
 	uint16_t intable_head; /* Index of the first inode table block                      */
 	uint16_t intable_size; /* Current capacity of innode table given allocated blocks   */
-	uint16_t root_inode;   /* Index in the inode table of the root directory inode      */
+	dirent_t root_dirent;  /* Index in the inode table of the root directory inode      */
 	uint16_t intable_blocks[MAX_INTABLE_BLOCKS]; /* FAT path of inode table blocks for O(1) lookup time */
 	byte intable_numblks;  /* Number of blocks ACTUALLY used by the inode table         */
 } fsuper_t;
