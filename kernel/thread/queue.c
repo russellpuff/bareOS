@@ -72,8 +72,8 @@ int32_t enqueue(queue_t* queue, uint32_t threadid, bool delta) {
 	node->qnext = curr;
 
 	if (delta && curr != queue)
-    	curr->key -= node->key;
-  	return 0;
+		curr->key -= node->key;
+	return 0;
 }
 
 /*  'dequeue_thread' takes a queue pointer associated with a queue "root" and removes the  *
@@ -103,7 +103,7 @@ int32_t dequeue_thread(queue_t* queue) {
 }
 
 /* 'detach_thread' removes a thread from a queue regardless of where in the queue
-    that thread actually is. Will fail if the thread isn't in a queue. */
+	that thread actually is. Will fail if the thread isn't in a queue. */
 int32_t detach_thread(uint32_t threadid, bool delta) {
 	if(threadid >= NTHREADS) return -1;
 	queue_t* node = &queue_table[threadid];

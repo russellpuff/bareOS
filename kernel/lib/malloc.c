@@ -57,7 +57,7 @@ void* malloc(uint64_t size) {
 	curr->state = M_USED;
 	curr->next = NULL; /* Maybe redundant? */
 
-    return (char*)curr + sizeof(alloc_t);
+	return (char*)curr + sizeof(alloc_t);
 }
 
 /*  Free the allocation at location 'addr'.  If the newly *

@@ -15,10 +15,10 @@ On a Debian/Ubuntu system the following commands install the required toolchain 
 
 ```sh
 sudo apt-get install -y --no-install-recommends \
-     qemu-system-riscv64 \
-     gcc-riscv64-unknown-elf \
-     gdb-multiarch
-     
+	 qemu-system-riscv64 \
+	 gcc-riscv64-unknown-elf \
+	 gdb-multiarch
+	 
 pip install scons
 ```
 

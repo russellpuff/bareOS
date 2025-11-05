@@ -41,22 +41,22 @@ semaphore_t create_sem(int32_t count) {
 
 /*  Marks a semaphore as free and release all waiting threads  */
 int32_t free_sem(semaphore_t* sem) {
-    lock_mutex(&MUTEX_LOCK);
-    if(sem->state == S_FREE) {
-        release_mutex(&MUTEX_LOCK);
-        return -1;
-    }
+	lock_mutex(&MUTEX_LOCK);
+	if(sem->state == S_FREE) {
+		release_mutex(&MUTEX_LOCK);
+		return -1;
+	}
 	if(sem->queue.qnext != NULL) {
 		while(sem->queue.qnext != &sem->queue) {
 			int32_t threadid = dequeue_thread(&sem->queue);
 			if(threadid >= 0) {
 				resume_thread(threadid);
-	        }
-	    }
-    }
-    sem->state = S_FREE;
-    release_mutex(&MUTEX_LOCK);
-    return 0;
+			}
+		}
+	}
+	sem->state = S_FREE;
+	release_mutex(&MUTEX_LOCK);
+	return 0;
 }
 
 /*  Decrements the given  semaphore if it is in use.  If  the semaphore  *
@@ -87,7 +87,7 @@ int32_t wait_sem(semaphore_t* sem) {
 	//
 	//
 	//
- 	return 0;
+	return 0;
 }
 
 /*  Increments the given semaphore if it is in use.  Resume the next  *
@@ -106,5 +106,5 @@ int32_t post_sem(semaphore_t* sem) {
 	} else {
 		release_mutex(&MUTEX_LOCK);
 	}
-  	return 0;
+	return 0;
 }

@@ -27,7 +27,7 @@
 #define UART_8BIT     0x03                 /*                                                   */
 #define UART_PARITY   0x08                 /*                                                   */
 #define UART_IDLE     0x20                 /*                                                   */
-                                           
+										   
 #define UART_RX_INTR  0x4                  /*  UART interrupt code for "received data ready"    */
 #define UART_TX_INTR  0x2                  /*  UART interrupt code for "transmit reg empty"     */
 #define UART_INT_MASK 0xE                  /*  Mask for extracting interrupt data from reg      */
@@ -36,11 +36,11 @@ volatile byte* uart;
 
 /* public wrapper, don't do this */
 void uart_wake_tx(void) {
-    set_uart_interrupt(1);
+	set_uart_interrupt(1);
 }
 
 void uart_write(const char* s) {
-    while(*s) uart_putc(*s++);
+	while(*s) uart_putc(*s++);
 }
 
 char uart_putc(char ch) {
@@ -51,14 +51,14 @@ char uart_putc(char ch) {
 char uart_getc(void) {
   char ch = tty_getc();                  /*  Fetch next char from TTY ring buffer      */
   if(ch == '\r') {
-    tty_putc('\r');
-    tty_putc('\n');
-    return '\n'; /* Replace CR with newline */
+	tty_putc('\r');
+	tty_putc('\n');
+	return '\n'; /* Replace CR with newline */
   } else if(ch == '\b' || ch == 0x7f) {
-    return '\b'; /* Don't put a backspace, caller handles processing this. */
+	return '\b'; /* Don't put a backspace, caller handles processing this. */
   } else {
-    tty_putc(ch);
-    return ch;
+	tty_putc(ch);
+	return ch;
   }
 }
 
@@ -66,9 +66,9 @@ char uart_getc(void) {
  *  It is NOT modifying the behavior of the OS level interrupt handling.  This will *
  *  not - for instance - disable timer interrupts, only UART TX interrupts          */
 void set_uart_interrupt(byte enabled) {
-    uart = (volatile byte*)PA_TO_KVA(UART0_CFG_REG); 
-    byte state = uart[UART0_INTR_REG];
-    uart[UART0_INTR_REG] = (enabled ? (state | UART_TX_ON) : (state & ~UART_TX_ON));  /*  Set the "write ready" interrupt on the UART  */
+	uart = (volatile byte*)PA_TO_KVA(UART0_CFG_REG); 
+	byte state = uart[UART0_INTR_REG];
+	uart[UART0_INTR_REG] = (enabled ? (state | UART_TX_ON) : (state & ~UART_TX_ON));  /*  Set the "write ready" interrupt on the UART  */
 }
 
 /*
@@ -76,28 +76,28 @@ void set_uart_interrupt(byte enabled) {
  *     (see '__traps' in bootstrap.s)
  */
 void uart_handler(void) {
-    byte code = uart[UART0_INT_STAT] & UART_INT_MASK;
-    if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
-      char c = uart[UART0_RW_REG];
+	byte code = uart[UART0_INT_STAT] & UART_INT_MASK;
+	if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
+	  char c = uart[UART0_RW_REG];
 
-      uint32_t tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
-      if (tty_in.count < TTY_BUFFLEN) {
-          tty_in.buffer[tail] = c;
-          tty_in.count++;
-          post_sem(&tty_in.sem);             /* Notify readers a char is available */
-      }
-    } else if(code == UART_TX_INTR) { /*  If interrupt was caused by UART awaiting char */
-        if (tty_out.count > 0) {
-            while (tty_out.count > 0 && (uart[UART0_STAT_REG] & UART_IDLE)) {
-                char c = tty_out.buffer[tty_out.head];
-                tty_out.head = (tty_out.head + 1) % TTY_BUFFLEN;
-                uart[UART0_RW_REG] = c;
-                post_sem(&tty_out.sem);
-                --tty_out.count;
-            }
-            if (tty_out.count == 0) set_uart_interrupt(0);
-        } else { set_uart_interrupt(0); }
-    }
+	  uint32_t tail = (tty_in.head + tty_in.count) % TTY_BUFFLEN;
+	  if (tty_in.count < TTY_BUFFLEN) {
+		  tty_in.buffer[tail] = c;
+		  tty_in.count++;
+		  post_sem(&tty_in.sem);             /* Notify readers a char is available */
+	  }
+	} else if(code == UART_TX_INTR) { /*  If interrupt was caused by UART awaiting char */
+		if (tty_out.count > 0) {
+			while (tty_out.count > 0 && (uart[UART0_STAT_REG] & UART_IDLE)) {
+				char c = tty_out.buffer[tty_out.head];
+				tty_out.head = (tty_out.head + 1) % TTY_BUFFLEN;
+				uart[UART0_RW_REG] = c;
+				post_sem(&tty_out.sem);
+				--tty_out.count;
+			}
+			if (tty_out.count == 0) set_uart_interrupt(0);
+		} else { set_uart_interrupt(0); }
+	}
 }
 
 /*

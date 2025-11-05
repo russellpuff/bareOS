@@ -6,8 +6,8 @@
 typedef byte (*function_t)(char*);
 
 typedef struct {
-    const char* name;
-    function_t func;
+	const char* name;
+	function_t func;
 } command_t;
 
 byte shell(char*);

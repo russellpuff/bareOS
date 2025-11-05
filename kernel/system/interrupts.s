@@ -1,148 +1,148 @@
 /* --  Supervisor mode interrupt management functions -- */
 
-    .equ CLINT_MTIMECMP, 0x02004000
-    .equ STIP_BIT,       0x20
-    .equ TICK,           100000
-    .equ TF_SP,      8
-    .equ TF_A7,      240
-    .equ TF_SEPC,    248
-    .equ TF_SSTATUS, 256
-    .equ TF_QWORDS,  33
-    .equ TF_SIZE,    (TF_QWORDS*8)   # 264
-    .equ SCAUSE_ECALL_U, 8 # ecall from U mode
-    .equ SCAUSE_ECALL_S, 9 # ecall from S mode
+	.equ CLINT_MTIMECMP, 0x02004000
+	.equ STIP_BIT,       0x20
+	.equ TICK,           100000
+	.equ TF_SP,      8
+	.equ TF_A7,      240
+	.equ TF_SEPC,    248
+	.equ TF_SSTATUS, 256
+	.equ TF_QWORDS,  33
+	.equ TF_SIZE,    (TF_QWORDS*8)   # 264
+	.equ SCAUSE_ECALL_U, 8 # ecall from U mode
+	.equ SCAUSE_ECALL_S, 9 # ecall from S mode
 
 # god save my fucking soul
 .globl handle_trap
 handle_trap:
-    mv    t0, sp
-    csrr  t1, sscratch
-    andi  t1, t1, -16
-    mv    sp, t1
-    addi  sp, sp, -TF_SIZE
+	mv    t0, sp
+	csrr  t1, sscratch
+	andi  t1, t1, -16
+	mv    sp, t1
+	addi  sp, sp, -TF_SIZE
 
-    sd ra,   0(sp)
-    sd t0, TF_SP(sp)
-    sd gp,  16(sp)
-    sd tp,  24(sp)
-    sd t0,  32(sp);  sd t1, 40(sp);  sd t2, 48(sp)
-    sd t3,  56(sp);  sd t4, 64(sp);  sd t5, 72(sp);  sd t6, 80(sp)
-    sd s0,  88(sp);  sd s1, 96(sp);  sd s2, 104(sp); sd s3, 112(sp)
-    sd s4, 120(sp);  sd s5, 128(sp); sd s6, 136(sp); sd s7, 144(sp)
-    sd s8, 152(sp);  sd s9, 160(sp); sd s10,168(sp); sd s11,176(sp)
-    sd a0, 184(sp);  sd a1, 192(sp); sd a2, 200(sp); sd a3, 208(sp)
-    sd a4, 216(sp);  sd a5, 224(sp); sd a6, 232(sp); sd a7, 240(sp)
+	sd ra,   0(sp)
+	sd t0, TF_SP(sp)
+	sd gp,  16(sp)
+	sd tp,  24(sp)
+	sd t0,  32(sp);  sd t1, 40(sp);  sd t2, 48(sp)
+	sd t3,  56(sp);  sd t4, 64(sp);  sd t5, 72(sp);  sd t6, 80(sp)
+	sd s0,  88(sp);  sd s1, 96(sp);  sd s2, 104(sp); sd s3, 112(sp)
+	sd s4, 120(sp);  sd s5, 128(sp); sd s6, 136(sp); sd s7, 144(sp)
+	sd s8, 152(sp);  sd s9, 160(sp); sd s10,168(sp); sd s11,176(sp)
+	sd a0, 184(sp);  sd a1, 192(sp); sd a2, 200(sp); sd a3, 208(sp)
+	sd a4, 216(sp);  sd a5, 224(sp); sd a6, 232(sp); sd a7, 240(sp)
 
-    csrr   t1, sstatus
-    csrr   t2, sepc
-    sd     t1, TF_SSTATUS(sp)
-    sd     t2, TF_SEPC(sp)
+	csrr   t1, sstatus
+	csrr   t2, sepc
+	sd     t1, TF_SSTATUS(sp)
+	sd     t2, TF_SEPC(sp)
 
-    csrr   t0, scause
-    bltz   t0, .L_irq
+	csrr   t0, scause
+	bltz   t0, .L_irq
 
-    li     t1, SCAUSE_ECALL_U
-    beq    t0, t1, .L_ecall
-    li     t1, SCAUSE_ECALL_S
-    beq    t0, t1, .L_ecall
+	li     t1, SCAUSE_ECALL_U
+	beq    t0, t1, .L_ecall
+	li     t1, SCAUSE_ECALL_S
+	beq    t0, t1, .L_ecall
 
-    mv     a0, sp
-    jal    s_handle_exception
-    j      .L_exit
+	mv     a0, sp
+	jal    s_handle_exception
+	j      .L_exit
 
 .L_irq:
-    andi   t0, t0, 0x1FF
-    li     t1, 1                  # SSIP
-    beq    t0, t1, .L_sys
+	andi   t0, t0, 0x1FF
+	li     t1, 1                  # SSIP
+	beq    t0, t1, .L_sys
 
-    jal    handle_plic            # SEIP
-    j      .L_exit
+	jal    handle_plic            # SEIP
+	j      .L_exit
 
 .L_ecall:
-    mv     a0, sp
-    ld     a1, TF_A7(sp)
-    jal    handle_ecall
-    j      .L_exit
+	mv     a0, sp
+	ld     a1, TF_A7(sp)
+	jal    handle_ecall
+	j      .L_exit
 
 .L_clk:
-    csrci sip, 0x2
-    jal   handle_clk
-    j     .L_exit
+	csrci sip, 0x2
+	jal   handle_clk
+	j     .L_exit
 
 .L_sys:
-    csrci  sip, 0x2
-    la    t2, signum
-    ld    t3, 0(t2)
-    li    t4, 1 # tick
-    beq   t3, t4, .L_clk
+	csrci  sip, 0x2
+	la    t2, signum
+	ld    t3, 0(t2)
+	li    t4, 1 # tick
+	beq   t3, t4, .L_clk
 
-    mv     a0, sp
-    jal    handle_syscall
-    j .L_exit
+	mv     a0, sp
+	jal    handle_syscall
+	j .L_exit
 
 .L_exit:
-    csrci sstatus, 0x2           # clear SIE to avoid nesting while exiting
+	csrci sstatus, 0x2           # clear SIE to avoid nesting while exiting
 
-    ld   t2, TF_SEPC(sp)
-    ld   t1, TF_SSTATUS(sp)
-    csrw sepc, t2
+	ld   t2, TF_SEPC(sp)
+	ld   t1, TF_SSTATUS(sp)
+	csrw sepc, t2
 
-    li   t3, ~0x2
-    and  t1, t1, t3              # keep SPIE/SPP, ensure SIE=0
-    csrw sstatus, t1
+	li   t3, ~0x2
+	and  t1, t1, t3              # keep SPIE/SPP, ensure SIE=0
+	csrw sstatus, t1
 
-    # restore GPRs
-    ld ra,   0(sp);  ld gp,  16(sp);  ld tp,  24(sp)
-    ld t0,  32(sp);  ld t1,  40(sp);  ld t2,  48(sp)
-    ld t3,  56(sp);  ld t4,  64(sp);  ld t5,  72(sp);  ld t6,  80(sp)
-    ld s0,  88(sp);  ld s1,  96(sp);  ld s2, 104(sp);  ld s3, 112(sp)
-    ld s4, 120(sp);  ld s5, 128(sp);  ld s6, 136(sp);  ld s7, 144(sp)
-    ld s8, 152(sp);  ld s9, 160(sp);  ld s10,168(sp);  ld s11,176(sp)
-    ld a0, 184(sp);  ld a1, 192(sp);  ld a2, 200(sp);  ld a3, 208(sp)
-    ld a4, 216(sp);  ld a5, 224(sp);  ld a6, 232(sp);  ld a7, 240(sp)
+	# restore GPRs
+	ld ra,   0(sp);  ld gp,  16(sp);  ld tp,  24(sp)
+	ld t0,  32(sp);  ld t1,  40(sp);  ld t2,  48(sp)
+	ld t3,  56(sp);  ld t4,  64(sp);  ld t5,  72(sp);  ld t6,  80(sp)
+	ld s0,  88(sp);  ld s1,  96(sp);  ld s2, 104(sp);  ld s3, 112(sp)
+	ld s4, 120(sp);  ld s5, 128(sp);  ld s6, 136(sp);  ld s7, 144(sp)
+	ld s8, 152(sp);  ld s9, 160(sp);  ld s10,168(sp);  ld s11,176(sp)
+	ld a0, 184(sp);  ld a1, 192(sp);  ld a2, 200(sp);  ld a3, 208(sp)
+	ld a4, 216(sp);  ld a5, 224(sp);  ld a6, 232(sp);  ld a7, 240(sp)
 
-    ld t0, TF_SP(sp)
-    addi sp, sp, TF_SIZE
-    mv sp, t0            # restore interrupted sp
-    sret
+	ld t0, TF_SP(sp)
+	addi sp, sp, TF_SIZE
+	mv sp, t0            # restore interrupted sp
+	sret
 
 .globl init_interrupts
 init_interrupts:
-    la   t0, s_trap_top
-    ld   t0, 0(t0)
-    csrw sscratch, t0
+	la   t0, s_trap_top
+	ld   t0, 0(t0)
+	csrw sscratch, t0
 
-    la   t1, handle_trap
-    csrw stvec, t1 
+	la   t1, handle_trap
+	csrw stvec, t1 
 
-    li   t2, ((1<<1) | (1<<5) | (1<<9))   # SSIE | STIE | SEIE 
-    csrs sie, t2
+	li   t2, ((1<<1) | (1<<5) | (1<<9))   # SSIE | STIE | SEIE 
+	csrs sie, t2
 
-    li   t3, 0x2
-    csrs sstatus, t3
-    ret
+	li   t3, 0x2
+	csrs sstatus, t3
+	ret
 
 .globl acknowledge_interrupt
 acknowledge_interrupt:        # --
 	csrrc zero, sip, a0       #  |  Untrigger a Supervisor interrupt.  This is necessary for software
-    ret                       #  |  timers since the STIP bit does not automatically clear.
-                              # --
+	ret                       #  |  timers since the STIP bit does not automatically clear.
+							  # --
 	
 .globl raise_syscall
 raise_syscall:
 	la t0, signum
-    sd a0, 0(t0)
-    li t1, 0x2
-    csrs sip, t1
-    ret
+	sd a0, 0(t0)
+	li t1, 0x2
+	csrs sip, t1
+	ret
 
 .globl pend_resched
 pend_resched:
-    la   t0, signum
-    sd   a0, 0(t0)        
-    li   t1, 0x2
-    csrs sip, t1
-    ret
+	la   t0, signum
+	sd   a0, 0(t0)        
+	li   t1, 0x2
+	csrs sip, t1
+	ret
 
 .globl set_s_interrupt          
 set_s_interrupt:               
@@ -166,51 +166,51 @@ __noop:	mret
 
 .global delegate_clk
 delegate_clk:
-    csrrw sp, mscratch, sp
-    la sp, m_trap_stack_top
+	csrrw sp, mscratch, sp
+	la sp, m_trap_stack_top
 
-    addi sp, sp, -32
-    sd   t0,  0(sp)
-    sd   t1,  8(sp)
-    sd   t2, 16(sp)
-    sd   t3, 24(sp)
+	addi sp, sp, -32
+	sd   t0,  0(sp)
+	sd   t1,  8(sp)
+	sd   t2, 16(sp)
+	sd   t3, 24(sp)
 
-    li   t0, CLINT_MTIMECMP
-    ld   t1, 0(t0)            
-    li   t3, TICK        
-    add  t1, t1, t3
-    sd   t1, 0(t0)
+	li   t0, CLINT_MTIMECMP
+	ld   t1, 0(t0)            
+	li   t3, TICK        
+	add  t1, t1, t3
+	sd   t1, 0(t0)
 
-    la t0, signum
-    la t1, 1 # TICK
-    sd t1, 0(t0)
-    li   t2, 0x2
-    csrs sip, t2
+	la t0, signum
+	la t1, 1 # TICK
+	sd t1, 0(t0)
+	li   t2, 0x2
+	csrs sip, t2
 
-    ld   t3, 24(sp)
-    ld   t2, 16(sp)
-    ld   t1,  8(sp)
-    ld   t0,  0(sp)
-    addi sp, sp, 32
+	ld   t3, 24(sp)
+	ld   t2, 16(sp)
+	ld   t1,  8(sp)
+	ld   t0,  0(sp)
+	addi sp, sp, 32
 
-    csrrw sp, mscratch, sp
-    mret
+	csrrw sp, mscratch, sp
+	mret
 
 .global m_exception_trampoline
 m_exception_trampoline:
-    csrrw sp, mscratch, sp
-    la sp, m_trap_stack_top
+	csrrw sp, mscratch, sp
+	la sp, m_trap_stack_top
 
-    j m_handle_exception
+	j m_handle_exception
 
-    csrrw sp, mscratch, sp
-    mret
+	csrrw sp, mscratch, sp
+	mret
 
 .globl __m_trap_vector
 .align 8
 __m_trap_vector:             # Interrupt table index | Cause
 .org __m_trap_vector + 0*4   #-----------------------+---------------------------------------
- 	j m_exception_trampoline #  0                    | SOFTWARE interrupt [User] or Exception
+	j m_exception_trampoline #  0                    | SOFTWARE interrupt [User] or Exception
 .org __m_trap_vector + 1*4   #-----------------------+---------------------------------------
 	j __noop                 #  1                    | SOFTWARE interrupt [Supervisor]
 .org __m_trap_vector + 2*4   #-----------------------+---------------------------------------
@@ -233,4 +233,4 @@ __m_trap_vector:             # Interrupt table index | Cause
 	j __noop                 # 10                    | ----- /reserved/
 .org __m_trap_vector + 11*4  #-----------------------+---------------------------------------
 	j __noop                 # 11                    | EXTERNAL interrupt [Machine]
-                             #-----------------------+---------------------------------------
+							 #-----------------------+---------------------------------------

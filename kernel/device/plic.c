@@ -20,9 +20,9 @@ void uart_handler(void);
  *  from the Platform Local Interrupt Controller [PLIC] (see bootstrap.s)
  */
 void init_plic(void) {
-    volatile uint32_t* const thresh = (volatile uint32_t*)PLIC_S_THRESH;
-    *thresh = 0;                          // allow all priorities
-    set_m_interrupt(PLIC_ENABLE);
+	volatile uint32_t* const thresh = (volatile uint32_t*)PLIC_S_THRESH;
+	*thresh = 0;                          // allow all priorities
+	set_m_interrupt(PLIC_ENABLE);
 }
 
 
@@ -31,9 +31,9 @@ void init_plic(void) {
  * event occurs.  (see '__traps' in bootstrap.s)
  */
 void handle_plic(void) {
-    volatile uint32_t* const claim = (volatile uint32_t*)PLIC_S_CLAIM;
-    uint32_t id = *claim;                 
-    if (id == 10) /* QEMU virt: UART0 is source ID 10 */
-        uart_handler();
-    *claim = id;
+	volatile uint32_t* const claim = (volatile uint32_t*)PLIC_S_CLAIM;
+	uint32_t id = *claim;                 
+	if (id == 10) /* QEMU virt: UART0 is source ID 10 */
+		uart_handler();
+	*claim = id;
 }

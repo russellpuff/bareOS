@@ -9,8 +9,8 @@
  */
 byte builtin_hello(char* arg) {
   if(strlen(arg) <= 6) {  /* arg0 - "hello" w/ space */
-    printf("Error - bad argument\n");
-    return 1;
+	printf("Error - bad argument\n");
+	return 1;
   }
   arg += 6;
   printf("Hello, %s!\n", arg);

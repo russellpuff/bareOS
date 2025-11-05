@@ -1,6 +1,6 @@
-    .globl _start
+	.globl _start
 _start:
-    call main
-    li a7, 93 # ECALL_EXIT
-    li a0, 0
-    ecall
+	call main
+	li a7, 93 # ECALL_EXIT
+	li a0, 0
+	ecall

@@ -15,8 +15,8 @@ fi
 
 for candidate in "${ARCHES[@]}"; do
   if command -v "${candidate}-gcc" >/dev/null 2>&1; then
-    CROSS_PREFIX="${candidate}"
-    break
+	CROSS_PREFIX="${candidate}"
+	break
   fi
 done
 

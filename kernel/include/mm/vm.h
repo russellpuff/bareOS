@@ -21,17 +21,17 @@ extern volatile byte MMU_ENABLED;
 typedef enum { ALLOC_4K, ALLOC_2M, ALLOC_PROC, ALLOC_IDLE } prequest;
 
 typedef struct {
-    uint64_t v : 1;      /* Valid bit - Page is valid for use                                      */
-    uint64_t r : 1;      /* Write bit - Page is writable                                           */
-    uint64_t w : 1;      /* Read bit - Page is readable                                            */
-    uint64_t x : 1;      /* Execute bit - Page can execute instructions                            */
-    uint64_t u : 1;      /* User bit - Page is accessible in user mode                             */
-    uint64_t g : 1;      /* Global bit - Page is accessible by all processes                       */
-    uint64_t a : 1;      /* Accessed bit - Page has been rwx since last cleared                    */
-    uint64_t d : 1;      /* Dirty bit - Page has been written to since last cleared                */
-    uint64_t _rsv2 : 2;  /* Reserved                                                               */
-    uint64_t ppn : 44;   /* Physical page number that this entry points to, or the next level page */
-    uint64_t _rsv1 : 10; /* Reserved                                                               */
+	uint64_t v : 1;      /* Valid bit - Page is valid for use                                      */
+	uint64_t r : 1;      /* Write bit - Page is writable                                           */
+	uint64_t w : 1;      /* Read bit - Page is readable                                            */
+	uint64_t x : 1;      /* Execute bit - Page can execute instructions                            */
+	uint64_t u : 1;      /* User bit - Page is accessible in user mode                             */
+	uint64_t g : 1;      /* Global bit - Page is accessible by all processes                       */
+	uint64_t a : 1;      /* Accessed bit - Page has been rwx since last cleared                    */
+	uint64_t d : 1;      /* Dirty bit - Page has been written to since last cleared                */
+	uint64_t _rsv2 : 2;  /* Reserved                                                               */
+	uint64_t ppn : 44;   /* Physical page number that this entry points to, or the next level page */
+	uint64_t _rsv1 : 10; /* Reserved                                                               */
 } pte_t;
 
 _Static_assert(sizeof(pte_t) == 8, "pte_t must be 8 bytes");
