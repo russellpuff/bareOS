@@ -39,11 +39,11 @@ uint16_t in_find_free(void) {
 }
 
 /* Writes an in-memory inode to the inode table at index. Currently assumes valid index. */
-byte write_inode(inode_t* inode, uint16_t index) {
+byte write_inode(inode_t inode, uint16_t index) {
 	uint16_t tbl_idx = index / IN_PER_BLOCK;
 	uint16_t offset = index % IN_PER_BLOCK;
 	inode_t* block = (inode_t*)get_block(boot_fsd->super.intable_blocks[tbl_idx]);
-	block[offset] = *inode;
+	block[offset] = inode;
 	return 0;
 }
 

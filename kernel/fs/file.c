@@ -30,7 +30,7 @@ int32_t create(char* path, dirent_t cwd) {
     dirent_t entry;
 
     for (uint32_t idx = 0; idx < entries; ++idx) {
-        if (iread(&dir_inode, (byte*)&entry, idx * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
+        if (iread(dir_inode, (byte*)&entry, idx * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
         if (entry.type == FREE) {
             if (free_offset == 0xFFFFFFFF) free_offset = idx * sizeof(dirent_t);
             continue;
@@ -55,12 +55,12 @@ int32_t create(char* path, dirent_t cwd) {
         inode_t reset;
         memset(&reset, 0, sizeof(reset));
         reset.type = FREE;
-        write_inode(&reset, inode_index);
+        write_inode(reset, inode_index);
         return -1;
     }
     node.head = head;
 
-    write_inode(&node, inode_index);
+    write_inode(node, inode_index);
 
     dirent_t new_entry;
     memset(&new_entry, 0, sizeof(new_entry));
@@ -76,11 +76,11 @@ int32_t create(char* path, dirent_t cwd) {
         inode_t reset;
         memset(&reset, 0, sizeof(reset));
         reset.type = FREE;
-        write_inode(&reset, inode_index);
+        write_inode(reset, inode_index);
         return -1;
     }
 
-    write_inode(&dir_inode, boot_fsd->super.root_dirent.inode);
+    write_inode(dir_inode, boot_fsd->super.root_dirent.inode);
 
     return 0;
 }
@@ -103,7 +103,7 @@ int32_t open(char* path) {
     bool found = false;
 
     for (uint32_t idx = 0; idx < entries; ++idx) {
-        if (iread(&dir_inode, (byte*)&entry, idx * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
+        if (iread(dir_inode, (byte*)&entry, idx * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
         if (entry.type == FREE) continue;
         if (!strcmp(entry.name, path)) { found = true; break; }
     }
@@ -139,7 +139,7 @@ int32_t close(int32_t fd) {
     if (file->state != OPEN) return -1;
 
     if (file->in_dirty) {
-        write_inode(&file->inode, file->in_index);
+        write_inode(file->inode, file->in_index);
         file->in_dirty = false;
     }
 
@@ -182,7 +182,7 @@ dirent_t mk_dir(char* path, dirent_t cwd) {
 	ino.type = DIR;
 	ino.size = sizeof(dirent_t) * 2;
 	ino.modified = 0; // Unused for now.
-	write_inode(&ino, dir.inode); /* TODO: Check for invalid. */
+	write_inode(ino, dir.inode); /* TODO: Check for invalid. */
 
 	/* Make default subdirectories */
 	dirent_t self_dot = get_dot_entry(dir.inode, ".");
@@ -196,7 +196,7 @@ dirent_t mk_dir(char* path, dirent_t cwd) {
 		byte* buff = malloc(sizeof(dir));
 		memcpy(buff, &dir, sizeof(dir)); /* seems dumb, maybe change one day? */
 		iwrite(&p_ino, buff, p_ino.size, sizeof(dir)); /* TODO: if this returns a value not equal to sizeof(dir), we're out of blocks. */
-		write_inode(&p_ino, parent);
+		write_inode(p_ino, parent);
 		free(buff);
 	}
 

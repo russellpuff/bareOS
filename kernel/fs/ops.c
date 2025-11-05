@@ -25,7 +25,7 @@ uint32_t read(uint32_t fd, byte* buff, uint32_t len) {
 
     uint32_t block_size = boot_fsd->device->block_size;
     uint32_t block_idx = offset / block_size;
-    int16_t block = index_to_block(&file->inode, block_idx);
+    int16_t block = index_to_block(file->inode, block_idx);
     if (block == FAT_BAD) {
         // todo: read error
         return 0;
@@ -133,9 +133,9 @@ static int16_t ensure_block(inode_t* inode, uint32_t logical_idx) {
  * if you consider an inode's blocks a continuous array.                 *
  * So if an inode has blocks 5, 7, 9, 21, and you're looking for the 4th *
  * block, passing in index '3' returns 21.                               */
-int16_t index_to_block(inode_t* inode, uint32_t logical_idx) {
-    if (inode->head < 0) return FAT_BAD;
-    int16_t block = inode->head;
+int16_t index_to_block(inode_t inode, uint32_t logical_idx) {
+    if (inode.head < 0) return FAT_BAD;
+    int16_t block = inode.head;
     for (uint32_t idx = 0; idx < logical_idx; ++idx) {
         int16_t next = fat_get(block);
         switch (next) {
@@ -151,12 +151,12 @@ int16_t index_to_block(inode_t* inode, uint32_t logical_idx) {
 }
 
 /* Function reads from the raw blocks pointed to by an inode */
-uint32_t iread(inode_t* inode, byte* buff, uint32_t offset, uint32_t len) {
-    if (inode->head < 0 || len == 0) return 0;
-    if (offset >= inode->size) return 0;
+uint32_t iread(inode_t inode, byte* buff, uint32_t offset, uint32_t len) {
+    if (inode.head < 0 || len == 0) return 0;
+    if (offset >= inode.size) return 0;
 
     uint32_t block_size = boot_fsd->device->block_size;
-    uint32_t available = inode->size - offset;
+    uint32_t available = inode.size - offset;
     if (len > available) len = available;
 
     uint32_t block_idx = offset / block_size;
@@ -256,7 +256,7 @@ uint32_t iwrite(inode_t* inode, byte* buff, uint32_t offset, uint32_t len) {
 int16_t dir_next(dir_iter_t* it, dirent_t* out) {
     if (it == NULL) return -1;
     while (it->offset + sizeof(dirent_t) <= it->sz) {
-        if (iread(&it->inode, (byte*)out, it->offset, sizeof(dirent_t)) != sizeof(dirent_t)) return -1;
+        if (iread(it->inode, (byte*)out, it->offset, sizeof(dirent_t)) != sizeof(dirent_t)) return -1;
         it->offset += sizeof(dirent_t);
         if (out->type == FREE) continue;
         return 1;
@@ -280,19 +280,19 @@ uint16_t dir_collect(dirent_t dir, dirent_t* out, uint16_t max) {
 /* Function takes a parent dirent_t and writes a new entry to the first *
  * free slot it can find in that directory's inode blocks               *
  * Returns 0 on success, 1 if bad call, 2 if write error                */
-uint8_t dir_write_entry(const dirent_t parent, const dirent_t* entry) {
-    if (parent.type != DIR || entry == NULL) return 1;
+uint8_t dir_write_entry(dirent_t parent, dirent_t entry) {
+    if (parent.type != DIR) return 1;
     inode_t p_ino = get_inode(parent.inode);
     uint32_t entries = p_ino.size / sizeof(dirent_t); /* Includes entries that were freed but not defragmented, will reuse free */
     uint32_t free_offset = (uint32_t)-1; /* Sentinel value by default */
     dirent_t child;
     /* Scan directory for free child and get its offset */
     for (uint32_t i = 0; i < entries; ++i) {
-        if (iread(&p_ino, (byte*)child, i * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
+        if (iread(p_ino, (byte*)&child, i * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
         if (child.type == FREE) { free_offset = i * sizeof(dirent_t); break; } /* Found an open slot in the allocated blocks */
     }
     free_offset = free_offset == (uint32_t)-1 ? p_ino.size : free_offset;
-    if(iwrite(&p_ino, (byte*)entry, free_offset, sizeof(dirent_t) != sizeof(dirent_t))) return 2;
-    write_inode(&p_ino, parent.inode);
+    if (iwrite(&p_ino, (byte*)&entry, free_offset, sizeof(dirent_t)) != sizeof(dirent_t)) return 2;
+    write_inode(p_ino, parent.inode);
     return 0;
 }

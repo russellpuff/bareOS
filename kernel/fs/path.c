@@ -55,14 +55,14 @@ char* dirent_path_expand(dirent_t this, char* buffer) {
 /* Scans a directory if a child by a specified name exists *
  * Pass in an optional dirent_t pointer to get a reference *
  * to the child if exists                                  */
-bool dir_child_exists(const dirent_t* parent, const char* name, dirent_t* out) {
-	if (parent == NULL || name == NULL) return false;
-	if (parent->type != DIR) return false;
+bool dir_child_exists(dirent_t parent, const char* name, dirent_t* out) {
+	if (name == NULL) return false;
+	if (parent.type != DIR) return false;
 	dirent_t children[MAX_CHILDREN];
-	dir_collect(*parent, children, MAX_CHILDREN);
-	for (byte i = 0; i < MAX_CHILDREN; ++i) {
+	uint16_t count = dir_collect(parent, children, MAX_CHILDREN);
+	for (uint16_t i = 0; i < count; ++i) {
 		if (!strcmp(children[i].name, name)) {
-			memcpy(out, &children[i], sizeof(dirent_t));
+			if (out != NULL) memcpy(out, &children[i], sizeof(dirent_t));
 			return true;
 		}
 	}
@@ -119,7 +119,7 @@ uint8_t resolve_dir(const char* path, const dirent_t* cwd, dirent_t* out) {
 		/* Keep parent before descent so we can ignore target if needed */
 		dirent_t parent = iter;
 
-		if (!dir_child_exists(&iter, name, &iter)) {
+		if (!dir_child_exists(iter, name, &iter)) {
 			if (*r == '\0') {
 				/* Component missing but we're done, this is a target that doesn't exist yet */
 				iter = parent; /* Resolve nonexistent target's parent */
