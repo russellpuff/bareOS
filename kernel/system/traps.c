@@ -41,16 +41,18 @@ void s_handle_exception(uint64_t* frame) {
         }
     }
 
-    kprintf("Unhandled exception: scause=%x stval=%x, sepc=%x\n", cause, tval, epc);
-    while (1);
+    panic("Supervisor exception: scause=%x stval=%x, sepc=%x\nFatal. The system has halted.\n", 
+        cause, tval, epc);
 }
 
 void m_handle_exception(void) {
-    /* Read the registers in gdb */
-    // uint64_t cause, tval, epc;
-    // asm volatile("csrr %0, mcause" : "=r"(cause));
-    // asm volatile("csrr %0, mtval"  : "=r"(tval));
-    // asm volatile("csrr %0, mepc"   : "=r"(epc));
+    uint64_t cause, tval, epc, mstatus;
 
-    while (1);
+    asm volatile("csrr %0, mcause" : "=r"(cause));
+    asm volatile("csrr %0, mtval"  : "=r"(tval));
+    asm volatile("csrr %0, mepc"   : "=r"(epc));
+    asm volatile("csrr %0, mstatus" : "=r"(mstatus));
+
+    panic("Machine exception: mcause=%x mtval=%x mepc=%x mstatus=%x\nFatal. The system has halted.\n", 
+        cause, tval, epc, mstatus);
 }

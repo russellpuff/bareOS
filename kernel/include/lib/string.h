@@ -5,6 +5,7 @@
 
 int16_t strcmp(const char*, const char*);
 uint64_t strlen(const char*);
+char* strrchr(const char*, char);
 void* memset(void*, byte, uint64_t);
 void* memcpy(void*, const void*, uint64_t);
 int16_t memcmp(const void*, const void*, uint64_t);

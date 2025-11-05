@@ -38,9 +38,10 @@ static void initialize(void) {
 	mkfs(BDEV_BLOCK_SIZE, BDEV_NUM_BLOCKS);
 	mount_fs(&reg_drives->drive, "/");
 	boot_fsd = reg_drives->drive.fsd;
-
 	//generic_importer(imp);
 	//free(imp); 
+	init_pages();
+	init_interrupts();
 }
 
 /* This function displays the welcome screen when the system and shell boot. */
@@ -84,7 +85,7 @@ static void root_thread(void) {
 	resume_thread(reaper_tid);
 	int32_t f = open("shell.elf");
 	if (f < 0)
-		panic("Critical error: no shell to run on boot.\n");
+		panic("Fatal: no shell to run on boot.\n");
 	close(f);
 	ecall_spawn("shell", NULL);
 }

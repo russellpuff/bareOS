@@ -1,6 +1,6 @@
 # bareOS
 
-bareOS is a small RISC-V operating system that began at Indiana University and now continues as an open research project meant to explore the principles of computer operating systems. Under the guidance of Professor Jeremy Musser, the bootstrap and some of the low-level kernel were developed by him; subsequent features and applications are being added by me.
+bareOS is a small RISC-V operating system written in C (gnu2x) that began at Indiana University and now continues as an open research project meant to explore the principles of computer operating systems. Under the guidance of Professor Jeremy Musser, the bootstrap and some of the low-level kernel were developed by him; subsequent features and applications are being added by me.
 
 ## Features
 - 64-bit RISC-V kernel that runs under QEMU.

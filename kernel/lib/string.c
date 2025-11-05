@@ -1,6 +1,7 @@
 #include <lib/barelib.h>
 #include <lib/string.h>
 
+/* Compares two strings and returns the difference between them (zero if equal) */
 int16_t strcmp(const char* str1, const char* str2) {
   for(; *str1 == *str2; str1++, str2++) {
     if(*str1 == '\0') { return 0; }
@@ -8,10 +9,22 @@ int16_t strcmp(const char* str1, const char* str2) {
   return (unsigned char)*str1 - (unsigned char)*str2;
 }
 
+/* Returns the length of a string excluding its null terminator */
 uint64_t strlen(const char* str) {
     const char* s = str;
     while (*s) ++s;
     return (uint64_t)(s - str);
+}
+
+/* Returns a pointer to the last instance of 'c' in a string, or NULL if not found */
+char* strrchr(const char* s, char c) {
+    const char* p = NULL;
+    while (1) {
+        if (*s == c)
+            p = s;
+        if (*s++ == '\0')
+            return p;
+    }
 }
 
 void* memset(void* s, byte c, uint64_t n) {

@@ -6,14 +6,24 @@
  * already exists at that path, return an error. Otherwise create a new      *
  * dirent for that directory for this file, create an inode, and assign the  *
  * new file a single block as its head block.                                */
-int32_t create(char* filename) {
-    /* TEMP: No mechanism exists to resolve a path yet, until then,
-        assume the file is being created in the current (root) directory */
-    if (filename == NULL) return -1;
-    uint32_t name_len = strlen(filename);
+int32_t create(char* path, dirent_t cwd) {
+    if (path == NULL) return -1;
+    uint32_t name_len = strlen(path);
     if (name_len == 0 || name_len >= FILENAME_LEN) return -1;
 
-    inode_t dir_inode = get_inode(boot_fsd->super.root_dirent.inode);
+    dirent_t parent;
+    uint8_t res = resolve_dir(path, &cwd, &parent);
+    /* TODO: jfc normalize these return values */
+    switch (res) {
+        case 1: return -1;
+        case 2: return -2;
+        case 3: return -3;
+        case 4: return -4;
+    }
+
+    inode_t dir_inode = get_inode(parent.inode);
+
+    // below this is un-refactored code, you can ignore the "uses root_dirent" obvious problem
 
     uint32_t entries = dir_inode.size / sizeof(dirent_t);
     uint32_t free_offset = 0xFFFFFFFF;
@@ -25,7 +35,7 @@ int32_t create(char* filename) {
             if (free_offset == 0xFFFFFFFF) free_offset = idx * sizeof(dirent_t);
             continue;
         }
-        if (!strcmp(entry.name, filename)) return -1;
+        if (!strcmp(entry.name, path)) return -1;
     }
 
     uint32_t target_offset = (free_offset == 0xFFFFFFFF) ? dir_inode.size : free_offset;
@@ -56,7 +66,7 @@ int32_t create(char* filename) {
     memset(&new_entry, 0, sizeof(new_entry));
     new_entry.inode = inode_index;
     new_entry.type = FILE;
-    memcpy(new_entry.name, filename, name_len);
+    memcpy(new_entry.name, path, name_len);
     new_entry.name[name_len] = '\0';
 
     int32_t written = iwrite(&dir_inode, (byte*)&new_entry, target_offset, sizeof(new_entry));
@@ -79,11 +89,11 @@ int32_t create(char* filename) {
  * file does not exist in the target directory, return an error.        *
  * otherwise find a free slot in the fsd's open file table and init for *
  * further operations on the file. Return an fd (index to oft)          */
-int32_t open(char* filename) {
+int32_t open(char* path) {
     /* TEMP: No mechanism exists to resolve a path yet, until then,
         assume the target file is in the current (root) directory    */
-    if (filename == NULL) return -1;
-    uint64_t name_len = strlen(filename);
+    if (path == NULL) return -1;
+    uint64_t name_len = strlen(path);
     if (name_len == 0 || name_len >= FILENAME_LEN) return -1;
     /* TODO: replace with resolved parent dir */
     
@@ -95,7 +105,7 @@ int32_t open(char* filename) {
     for (uint32_t idx = 0; idx < entries; ++idx) {
         if (iread(&dir_inode, (byte*)&entry, idx * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
         if (entry.type == FREE) continue;
-        if (!strcmp(entry.name, filename)) { found = true; break; }
+        if (!strcmp(entry.name, path)) { found = true; break; }
     }
 
     if (!found || entry.type != FILE) return -1;
@@ -152,8 +162,9 @@ dirent_t get_dot_entry(uint16_t inode, const char* name) {
 	return dot;
 }
 
-dirent_t mk_dir(char* name, uint16_t parent) {
+dirent_t mk_dir(char* path, dirent_t cwd) {
 	/* Make dirent */
+
 	dirent_t dir;
 	dir.type = DIR;
 	dir.inode = in_find_free(); /* TODO: Check for invalid. */

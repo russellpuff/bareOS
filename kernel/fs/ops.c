@@ -276,3 +276,23 @@ uint16_t dir_collect(dirent_t dir, dirent_t* out, uint16_t max) {
     dir_close(&iter);
     return i;
 }
+
+/* Function takes a parent dirent_t and writes a new entry to the first *
+ * free slot it can find in that directory's inode blocks               *
+ * Returns 0 on success, 1 if bad call, 2 if write error                */
+uint8_t dir_write_entry(const dirent_t parent, const dirent_t* entry) {
+    if (parent.type != DIR || entry == NULL) return 1;
+    inode_t p_ino = get_inode(parent.inode);
+    uint32_t entries = p_ino.size / sizeof(dirent_t); /* Includes entries that were freed but not defragmented, will reuse free */
+    uint32_t free_offset = (uint32_t)-1; /* Sentinel value by default */
+    dirent_t child;
+    /* Scan directory for free child and get its offset */
+    for (uint32_t i = 0; i < entries; ++i) {
+        if (iread(&p_ino, (byte*)child, i * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
+        if (child.type == FREE) { free_offset = i * sizeof(dirent_t); break; } /* Found an open slot in the allocated blocks */
+    }
+    free_offset = free_offset == (uint32_t)-1 ? p_ino.size : free_offset;
+    if(iwrite(&p_ino, (byte*)entry, free_offset, sizeof(dirent_t) != sizeof(dirent_t))) return 2;
+    write_inode(&p_ino, parent.inode);
+    return 0;
+}
