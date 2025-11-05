@@ -46,10 +46,20 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
 	fat_set(IN_BIT, FAT_RSVD);
 	for (uint16_t i = 0; i < FT_LEN; ++i) fat_set(FT_BIT + i, FAT_RSVD);
 
-	/* Create root directory once everything is set up    *
-	 * assumes this is the first dir created, thus parent *
-	 * is self (inode 0)                                  */
-	temp_fsd.super.root_dirent = mk_dir("/", 0);
+	/* mk_dir relies on the root existing already, so this has to be created by hand */
+	/* todo: find some better way to do this */
+	dirent_t* root = &boot_fsd->super.root_dirent;
+	root->name[0] = '/';
+	root->name[1] = '\0';
+	root->type = DIR;
+	root->inode = in_find_free();
+	inode_t rino;
+	rino.head = allocate_block();
+	dirent_t self_dot = get_dot_entry(root->inode, ".");
+	dirent_t parent_dot = get_dot_entry(root->inode, "..");
+	dir_write_entry(*root, self_dot);
+	dir_write_entry(*root, parent_dot);
+	write_inode(rino, root->inode);
 
 	/* Write super to the super block. It will be restored to the real fsd if this blank *
 	 * filesystem is mounted by the user                                                 */

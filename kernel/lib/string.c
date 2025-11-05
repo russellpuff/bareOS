@@ -17,7 +17,7 @@ uint64_t strlen(const char* str) {
 }
 
 /* Returns a pointer to the last instance of 'c' in a string, or NULL if not found */
-char* strrchr(const char* s, char c) {
+const char* strrchr(const char* s, char c) {
 	const char* p = NULL;
 	while (1) {
 		if (*s == c)

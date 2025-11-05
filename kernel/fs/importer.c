@@ -55,11 +55,11 @@ byte generic_importer(byte* ptr) {
 		/* Write to fd */
 		uint16_t size = bytes_to_u32(ptr);
 		ptr += 4;
-		if(create(name) == -1) {
+		if(create(name, boot_fsd->super.root_dirent) == -1) {
 			status = -1;
 			break;
 		}
-		uint32_t fd = open(name);
+		uint32_t fd = open(name, boot_fsd->super.root_dirent);
 		write(fd, ptr, size);
 		close(fd);
 		ksprintf(bptr, "Importer wrote %s (%u bytes).\n", name, size);
@@ -72,8 +72,8 @@ byte generic_importer(byte* ptr) {
 	bptr = run_to_nc(bptr);
 	
 	char n[] = "importer.log\0";
-	create(n);
-	uint32_t nfd = open(n);
+	create(n, boot_fsd->super.root_dirent);
+	uint32_t nfd = open(n, boot_fsd->super.root_dirent);
 	write(nfd, buffer, bptr - buffer + 1);
 	close(nfd);
 	return 0;

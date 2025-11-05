@@ -1,5 +1,6 @@
 #include <lib/barelib.h>
 #include <system/thread.h>
+#include <system/panic.h>
 #include <mm/malloc.h>
 #include <mm/vm.h>
 
@@ -21,43 +22,43 @@ void init_heap(void) {
  *  contains the remaining free space on the heap.        *
  *  Returns a pointer to the newly created allocation     */
 void* malloc(uint64_t size) {
-	if(size == 0 || freelist == NULL) return NULL;
-	uint64_t need = size + sizeof(alloc_t);
+	if(size == 0 || freelist == NULL || size > FREELIST_MAX - sizeof(alloc_t)) return NULL;
 	/* Do walk free list for first-fit free memory. */
 	alloc_t* prev = NULL;
 	alloc_t* curr = freelist;
 	while(curr != NULL) {
-		uint64_t block_total = curr->size + sizeof(alloc_t);
-		if(block_total >= need) break;
+		if(curr->size >= size) break;
 		prev = curr;
 		curr = curr->next;
 	}
 	if(curr == NULL) return NULL;
 
-	const byte MIN_BYTES = 8;
+	const uint16_t NODE_SZ = sizeof(alloc_t);
+	const uint8_t MIN_BYTES = 8 + NODE_SZ;
 	alloc_t* next;
-	if(curr->size + sizeof(alloc_t) - need >= MIN_BYTES + sizeof(alloc_t)) {
+	uint64_t remainder_total = curr->size - size;
+	if(remainder_total >= MIN_BYTES) {
 		/* Do split. */
-		uint64_t remaining_bytes = curr->size + sizeof(alloc_t) - need;
-		alloc_t* remainder = (alloc_t*)((byte*)curr + need); /* Cast to get a pointer for arithmetic. */
-		remainder->size = remaining_bytes - sizeof(alloc_t);
+		alloc_t* remainder = (alloc_t*)((byte*)curr + NODE_SZ + size); /* Cast to get a pointer for arithmetic. */
+		remainder->size = remainder_total - NODE_SZ;
 		remainder->state = M_FREE;
 		remainder->next = curr->next;
 		/* Update free list */
 		if(prev == NULL) freelist = remainder;
 		else prev->next = remainder;
 		next = remainder;
+
+		curr->size = size;
 	} else {
 		next = curr->next;
 	}
 	if(prev == NULL) freelist = next;
 	else prev->next = next;
 
-	curr->size = size;
 	curr->state = M_USED;
-	curr->next = NULL; /* Maybe redundant? */
+	curr->next = curr; /* Temporary secret way of verifying the pointer on free */
 
-	return (char*)curr + sizeof(alloc_t);
+	return (char*)curr + NODE_SZ;
 }
 
 /*  Free the allocation at location 'addr'.  If the newly *
@@ -65,32 +66,37 @@ void* malloc(uint64_t size) {
  *  allocation, coallesce the adjacent free blocks into   *
  *  one larger free block.                                */
 void free(void* addr) {
-	alloc_t* header = (alloc_t*)((byte*)addr - sizeof(alloc_t)); /* Find header. Currently just trusts you didn't pass in a bad pointer. */
-	/* Start hunting for its place in the list. */
+	if(addr == NULL) return;
+	
+	const uint16_t NODE_SZ = sizeof(alloc_t);
+	alloc_t* header = (alloc_t*)((byte*)addr - NODE_SZ); /* Find header. */
+	if (header->next != header) {
+		panic("Error: 'free' called on a pointer with a nonzero offset.\n");
+	}
+
+	/* Find freelist nodes before/after this used segment for coalesce */
 	alloc_t* prev = NULL;
 	alloc_t* curr = freelist;
 	while(curr && curr < header) {
 		prev = curr;
 		curr = curr->next;
 	}
+	
 	header->state = M_FREE;
 	header->next = curr;
 	if(prev) prev->next = header;
 	else freelist = header;
 
 	/* Try to coalesce. */
-	if(curr && (byte*)header + sizeof(alloc_t) + header->size == (byte*)curr) {
+	if(curr && (byte*)header + NODE_SZ + header->size == (byte*)curr) {
 		/* Next segment of memory is also free. */
-		header->size += sizeof(alloc_t) + curr->size;
+		header->size += NODE_SZ + curr->size;
 		header->next = curr->next;
 	}
 
-	if(prev && (byte*)prev + sizeof(alloc_t) + prev->size == (byte*)header) {
+	if(prev && (byte*)prev + NODE_SZ + prev->size == (byte*)header) {
 		/* Previous segment of memory is also free. */
-		prev->size += sizeof(alloc_t) + header->size;
+		prev->size += NODE_SZ + header->size;
 		prev->next = header->next;
-		header = prev; /* Probably redundant. */
 	}
-
-	return;
 }

@@ -6,10 +6,6 @@
 
 #define EMPTY -1        /* Used in FS whenever a field's state is undefined or unused */
 
-/* SEEK_START: count from start of file                   */
-/* SEEK_END:   count down from the end of the file        */
-/* SEEK_HEAD:  move head relative to the current head     */
-typedef enum { SEEK_START, SEEK_END, SEEK_HEAD } SEEK_POS;
 /* FAT_FREE: the block is unused                          */
 /* FAT_END: this is the last block in a fat chain         */
 /* FAT_RSVD: this block is reserved for kernel use        */
@@ -44,25 +40,25 @@ uint16_t in_find_free(void);        /* Find a free entry in the inode table  */
 byte write_inode(inode_t, uint16_t); /* Write an in-memory inode to the table */
 inode_t get_inode(uint16_t);        /* Get a live copy of the inode at index */
 
-int32_t create(char*, dirent_t);                    /* Create a file and save it to the block device */
-int32_t open(char*, dirent_t);                      /* Open a file                                   */
+int32_t create(const char*, dirent_t);                    /* Create a file and save it to the block device */
+int32_t open(const char*, dirent_t);                      /* Open a file                                   */
 int32_t close(int32_t);                   /* Close a file                                  */
 uint32_t iread(inode_t, byte*, uint32_t, uint32_t);
 uint32_t iwrite(inode_t*, byte*, uint32_t, uint32_t); /* Write to an inode's blocks         */
 uint32_t write(uint32_t, byte*, uint32_t); /* Write to a file                               */
 uint32_t read(uint32_t, byte*, uint32_t);    /* Read from file                                */
 uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
-dirent_t mk_dir(char*, uint16_t);         /* Create an empty directory                     */
+int8_t mk_dir(const char*, dirent_t, dirent_t*);         /* Create an empty directory                     */
 uint8_t resolve_dir(const char*, const dirent_t*, dirent_t*); /* Resolves the lowest directory from a path     */
 uint8_t path_to_name(const char*, char*);
 int16_t index_to_block(inode_t, uint32_t);
 int16_t dir_next(dir_iter_t*, dirent_t*);
-uint16_t dir_collect(dirent_t, dirent_t*, uint16_t);
 byte dir_open(uint16_t, dir_iter_t*);
 void dir_close(dir_iter_t*);
 char* dirent_path_expand(dirent_t, char*);
 bool dir_child_exists(dirent_t, const char*, dirent_t*);
 uint8_t dir_write_entry(dirent_t, dirent_t);
+dirent_t get_dot_entry(uint16_t, const char*);
 
 extern fsystem_t* boot_fsd;
 extern drv_reg* reg_drives;

@@ -13,53 +13,11 @@
  *           smaller).                                                      */
 uint32_t read(uint32_t fd, byte* buff, uint32_t len) {
 	if (fd >= OFT_MAX) return 0;
-	filetable_t* file = &boot_fsd->oft[fd];
-	if (file->state != OPEN || len == 0) return 0;
-
-	uint32_t file_size = file->inode.size;
-	if (file->curr_index >= file_size) return 0;
-
-	uint32_t offset = file->curr_index;
-	uint32_t remaining = file_size - offset;
-	if (len < remaining) remaining = len;
-
-	uint32_t block_size = boot_fsd->device->block_size;
-	uint32_t block_idx = offset / block_size;
-	int16_t block = index_to_block(file->inode, block_idx);
-	if (block == FAT_BAD) {
-		// todo: read error
-		return 0;
-	}
-	if (block == FAT_END) return 0;
-
-	uint32_t block_offset = offset % block_size;
-	uint32_t bytes_read = 0;
-
-	while (remaining > 0 && block >= 0) {
-		uint32_t chunk = block_size - block_offset;
-		if (chunk > remaining) chunk = remaining;
-		read_bdev(block, block_offset, buff, chunk);
-		bytes_read += chunk;
-		remaining -= chunk;
-		buff += chunk;
-		block_offset = 0;
-
-		if (remaining == 0) break;
-
-		int16_t next = fat_get(block);
-		if (next == FAT_BAD) {
-			// todo: read error
-			return 0;
-		}
-		if (next == FAT_END) {
-			block = next;
-			break;
-		}
-		block = next;
-	}
-
-	file->curr_index += bytes_read;
-	return (int32_t)bytes_read;
+	if (boot_fsd->oft[fd].state != OPEN || len == 0) return 0;
+	//if (boot_fsd->oft[fd].curr_index >= boot_fsd->oft[fd].inode.size) return 0;
+	uint32_t bytes_read = iread(boot_fsd->oft[fd].inode, buff, 0, len);
+	//boot_fsd->oft[fd].curr_index += bytes_read;
+	return bytes_read;
 }
 
 /* fs_write - Takes a file descriptor index into the 'oft', a  pointer to a  *
@@ -75,25 +33,11 @@ uint32_t read(uint32_t fd, byte* buff, uint32_t len) {
  *            file.                                                          */
 uint32_t write(uint32_t fd, byte* buff, uint32_t len) {
 	if (fd >= OFT_MAX) return 0;
-	filetable_t* file = &boot_fsd->oft[fd];
-	if (file->state != OPEN || len == 0) return 0;
-
-	uint32_t written = iwrite(&file->inode, buff, file->curr_index, len);
-
-	file->curr_index += written;
-	file->in_dirty = true;
-
+	if (boot_fsd->oft[fd].state != OPEN || len == 0) return 0;
+	uint32_t written = iwrite(&boot_fsd->oft[fd].inode, buff, 0, len);
+	//file->curr_index += written;
+	boot_fsd->oft[fd].in_dirty = true;
 	return written;
-}
-
-/* fs_write - Takes a file descriptor index  into the 'oft' and an  integer  *
- *            offset.  'fs_seek' moves the current head to match the given   *
- *            offset, bounded by the size of the file.                       *
- *                                                                           *
- *  returns - 'fs_seek' should return the new position of the file head      */
-uint32_t seek(uint32_t fd, uint32_t offset, uint32_t relative) {
-	/* TODO: implement seek using file->curr_index when future work requires it. */
-	return 0;
 }
 
 /* Takes a file descriptor index into the 'oft' and returns that file's size for reading. */
@@ -262,19 +206,6 @@ int16_t dir_next(dir_iter_t* it, dirent_t* out) {
 		return 1;
 	}
 	return 0;
-}
-
-/* 'dir_collect' gathers all the valid children of a directory  *
- * under the assumption that 'out' is an array of dirent_t for  *
- * outputting the result up to size 'max'                       */
-uint16_t dir_collect(dirent_t dir, dirent_t* out, uint16_t max) {
-	dir_iter_t iter;
-	if (dir_open(dir.inode, &iter)) return 0;
-	dirent_t e;
-	uint16_t i = 0;
-	while(i < max && dir_next(&iter, &e) == 1) out[i++] = e;
-	dir_close(&iter);
-	return i;
 }
 
 /* Function takes a parent dirent_t and writes a new entry to the first *

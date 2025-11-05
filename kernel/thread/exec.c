@@ -57,7 +57,7 @@ int32_t exec(const char* program_name) {
 	memcpy(filename, program_name, base_len); /* Get full filename */
 	memcpy(filename + base_len, suffix, 5); /* Add suffix */
 
-	int32_t fd = open(filename);
+	int32_t fd = open(filename, boot_fsd->super.root_dirent);
 	if (fd < 0) {
 		return -2;
 	}

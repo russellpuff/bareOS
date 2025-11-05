@@ -5,6 +5,8 @@
 #include <mm/malloc.h>
 #include <fs/fs.h>
 
+dirent_t cwd;
+
 /* 'redirect_file' handles writing the output of a program to a file *
  * when > is used in the shell.                                      */
 byte redirect_file(char* arg, char* filename) {
@@ -19,7 +21,7 @@ byte builtin_cat(char* arg) {
 		return 0;
 	}
 	arg += 4; /* Jump past arg0. */
-	int16_t fd = open(arg);
+	int16_t fd = open(arg, cwd);
 	if(fd == -1) {
 		kprintf("%s - File not found.\n", arg);
 		return 1;

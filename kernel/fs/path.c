@@ -58,14 +58,17 @@ char* dirent_path_expand(dirent_t this, char* buffer) {
 bool dir_child_exists(dirent_t parent, const char* name, dirent_t* out) {
 	if (name == NULL) return false;
 	if (parent.type != DIR) return false;
-	dirent_t children[MAX_CHILDREN];
-	uint16_t count = dir_collect(parent, children, MAX_CHILDREN);
-	for (uint16_t i = 0; i < count; ++i) {
-		if (!strcmp(children[i].name, name)) {
-			if (out != NULL) memcpy(out, &children[i], sizeof(dirent_t));
+	dir_iter_t it;
+	dir_open(parent.inode, &it);
+	dirent_t child;
+	while (dir_next(&it, &child) == 1) {
+		if (!strcmp(child.name, name)) {
+			if (out != NULL) memcpy(out, &child, sizeof(dirent_t));
+			dir_close(&it);
 			return true;
 		}
 	}
+	dir_close(&it);
 	return false;
 }
 
