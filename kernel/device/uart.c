@@ -40,16 +40,16 @@ void uart_wake_tx(void) {
 }
 
 void uart_write(const char* s) {
-	while(*s) uart_putc(*s++);
+	while(*s) putc(*s++);
 }
 
-char uart_putc(char ch) {
+char putc(char ch) {
   tty_putc(ch);
   return ch;
 }
 
-char uart_getc(void) {
-  char ch = tty_getc();                  /*  Fetch next char from TTY ring buffer      */
+char getc(void) {
+  char ch = tty_getc(); /*  Fetch next char from TTY ring buffer      */
   if(ch == '\r') {
 	tty_putc('\r');
 	tty_putc('\n');

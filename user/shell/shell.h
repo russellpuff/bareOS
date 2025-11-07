@@ -10,7 +10,6 @@ typedef struct {
 	function_t func;
 } command_t;
 
-byte shell(char*);
 byte builtin_echo(char*);
 byte builtin_hello(char*);
 byte builtin_cat(char*);
@@ -23,5 +22,6 @@ byte builtin_mkdir(char*);
 function_t get_command(const char* name);
 
 extern command_t builtin_commands[];
+extern directory_t cwd;
 
 #endif

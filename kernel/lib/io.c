@@ -47,19 +47,18 @@ int8_t fcreate(const char* path) {
 	options.buff_in = (byte*)path;
 	options.buff_out = NULL;
 	options.length = strlen(path);
-	return ecall_open(DISK_DEV_NUM, &options);
+	return ecall_open(DISK_DEV_NUM, (byte*)&options);
 }
 
 int8_t fopen(const char* path, FILE* file) {
 	disk_dev_opts options;
 	file->fd = (FD)-1;
-	file->inode = NULL;
 	options.file = file;
 	options.mode = FILE_OPEN;
-	options.buff_in = path;
+	options.buff_in = (byte*)path;
 	options.buff_out = NULL;
 	options.length = strlen(path);
-	return ecall_open(DISK_DEV_NUM, &options);
+	return ecall_open(DISK_DEV_NUM, (byte*)&options);
 }
 
 int8_t fclose(FILE* file) {
@@ -69,7 +68,7 @@ int8_t fclose(FILE* file) {
 	options.buff_in = NULL;
 	options.buff_out = NULL;
 	options.length = 0;
-	return ecall_close(DISK_DEV_NUM, &options);
+	return ecall_close(DISK_DEV_NUM, (byte*)&options);
 }
 
 uint32_t fread(FILE* file, byte* buffer, uint32_t len) {
@@ -79,7 +78,7 @@ uint32_t fread(FILE* file, byte* buffer, uint32_t len) {
 	options.buff_in = NULL;
 	options.buff_out = buffer;
 	options.length = len;
-	return ecall_read(DISK_DEV_NUM, &options);
+	return ecall_read(DISK_DEV_NUM, (byte*)&options);
 }
 
 uint32_t fwrite(FILE* file, byte* buffer, uint32_t len) {
@@ -89,7 +88,7 @@ uint32_t fwrite(FILE* file, byte* buffer, uint32_t len) {
 	options.buff_in = buffer;
 	options.buff_out = NULL;
 	options.length = len;
-	return ecall_write(DISK_DEV_NUM, &options);
+	return ecall_write(DISK_DEV_NUM, (byte*)&options);
 }
 
 //void fdelete() {
@@ -101,10 +100,10 @@ int8_t mkdir(const char* path) {
 	disk_dev_opts options;
 	options.file = NULL;
 	options.mode = DIR_CREATE;
-	options.buff_in = NULL;
-	options.buff_out = &placeholder;
+	options.buff_in = (byte*)path;
+	options.buff_out = (byte*)&placeholder;
 	options.length = 0;
-	return ecall_open(DISK_DEV_NUM, &options);
+	return ecall_open(DISK_DEV_NUM, (byte*)&options);
 }
 
 //int8_t rmdir() {
@@ -117,10 +116,10 @@ int8_t rddir(const char* path, dirent_t* out, uint32_t count) {
 	disk_dev_opts options;
 	options.file = NULL;
 	options.mode = DIR_READ;
-	options.buff_in = path;
+	options.buff_in = (byte*)path;
 	options.buff_out = (byte*)out;
 	options.length = count;
-	return ecall_read(UART_DEV_NUM, &options);
+	return ecall_read(UART_DEV_NUM, (byte*)&options);
 }
 
 /* Function returns a full directory_t of the target dir
@@ -129,7 +128,7 @@ int8_t getdir(const char* path, directory_t* out, bool chdir) {
 	disk_dev_opts options;
 	options.file = NULL;
 	options.mode = DIR_OPEN;
-	options.buff_out = out;
+	options.buff_out = (byte*)out;
 
 	options.length = strlen(path);
 	byte buffer[MAX_PATH_LEN + 4]; /* todo: improve this */
@@ -138,5 +137,5 @@ int8_t getdir(const char* path, directory_t* out, bool chdir) {
 	buffer[options.length] = '\0';
 	options.buff_in = buffer;
 
-	return ecall_open(DISK_DEV_NUM, &options);
+	return ecall_open(DISK_DEV_NUM, (byte*)&options);
 }

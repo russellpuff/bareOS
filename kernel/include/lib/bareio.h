@@ -8,8 +8,8 @@
  *  used by the UART and other print/scan related functions.
  */
 
-char uart_putc(char);
-char uart_getc(void);
+char putc(char);
+char getc(void);
 void uart_write(const char*);
 void kprintf(const char*, ...);
 void ksprintf(byte*, const char*, ...);

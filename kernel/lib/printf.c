@@ -90,6 +90,9 @@ void printf_core(byte mode, byte* ptr, const char* format, va_list ap) {
 					ptr = printf_putc(*str++, mode, ptr);
 				}
 				break;
+			case 'c':
+				char c = va_arg(ap, int32_t);
+				ptr = printf_putc(c, mode, ptr);
 			case ' ':
 				/* Edge case where % was followed by a space.
 				* When gcc compiles without warnings, behavior like "% text" will be read as "%t ext"

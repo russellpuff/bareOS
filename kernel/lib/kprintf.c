@@ -6,7 +6,7 @@
 /* Helper functions. printf_putc is the only thing that can advance the buffer pointer so always return it for updates */
 byte* printf_putc(char c, byte mode, byte* ptr) {
 	switch(mode) {
-		case MODE_REGULAR: uart_putc(c); break;
+		case MODE_REGULAR: putc(c); break;
 		case MODE_BUFFER: *ptr++ = c; break;
 		case MODE_RAW: /* temporary implementation */
 			#define UART0_CFG_REG 0x10000000

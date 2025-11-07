@@ -14,13 +14,13 @@ directory_t cwd;
 command_t builtin_commands[] = {
 	{ "hello", (function_t)builtin_hello },
 	{ "echo", (function_t)builtin_echo },
-	//{ "cat", (function_t)builtin_cat },
+	{ "cat", (function_t)builtin_cat },
 	{ "shutdown", (function_t)builtin_shutdown },
 	//{ "reboot", (function_t)builtin_reboot },
 	{ "clear", (function_t)builtin_clear },
-	//{ "ls", (function_t)builtin_ls },
-	//{ "cd", (function_t)builtin_cd },
-	//{ "mkdir", (function_t)builtin_mkdir },
+	{ "ls", (function_t)builtin_ls },
+	{ "cd", (function_t)builtin_cd },
+	{ "mkdir", (function_t)builtin_mkdir },
 	{ NULL, NULL }
 };
 
@@ -37,9 +37,10 @@ function_t get_command(const char* name) {
  * 'shell' loops forever, prompting the user for input, then calling a function based
  * on the text read in from the user.
  */
-int main(void) {
+int32_t main(void) {
 	byte last_retval = 0;
-	cwd.path = "/";
+	cwd.path[0] = '/';
+	cwd.path[1] = '\0';
 	while (1) {
 		printf("&x%s&0:&b%s&0$", PROMPT, cwd.path);
 		char line[LINE_SIZE];

@@ -9,7 +9,7 @@ uint32_t get_line(char* buffer, uint32_t size) {
 	char* ptr = buffer;
 	char* end = buffer + size - 1;
 	while(1) {
-		char ch = uart_getc();
+		char ch = getc();
 		switch(ch) {
 			case '\r':
 			case '\n':
