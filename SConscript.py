@@ -85,22 +85,9 @@ def prepare_generic_loader(env):
 	except Exception as e:
 		print(f"[Warning] Failed to read linker map for heap prediction: {e}")
 
-	# Get file load constants from the fs.h constants that defines the ramdisk. If ramdisk updates, so do these limits. 
-	fs_header = File('#/kernel/include/fs/fs.h').abspath
-	with open(fs_header) as f:
-		fs_src = f.read()
-
-	def _const(name):
-		m = re.search(r"#define\s+%s\s+(\d+)" % name, fs_src)
-		if not m:
-			raise ValueError(f"[Warning ]{name} not found in fs.h")
-		return int(m.group(1))
-
-	INODE_BLOCKS = _const("INODE_BLOCKS")
-	BLOCK_SIZE = _const("MDEV_BLOCK_SIZE")
-	FILENAME_LEN = _const("FILENAME_LEN")
-	DIR_SIZE = _const("DIR_SIZE")
-	MAX_FILE_SIZE = INODE_BLOCKS * BLOCK_SIZE
+	FILENAME_LEN = 56
+	MAX_FILES = 100
+	MAX_TOTAL_PAYLOAD = int(1.5 * 1024 * 1024)
 	HEADER_SIZE = FILENAME_LEN + 4
 
 	def do_name_bytes(filename: str) -> bytes:
@@ -127,11 +114,11 @@ def prepare_generic_loader(env):
 			if os.path.isfile(os.path.join(LOAD_DIR, f))
 		)
 
-		total_bytes = 0
 		valid_files = 0
+		total_payload_bytes = 0
 
 		for filename in files:
-			if valid_files == DIR_SIZE:
+			if valid_files == MAX_FILES:
 				break
 			name_bytes = do_name_bytes(filename)
 			if name_bytes is None:
@@ -139,7 +126,7 @@ def prepare_generic_loader(env):
 
 			path = os.path.join(LOAD_DIR, filename)
 			f_size = os.path.getsize(path)
-			if f_size > MAX_FILE_SIZE:
+			if total_payload_bytes + f_size > MAX_TOTAL_PAYLOAD:
 				continue
 
 			header_path = os.path.join(HEAD_DIR, f"{filename}.gih")
@@ -158,7 +145,7 @@ def prepare_generic_loader(env):
 			load_flags += f"-device loader,file={path},addr=0x{current:08x},force-raw=on "
 			current += f_size
 
-			total_bytes += HEADER_SIZE + f_size
+			total_payload_bytes += f_size
 			valid_files += 1
 		load_flags += f"-device loader,addr={START_ADDR:#x},data={valid_files:#x},data-len=1 "
 		return load_flags
@@ -170,7 +157,7 @@ if "debug" in COMMAND_LINE_TARGETS:
 
 def run_qemu(target, source, env):
 	# This has to happen immediately prior to QEMU spinup so the helper can read the memmap.
-	load_flags = None #prepare_generic_loader(env)
+	load_flags = prepare_generic_loader(env)
 	print(env['qflags'])
 	if load_flags:
 		env.Append(qflags=" " + load_flags)

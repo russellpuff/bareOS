@@ -18,12 +18,10 @@ uint32_t bytes_to_u32(const byte* ptr) {
  * ramdisk instantly. As long as this runs as the system's first call to malloc *
  * the data injected by the generic loader is safe.                             */
 void* malloc_loaded_range(void) {
-	//uint64_t MAX_FS_CAPACITY = INODE_BLOCKS * BDEV_BLOCK_SIZE * DIR_SIZE;
-	//uint64_t HEAD_SIZE = 32;
-	//uint64_t TOTAL_HEAD_SIZE = HEAD_SIZE * DIR_SIZE;
-	//uint64_t MASTER_HEAD_SIZE = 2;
-	//uint64_t IMPORT_BYTES_NEEDED = MAX_FS_CAPACITY + TOTAL_HEAD_SIZE + MASTER_HEAD_SIZE;
-	uint64_t IMPORT_BYTES_NEEDED = 0;
+	const uint64_t HEAD_SZ = 4 + FILENAME_LEN;
+	const uint64_t MAX_FILES = 100;
+	const uint64_t MAX_SIZE = 1.5 * 1024 * 1024;
+	const uint64_t IMPORT_BYTES_NEEDED = MAX_SIZE + (HEAD_SZ * MAX_FILES);
 	return malloc(IMPORT_BYTES_NEEDED);
 }
 
@@ -55,14 +53,14 @@ byte generic_importer(byte* ptr) {
 		/* Write to fd */
 		uint32_t size = bytes_to_u32(ptr);
 		ptr += 4;
-		if(create(name, boot_fsd->super.root_dirent) == -1) {
+		if(create(name, boot_fsd->super.root_dirent) != 0) {
 			status = -1;
 			break;
 		}
-		FILE* f = { 0 };
-		open(name, f, boot_fsd->super.root_dirent);
-		write(f, ptr, size);
-		close(f);
+		FILE f = { 0 };
+		open(name, &f, boot_fsd->super.root_dirent);
+		write(&f, ptr, size);
+		close(&f);
 		ksprintf(bptr, "Importer wrote %s (%u bytes).\n", name, size);
 		bptr = run_to_nc(bptr);
 		ptr += size;
@@ -74,9 +72,9 @@ byte generic_importer(byte* ptr) {
 	
 	char n[] = "importer.log\0";
 	create(n, boot_fsd->super.root_dirent);
-	FILE* f2 = { 0 };
-	open(n, f2, boot_fsd->super.root_dirent);
-	write(f2, buffer, bptr - buffer + 1);
-	close(f2);
+	FILE f2 = { 0 };
+	open(n, &f2, boot_fsd->super.root_dirent);
+	write(&f2, buffer, bptr - buffer + 1);
+	close(&f2);
 	return 0;
 }

@@ -29,8 +29,7 @@ static void initialize(void) {
 	init_threads();
 	init_queues();
 	init_heap();
-	//byte* imp = malloc_loaded_range(); /* QEMU loader injects at top of freelist. So we steal it asap. */
-	
+	byte* imp = malloc_loaded_range(); /* QEMU loader injects at top of freelist. So we steal it asap. */
 	// temporary fs behavior:
 	// create new ramdisk on boot (no persistence between boots)
 	// mount the lone ramdisk and set it as the boot_fsd
@@ -38,8 +37,8 @@ static void initialize(void) {
 	mkfs(BDEV_BLOCK_SIZE, BDEV_NUM_BLOCKS);
 	mount_fs(&reg_drives->drive, "/");
 	boot_fsd = reg_drives->drive.fsd;
-	//generic_importer(imp);
-	//free(imp); 
+	generic_importer(imp);
+	free(imp); 
 	init_pages();
 	init_interrupts();
 }
