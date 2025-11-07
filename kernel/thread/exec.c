@@ -57,35 +57,36 @@ int32_t exec(const char* program_name) {
 	memcpy(filename, program_name, base_len); /* Get full filename */
 	memcpy(filename + base_len, suffix, 5); /* Add suffix */
 
-	int32_t fd = open(filename, boot_fsd->super.root_dirent);
-	if (fd < 0) {
+	FILE f;
+	f.fd = (FD)-1;
+	open(filename, &f, boot_fsd->super.root_dirent);
+	if ((FD)-1 < 0) {
 		return -2;
 	}
 
-	uint32_t file_size = get_filesize(fd);
-	if (file_size == 0) {
-		close(fd);
+	if (f.inode.size == 0) {
+		close(&f);
 		kprintf("%s: file is empty\n", program_name);
 		return -1;
 	}
 
-	byte* buffer = malloc(file_size);
+	byte* buffer = malloc(f.inode.size);
 	if (buffer == NULL) {
-		close(fd);
+		close(&f);
 		kprintf("%s: insufficient memory\n", program_name);
 		return -1;
 	}
 
-	int32_t bytes_read = read(fd, buffer, file_size);
-	close(fd);
-	if (bytes_read < 0 || (uint32_t)bytes_read != file_size) {
+	int32_t bytes_read = read(&f, buffer, f.inode.size);
+	close(&f);
+	if (bytes_read < 0 || (uint32_t)bytes_read != f.inode.size) {
 		free(buffer);
 		kprintf("%s: failed to read image\n", program_name);
 		return -1;
 	}
 
 	const elf64_ehdr* hdr = (const elf64_ehdr*)buffer;
-	if (!is_supported_elf(hdr, file_size)) {
+	if (!is_supported_elf(hdr, f.inode.size)) {
 		free(buffer);
 		kprintf("%s: invalid ELF header\n", program_name);
 		return -1;
@@ -96,7 +97,7 @@ int32_t exec(const char* program_name) {
 
 	for (uint16_t i = 0; i < ph_count; ++i) {
 		if (ph_table[i].p_type != PT_LOAD) continue;
-		if (!validate_segment(&ph_table[i], file_size)) {
+		if (!validate_segment(&ph_table[i], f.inode.size)) {
 			free(buffer);
 			kprintf("%s: invalid program segment\n", program_name);
 			return -1;

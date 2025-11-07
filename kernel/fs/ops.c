@@ -11,12 +11,13 @@
  * returns - 'fs_read' should return the number of bytes read (either 'len' *
  *           or the  number of bytes  remaining in the file,  whichever is  *
  *           smaller).                                                      */
-uint32_t read(uint32_t fd, byte* buff, uint32_t len) {
-	if (fd >= OFT_MAX) return 0;
-	if (boot_fsd->oft[fd].state != OPEN || len == 0) return 0;
-	//if (boot_fsd->oft[fd].curr_index >= boot_fsd->oft[fd].inode.size) return 0;
-	uint32_t bytes_read = iread(boot_fsd->oft[fd].inode, buff, 0, len);
-	//boot_fsd->oft[fd].curr_index += bytes_read;
+uint32_t read(FILE* f, byte* buff, uint32_t len) {
+	if (f->fd >= OFT_MAX) return 0;
+	filetable_t* entry = &boot_fsd->oft[f->fd];
+	if (entry->state != OPEN || len == 0) return 0;
+	//if (entry->curr_index >= entry->inode.size) return 0;
+	uint32_t bytes_read = iread(*entry->inode, buff, 0, len);
+	//entry->curr_index += bytes_read;
 	return bytes_read;
 }
 
@@ -31,18 +32,14 @@ uint32_t read(uint32_t fd, byte* buff, uint32_t len) {
  *                                                                           *
  *  returns - 'fs_write' should return the number of bytes written to the    *
  *            file.                                                          */
-uint32_t write(uint32_t fd, byte* buff, uint32_t len) {
-	if (fd >= OFT_MAX) return 0;
-	if (boot_fsd->oft[fd].state != OPEN || len == 0) return 0;
-	uint32_t written = iwrite(&boot_fsd->oft[fd].inode, buff, 0, len);
-	//file->curr_index += written;
-	boot_fsd->oft[fd].in_dirty = true;
+uint32_t write(FILE* f, byte* buff, uint32_t len) {
+	if (f->fd >= OFT_MAX) return 0;
+	filetable_t* entry = &boot_fsd->oft[f->fd];
+	if (entry->state != OPEN || len == 0) return 0;
+	uint32_t written = iwrite(entry->inode, buff, 0, len);
+	//entry->curr_index += written;
+	entry->in_dirty = true;
 	return written;
-}
-
-/* Takes a file descriptor index into the 'oft' and returns that file's size for reading. */
-uint32_t get_filesize(uint32_t fd) {
-	return boot_fsd->oft[fd].inode.size;
 }
 
 /* Ensures that a block at a logical index actually exists, and if not *
@@ -202,7 +199,7 @@ int16_t dir_next(dir_iter_t* it, dirent_t* out) {
 	while (it->offset + sizeof(dirent_t) <= it->sz) {
 		if (iread(it->inode, (byte*)out, it->offset, sizeof(dirent_t)) != sizeof(dirent_t)) return -1;
 		it->offset += sizeof(dirent_t);
-		if (out->type == FREE) continue;
+		if (out->type == EN_FREE) continue;
 		return 1;
 	}
 	return 0;
@@ -212,7 +209,7 @@ int16_t dir_next(dir_iter_t* it, dirent_t* out) {
  * free slot it can find in that directory's inode blocks               *
  * Returns 0 on success, 1 if bad call, 2 if write error                */
 uint8_t dir_write_entry(dirent_t parent, dirent_t entry) {
-	if (parent.type != DIR) return 1;
+	if (parent.type != EN_DIR) return 1;
 	inode_t p_ino = get_inode(parent.inode);
 	uint32_t entries = p_ino.size / sizeof(dirent_t); /* Includes entries that were freed but not defragmented, will reuse free */
 	uint32_t free_offset = (uint32_t)-1; /* Sentinel value by default */
@@ -220,7 +217,7 @@ uint8_t dir_write_entry(dirent_t parent, dirent_t entry) {
 	/* Scan directory for free child and get its offset */
 	for (uint32_t i = 0; i < entries; ++i) {
 		if (iread(p_ino, (byte*)&child, i * sizeof(dirent_t), sizeof(dirent_t)) != sizeof(dirent_t)) continue;
-		if (child.type == FREE) { free_offset = i * sizeof(dirent_t); break; } /* Found an open slot in the allocated blocks */
+		if (child.type == EN_FREE) { free_offset = i * sizeof(dirent_t); break; } /* Found an open slot in the allocated blocks */
 	}
 	free_offset = free_offset == (uint32_t)-1 ? p_ino.size : free_offset;
 	if (iwrite(&p_ino, (byte*)&entry, free_offset, sizeof(dirent_t)) != sizeof(dirent_t)) return 2;

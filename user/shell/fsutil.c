@@ -1,11 +1,8 @@
 /* File contains definitions for all shell based filesystem utility commands. */
-#include <lib/bareio.h>
-#include <lib/barelib.h>
+#include <lib/io.h>
 #include <lib/string.h>
-#include <mm/malloc.h>
-#include <fs/fs.h>
 
-dirent_t cwd;
+directory_t cwd;
 
 /* 'redirect_file' handles writing the output of a program to a file *
  * when > is used in the shell.                                      */
@@ -16,16 +13,19 @@ byte redirect_file(char* arg, char* filename) {
 /* builtin_cat takes a file name and attempts to print its contents. *
  * It just assumes the files is in the current directory right now.  */
 byte builtin_cat(char* arg) {
-	if (strlen(arg) <= 4) { /* arg0 - "cat" w/ space */
-		kprintf("Nothing to cat\n");
+	if (strlen(arg) <= 1) {
+		printf("Nothing to cat\n");
 		return 0;
 	}
-	arg += 4; /* Jump past arg0. */
-	int16_t fd = open(arg, cwd);
-	if(fd == -1) {
-		kprintf("%s - File not found.\n", arg);
+
+	FD fd = fopen(arg);
+	if (fd == (FD)-1) {
+		printf("%s - File not found.\n", arg);
 		return 1;
 	}
+
+
+
 	uint32_t size = get_filesize(fd);
 	byte* buffer = malloc(size);
 	read(fd, buffer, size);

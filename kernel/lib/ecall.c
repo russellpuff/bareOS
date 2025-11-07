@@ -32,12 +32,12 @@ uint64_t ecall_close(uint32_t device, byte* options) {
 	return ecall2(ECALL_CLOSE, (uint64_t)device, (uint64_t)options);
 }
 
-uint64_t ecall_read(uint32_t device, byte* options, byte* buffer) {
-	return ecall3(ECALL_READ, (uint64_t)device, (uint64_t)options, (uint64_t)buffer);
+uint64_t ecall_read(uint32_t device, byte* options) {
+	return ecall2(ECALL_READ, (uint64_t)device, (uint64_t)options);
 }
 
-uint64_t ecall_write(uint32_t device, byte* options, byte* buffer) {
-	return ecall3(ECALL_WRITE, (uint64_t)device, (uint64_t)options, (uint64_t)buffer);
+uint64_t ecall_write(uint32_t device, byte* options) {
+	return ecall2(ECALL_WRITE, (uint64_t)device, (uint64_t)options);
 }
 
 uint64_t ecall_spawn(char* name, char* arg) {

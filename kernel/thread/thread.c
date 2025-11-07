@@ -145,6 +145,7 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen, thread_mode mode) 
 	thread_table[new_id].parent = current_thread;
 	thread_table[new_id].sem = create_sem(0);
 	thread_table[new_id].mode = mode;
+	thread_table[new_id].cwd = boot_fsd->super.root_dirent;
 
 	/* First thread means these were set to physical and have to be virtual after being loaded */
 	if (!MMU_ENABLED) {

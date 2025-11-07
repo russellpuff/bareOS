@@ -2,43 +2,40 @@
 #include <system/panic.h>
 #include <lib/string.h>
 
-#define MAX_CHILDREN 64 /* Arbitrary search limit for directory children */
-#define MAX_PATH_DEPTH 32 /* Arbitrary path depth limit for searching */
-#define MAX_PATH_LEN ((FILENAME_LEN * MAX_PATH_DEPTH) + MAX_PATH_DEPTH + 1) /* Enough for max depth count filenames plus '/' for each */
-
 /* Takes a dirent_t and a string buffer and populates the buffer with a full         *
  * path from the root to the entry                                                   *
  * Expects the buffer to be MAX_PATH_LEN in size, for now. Returns updated pointer   */
 char* dirent_path_expand(dirent_t this, char* buffer) {
 	if (buffer == NULL) return NULL;
+
 	if (boot_fsd->super.root_dirent.inode == this.inode) {
 		buffer[0] = '/';
 		buffer[1] = '\0';
 		return buffer;
 	}
+
+	/* Never emit "." or ".." in the output path */
+	if (!strcmp(this.name, "..")) {
+		inode_t temp = get_inode(this.inode);
+		this.inode = temp.parent; /* Normalize to parent inode */
+		this.type = EN_DIR;
+	}
+
 	buffer[MAX_PATH_LEN - 1] = '\0';
 	/* TODO: replace this with a stack when stacks are implemented */
-	uint16_t pos = MAX_PATH_LEN - 2; /* zero index position in buffer, leave space for null terminator */
-	while (1) {
-		dirent_t other;
-		dir_iter_t iter;
+	uint16_t pos = MAX_PATH_LEN - 1; /* points at '\0' */
+
+	while (this.inode != boot_fsd->super.root_dirent.inode) {
 		inode_t child = get_inode(this.inode);
-		dir_open(child.parent, &iter);
+		dir_iter_t iter;
+		if(dir_open(child.parent, &iter) != 0) return NULL;
+		dirent_t other;
 		bool found = false;
+
 		while (dir_next(&iter, &other) == 1) {
+			/* Ignore dot entries */
 			if (!strcmp(other.name, ".") || !strcmp(other.name, "..")) continue;
-			if (this.inode == other.inode) {
-				found = true;
-				uint32_t len = strlen(other.name);
-				pos = pos - len + 1;
-				memcpy(buffer + pos, other.name, len);
-				if (boot_fsd->super.root_dirent.inode != other.inode) {
-					pos -= 1;
-					buffer[pos] = '/';
-				}
-				this.inode = child.parent;
-				break;
-			}
+			if (this.inode == other.inode) { found = true; break; }
 		}
 		if (!found) {
 			char* msg = "Filesystem corruption detected. No handler exists to recover from this.\n"
@@ -47,9 +44,14 @@ char* dirent_path_expand(dirent_t this, char* buffer) {
 			panic(msg, this.inode, this.name, child.parent);
 		}
 		dir_close(&iter);
-		if (boot_fsd->super.root_dirent.inode == this.inode) break;
+
+		uint32_t len = strlen(other.name);
+		pos -= len;
+		memcpy(buffer + pos, other.name, len);
+		buffer[--pos] = '/';
+		this.inode = child.parent;
 	}
-	return buffer + pos;
+	return (pos == MAX_PATH_LEN - 2) ? buffer : (buffer + pos);
 }
 
 /* Scans a directory if a child by a specified name exists *
@@ -57,7 +59,7 @@ char* dirent_path_expand(dirent_t this, char* buffer) {
  * to the child if exists                                  */
 bool dir_child_exists(dirent_t parent, const char* name, dirent_t* out) {
 	if (name == NULL) return false;
-	if (parent.type != DIR) return false;
+	if (parent.type != EN_DIR) return false;
 	dir_iter_t it;
 	dir_open(parent.inode, &it);
 	dirent_t child;
@@ -90,7 +92,7 @@ bool dir_child_exists(dirent_t parent, const char* name, dirent_t* out) {
  * 1 = bad call, 2 = part of the path doesn't exist (double slashes fault   *
  * here), 3 = a part of the path that wasn't the target was a file, 4 =     *
  * full path or component was too long                                      */
-uint8_t resolve_dir(const char* path, const dirent_t* cwd, dirent_t* out) {
+uint8_t resolve_dir(const char* path, const dirent_t cwd, dirent_t* out) {
 	if (path == NULL || *path == '\0') return 1; /* Invalid call */
 	if (strlen(path) > MAX_PATH_LEN) return 4; /* Path too long */
 
@@ -101,10 +103,7 @@ uint8_t resolve_dir(const char* path, const dirent_t* cwd, dirent_t* out) {
 		iter = boot_fsd->super.root_dirent;
 		p++; /* Skip leading slash */
 	}
-	else {
-		if (!cwd) return 1; /* Invalid call */
-		iter = *cwd;
-	}
+	else iter = cwd;
 
 	while (*p != '\0') {
 		const char* r = p;
@@ -133,13 +132,13 @@ uint8_t resolve_dir(const char* path, const dirent_t* cwd, dirent_t* out) {
 
 		if (*r == '/') {
 			if (r[1] == '/') return 2; /* // in path */
-			if (iter.type != DIR) return 3; /* Part of the path was a file */
+			if (iter.type != EN_DIR) return 3; /* Part of the path was a file */
 			p = r + 1;
 			continue;
 		}
 
 		/* Final component reached, if it's a file, resolve its parent */
-		if (iter.type != DIR) iter = parent;
+		if (iter.type != EN_DIR) iter = parent;
 	}
 
 	memcpy(out, &iter, sizeof(dirent_t));

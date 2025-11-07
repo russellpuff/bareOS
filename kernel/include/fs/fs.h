@@ -41,15 +41,14 @@ byte write_inode(inode_t, uint16_t); /* Write an in-memory inode to the table */
 inode_t get_inode(uint16_t);        /* Get a live copy of the inode at index */
 
 int32_t create(const char*, dirent_t);                    /* Create a file and save it to the block device */
-int32_t open(const char*, dirent_t);                      /* Open a file                                   */
-int32_t close(int32_t);                   /* Close a file                                  */
+int32_t open(const char*, FILE*, dirent_t);                      /* Open a file                                   */
+int32_t close(FILE*);                   /* Close a file                                  */
 uint32_t iread(inode_t, byte*, uint32_t, uint32_t);
 uint32_t iwrite(inode_t*, byte*, uint32_t, uint32_t); /* Write to an inode's blocks         */
-uint32_t write(uint32_t, byte*, uint32_t); /* Write to a file                               */
-uint32_t read(uint32_t, byte*, uint32_t);    /* Read from file                                */
-uint32_t get_filesize(uint32_t);          /* Quick size lookup                             */
+uint32_t write(FILE*, byte*, uint32_t); /* Write to a file                               */
+uint32_t read(FILE*, byte*, uint32_t);    /* Read from file                                */
 int8_t mk_dir(const char*, dirent_t, dirent_t*);         /* Create an empty directory                     */
-uint8_t resolve_dir(const char*, const dirent_t*, dirent_t*); /* Resolves the lowest directory from a path     */
+uint8_t resolve_dir(const char*, const dirent_t, dirent_t*); /* Resolves the lowest directory from a path     */
 uint8_t path_to_name(const char*, char*);
 int16_t index_to_block(inode_t, uint32_t);
 int16_t dir_next(dir_iter_t*, dirent_t*);

@@ -9,6 +9,7 @@
 #include <system/panic.h>
 #include <mm/vm.h>
 #include <mm/malloc.h>
+#include <fs/fs.h>
 
 #define SYSCON_ADDR 0x100000
 #define SYSCON_SHUTDOWN 0x5555
@@ -26,36 +27,6 @@ void handle_syscall(uint64_t* frame) {
 	int32_t table_size = sizeof(syscall_table) / sizeof(uint32_t(*)(void));
 	if (signum < table_size)
 		syscall_table[signum](&handle_syscall);
-}
-
-static uint32_t uart_dev_read(byte* options, byte* buffer) {
-	io_dev_opts* req = (io_dev_opts*)options;
-	if (buffer == NULL || req->length == 0) return 0;
-	return get_line((char*)buffer, req->length);
-}
-
-static uint32_t handle_ecall_read(uint32_t device, byte* options, byte* buffer) {
-	switch (device) {
-		case UART_DEV_NUM: return uart_dev_read(options, buffer);
-		case DISK_DEV_NUM: return 0;
-	}
-	return 0;
-}
-
-static void uart_dev_write(byte* options, byte* buffer) {
-	io_dev_opts* req = (io_dev_opts*)options;
-	byte* buff = malloc(req->length + 1);
-	memcpy(buff, buffer, req->length);
-	buff[req->length] = '\0';
-	kprintf((char*)buff);
-	free(buff);
-}
-
-static void handle_ecall_write(uint32_t device, byte* options, byte* buffer) {
-	switch (device) {
-		case UART_DEV_NUM: uart_dev_write(options, buffer);
-		case DISK_DEV_NUM: return;
-	}
 }
 
 static byte handle_ecall_spawn(char* name, char* arg) {
@@ -97,10 +68,12 @@ void handle_ecall(uint64_t* frame_data, uint64_t call_id) {
 		case ECALL_GDEV: break;
 		case ECALL_PWOFF: handle_ecall_pwoff(); break;
 		case ECALL_RBOOT: handle_ecall_rboot(); break;
-		case ECALL_OPEN: break;
-		case ECALL_CLOSE: break;
-		case ECALL_READ: result = handle_ecall_read((uint32_t)tf->a0, (byte*)tf->a1, (byte*)tf->a2); break;
-		case ECALL_WRITE: handle_ecall_write((uint32_t)tf->a0, (byte*)tf->a1, (byte*)tf->a2); break;
+		case ECALL_OPEN:
+		case ECALL_CLOSE:
+		case ECALL_READ:
+		case ECALL_WRITE:
+			result = handle_device_ecall((ecall_number)call_id, (uint32_t)tf->a0, (byte*)tf->a1);
+			break;
 		case ECALL_SPAWN: result = handle_ecall_spawn((char*)tf->a0, (char*)tf->a1); break;
 		case ECALL_EXIT: /* Currently assumes a supervisor process didn't call this. They have their own exit strategy. */
 			if (thread_table[current_thread].mode == MODE_U) user_thread_exit(tf);

@@ -3,6 +3,7 @@
 
 #include <lib/barelib.h>
 #include <system/semaphore.h>
+#include <fs/fs.h>
 
 typedef enum {
 	MODE_S,
@@ -62,6 +63,7 @@ typedef struct {
 	context* ctx;       /* Pointer to context living in kstack                                     */
 	char* argptr;       /* Holds the arg to the process this thread runs with                      */
 	thread_mode mode;   /* Determines whether a thread is running in supervisor or user mode       */
+	dirent_t cwd;       /* Holds the process current working directory                             */
 } thread_t;
 
 extern thread_t thread_table[];

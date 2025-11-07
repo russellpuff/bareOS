@@ -9,7 +9,7 @@
 #define MAX_ARG0_SIZE 128
 #define DIGITS(n) ((n) < 10 ? 1 : ((n) < 100 ? 2 : 3)) /* Swift way of discerning the char size of retval. */
 
-//dirent_t cwd;
+directory_t cwd;
 
 command_t builtin_commands[] = {
 	{ "hello", (function_t)builtin_hello },
@@ -39,8 +39,9 @@ function_t get_command(const char* name) {
  */
 int main(void) {
 	byte last_retval = 0;
+	cwd.path = "/";
 	while (1) {
-		printf("[%u] &x%s&0", last_retval, PROMPT);
+		printf("&x%s&0:&b%s&0$", PROMPT, cwd.path);
 		char line[LINE_SIZE];
 		gets(line, LINE_SIZE);
 

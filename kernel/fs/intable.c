@@ -15,9 +15,9 @@ uint16_t in_find_free(void) {
 		inode_t* block = (inode_t*)get_block(boot_fsd->super.intable_blocks[blk_idx]);
 		for (byte in = 0; in < IN_PER_BLOCK; ++in) {
 			inode_t* inode = &block[in];
-			if (inode->type == FREE) { /* A previously-freed or zeroed-out block should work here. */
+			if (inode->type == EN_FREE) { /* A previously-freed or zeroed-out block should work here. */
 				memset((byte*)inode, 0, sizeof(inode_t));
-				inode->type = BUSY; /* Prevent theft. */
+				inode->type = EN_BUSY; /* Prevent theft. */
 				return ((uint16_t)blk_idx * IN_PER_BLOCK) + in;
 			}
 		}
@@ -31,7 +31,7 @@ uint16_t in_find_free(void) {
 		boot_fsd->super.intable_blocks[boot_fsd->super.intable_numblks++] = blk_idx;
 		inode_t* block = (inode_t*)get_block(blk_idx);
 		memset((byte*)block, 0, boot_fsd->device->block_size); /* Zero whole block in case of leftover junk. */
-		block->type = BUSY; /* Prevent theft. */
+		block->type = EN_BUSY; /* Prevent theft. */
 		write_super();
 		return ((uint16_t)boot_fsd->super.intable_numblks - 1) * IN_PER_BLOCK;
 	}

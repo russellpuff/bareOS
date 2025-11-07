@@ -53,15 +53,16 @@ byte generic_importer(byte* ptr) {
 			if(name[j] == '\0') { ptr += (FILENAME_LEN - j - 1); break; }
 		}
 		/* Write to fd */
-		uint16_t size = bytes_to_u32(ptr);
+		uint32_t size = bytes_to_u32(ptr);
 		ptr += 4;
 		if(create(name, boot_fsd->super.root_dirent) == -1) {
 			status = -1;
 			break;
 		}
-		uint32_t fd = open(name, boot_fsd->super.root_dirent);
-		write(fd, ptr, size);
-		close(fd);
+		FILE* f = { 0 };
+		open(name, f, boot_fsd->super.root_dirent);
+		write(f, ptr, size);
+		close(f);
 		ksprintf(bptr, "Importer wrote %s (%u bytes).\n", name, size);
 		bptr = run_to_nc(bptr);
 		ptr += size;
@@ -73,8 +74,9 @@ byte generic_importer(byte* ptr) {
 	
 	char n[] = "importer.log\0";
 	create(n, boot_fsd->super.root_dirent);
-	uint32_t nfd = open(n, boot_fsd->super.root_dirent);
-	write(nfd, buffer, bptr - buffer + 1);
-	close(nfd);
+	FILE* f2 = { 0 };
+	open(n, f2, boot_fsd->super.root_dirent);
+	write(f2, buffer, bptr - buffer + 1);
+	close(f2);
 	return 0;
 }

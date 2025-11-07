@@ -83,10 +83,12 @@ static void root_thread(void) {
 	resume_thread(idle_tid);
 	uint32_t reaper_tid = create_thread(&reaper, "", 0, MODE_S);
 	resume_thread(reaper_tid);
-	int32_t f = open("shell.elf", boot_fsd->super.root_dirent);
-	if (f < 0)
+	FILE f;
+	f.fd = (FD)-1;
+	open("shell.elf", &f, boot_fsd->super.root_dirent);
+	if (f.fd == (FD)-1)
 		panic("Fatal: no shell to run on boot.\n");
-	close(f);
+	close(&f);
 	ecall_spawn("shell", NULL);
 }
 

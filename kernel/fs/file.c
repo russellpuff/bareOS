@@ -10,7 +10,7 @@ int32_t create(const char* path, dirent_t cwd) {
 	if (path == NULL) return -1; /* Invalid path */
 
 	dirent_t parent;
-	uint8_t res = resolve_dir(path, &cwd, &parent);
+	uint8_t res = resolve_dir(path, cwd, &parent);
 	/* TODO: log the reason or something idk */
 	if (res != 0) return -1; /* Invalid path */
 
@@ -32,7 +32,7 @@ int32_t create(const char* path, dirent_t cwd) {
 	if (entry.inode == IN_ERR) return -4; /* Error creating entry */
 	inode_t inode;
 	memset(&inode, 0, sizeof(inode_t));
-	inode.type = FILE;
+	inode.type = EN_FILE;
 	inode.parent = parent.inode;
 	inode.size = 0;
 	inode.modified = 0;
@@ -41,9 +41,9 @@ int32_t create(const char* path, dirent_t cwd) {
 	inode.head = allocate_block();
 	if (inode.head == FAT_BAD) {
 		memset(&inode, 0, sizeof(inode_t));
-		inode.type = FREE;
+		inode.type = EN_FREE;
 		write_inode(inode, entry.inode);
-		return -3; /* Error creating entry */
+		return -4; /* Error creating entry */
 	}
 	write_inode(inode, entry.inode);
 
@@ -57,11 +57,11 @@ int32_t create(const char* path, dirent_t cwd) {
  * file does not exist in the target directory, return an error.        *
  * otherwise find a free slot in the fsd's open file table and init for *
  * further operations on the file. Return an fd (index to oft)          */
-int32_t open(const char* path, dirent_t cwd) {
+int32_t open(const char* path, FILE* f, dirent_t cwd) {
 	if (path == NULL) return -1;
 	
 	dirent_t parent;
-	uint8_t res = resolve_dir(path, &cwd, &parent);
+	uint8_t res = resolve_dir(path, cwd, &parent);
 	/* TODO: log the reason or something idk */
 	if (res != 0) return -1; /* Invalid path */
 
@@ -71,40 +71,47 @@ int32_t open(const char* path, dirent_t cwd) {
 
 	dirent_t file;
 	if (!dir_child_exists(parent, filename, &file)) return -3; /* File doesn't exist */
-	if (file.type == DIR) return -4; /* File is a directory */
+	if (file.type == EN_DIR) return -4; /* File is a directory */
 
 	uint8_t fd = (uint8_t)-1;
 	for (uint8_t i = 0; i < OFT_MAX; ++i) {
 		if (boot_fsd->oft[i].state == CLOSED) fd = i;
 	}
 	if (fd == (uint8_t)-1) return -5; /* oft error */
-	
-	boot_fsd->oft[fd].state = OPEN;
-	boot_fsd->oft[fd].mode = RDWR; /* TODO: open options */
-	boot_fsd->oft[fd].inode = get_inode(file.inode);
-	boot_fsd->oft[fd].in_index = file.inode;
-	boot_fsd->oft[fd].in_dirty = false;
-	boot_fsd->oft[fd].curr_index = 0;
 
-	return fd;
+	filetable_t* entry = &boot_fsd->oft[fd];
+	
+	entry->state = OPEN;
+	entry->mode = RDWR; /* TODO: open options */
+	entry->in_index = file.inode;
+	entry->in_dirty = false;
+	entry->curr_index = 0;
+
+	f->inode = get_inode(file.inode);
+	f->fd = fd;
+	entry->inode = &f->inode;
+
+	return 0;
 }
 
 /* Takes an index into the oft and closes the file in the table. *
  * Finishes up by writing the inode back to the inode table and  *
  * any other cleanup work required.                              */
-int32_t close(int32_t fd) {
-	if (fd < 0 || fd >= OFT_MAX) return -1;
-	if (boot_fsd->oft[fd].state != OPEN) return -1;
+int32_t close(FILE* f) {
+	if (f->fd < 0 || f->fd >= OFT_MAX) return -1;
 
-	if (boot_fsd->oft[fd].in_dirty) {
-		write_inode(boot_fsd->oft[fd].inode, boot_fsd->oft[fd].in_index);
+	filetable_t* entry = &boot_fsd->oft[f->fd];
+	if (entry->state != OPEN) return -1;
+
+	if (entry->in_dirty) {
+		write_inode(*entry->inode, entry->in_index);
 	}
 
-	boot_fsd->oft[fd].state = CLOSED;
-	boot_fsd->oft[fd].mode = RD_ONLY;
-	boot_fsd->oft[fd].in_dirty = false;
-	boot_fsd->oft[fd].curr_index = 0;
-	memset(&boot_fsd->oft[fd].inode, 0, sizeof(inode_t));
+	entry->state = CLOSED;
+	entry->mode = RD_ONLY;
+	entry->in_dirty = false;
+	entry->curr_index = 0;
+	memset(entry->inode, 0, sizeof(inode_t));
 
 	return 0;
 }
@@ -115,7 +122,7 @@ dirent_t get_dot_entry(uint16_t inode, const char* name) {
 	uint32_t len = strlen(name);
 	memcpy(dot.name, name, len);
 	dot.name[len] = '\0';
-	dot.type = DIR;
+	dot.type = EN_DIR;
 	return dot;
 }
 
@@ -123,16 +130,16 @@ int8_t mk_dir(const char* path, dirent_t cwd, dirent_t* out) {
 	if (path == NULL || out == NULL) return -1;
 	
 	dirent_t parent;
-	uint8_t res = resolve_dir(path, &cwd, &parent);
+	uint8_t res = resolve_dir(path, cwd, &parent);
 	/* TODO: log the reason or something idk */
 	if (res != 0) return -1; /* Invalid path */
 
 	char dir_name[FILENAME_LEN];
 	res = path_to_name(path, dir_name);
-	if (res != 2) return -2; /* Invalid directory name */
+	if (res != 1 && res != 2) return -2; /* Invalid directory name */
 	if (strcmp(dir_name, parent.name)) return -3; /* Directory exists, resolve_dir resolved the preexisting target dir */
 
-	out->type = DIR;
+	out->type = EN_DIR;
 	out->inode = in_find_free();
 	uint32_t len = strlen(dir_name);
 	memcpy(out->name, dir_name, len);
@@ -143,9 +150,9 @@ int8_t mk_dir(const char* path, dirent_t cwd, dirent_t* out) {
 	inode.head = allocate_block();
 	if (inode.head == FAT_BAD) {
 		memset(&inode, 0, sizeof(inode_t));
-		inode.type = FREE;
+		inode.type = EN_FREE;
 		write_inode(inode, out->inode);
-		return -3; /* Error creating entry */
+		return -4; /* Error creating entry */
 	}
 
 	/* Make default subdirectories */
@@ -165,7 +172,7 @@ int8_t mk_dir(const char* path, dirent_t cwd, dirent_t* out) {
 byte dir_open(uint16_t inode_idx, dir_iter_t* it) {
 	if (it == NULL) return 1;
 	inode_t inode = get_inode(inode_idx);
-	if (inode.type != DIR) return 1;
+	if (inode.type != EN_DIR) return 1;
 	it->inode = inode;
 	it->in_idx = inode_idx;
 	it->offset = 0;

@@ -1,0 +1,209 @@
+#include <fs/fs.h>
+#include <lib/ecall.h>
+#include <lib/string.h>
+#include <mm/malloc.h>
+#include <lib/bareio.h>
+#include <system/thread.h>
+
+/* Copied from io.h because my life is in shambles. I mean no unified source yet. */
+typedef enum {
+	FILE_CREATE,
+	FILE_OPEN,
+	FILE_READ,
+	FILE_WRITE,
+	FILE_TRUNCATE,
+	DIR_CREATE,
+	DIR_OPEN,
+	DIR_READ,
+	DIR_WRITE,
+	DIR_TRUNCATE,
+} DISKMODE;
+
+/* Options for io ecall optsuest */
+typedef struct {
+	byte* buffer;
+	uint32_t length;
+} uart_dev_opts;
+
+/* Options for disk ecall optsuest */
+typedef struct {
+	DISKMODE mode;
+	FILE* file;
+	byte* buff_in;
+	byte* buff_out;
+	uint32_t length;
+} disk_dev_opts;
+
+//
+// Open handlers
+//
+
+/* Called by: 
+		fopen()
+		fcreate()
+		mkdir()
+		getdir()
+*/
+static uint32_t disk_dev_open(byte* options) {
+	disk_dev_opts* opts = (disk_dev_opts*)options;
+	switch (opts->mode) {
+		case FILE_OPEN:
+			return (uint32_t)open((const char*)opts->buff_in, opts->file, thread_table[current_thread].cwd);
+		case FILE_CREATE:
+			return (uint32_t)create((const char*)opts->buff_in, thread_table[current_thread].cwd);
+		case DIR_CREATE:
+			return (uint32_t)mk_dir((const char*)opts->buff_in, thread_table[current_thread].cwd, (dirent_t*)opts->buff_out);
+		case DIR_OPEN: /* Poorly named alias for fetching a directory and possibly switching cwd to it */
+			directory_t* target = (directory_t*)opts->buff_out;
+			bool chdir = *(bool*)opts->buff_in;
+			const char* path = (const char*)opts->buff_in + sizeof(bool);
+			uint8_t status = resolve_dir(path, thread_table[current_thread].cwd, &target->dir);
+			if (status != 0) return status;
+			if (target->dir.type != EN_DIR) return 3;
+			char dirname[FILENAME_LEN];
+			status = path_to_name(path, dirname);
+			if (status != 1 && status != 2) return status;
+			if (strcmp(target->dir.name, dirname) && chdir) { /* If directory is different and we want to change it. */
+				char temp[MAX_PATH_LEN];
+				memset(temp, '\0', MAX_PATH_LEN);
+				char* pos = dirent_path_expand(target->dir, target->path);
+				uint32_t l = strlen(pos);
+				memset(target->path, '\0', MAX_PATH_LEN);
+				memcpy(target->path, pos, l);
+				thread_table[current_thread].cwd = target->dir;
+			}
+			return 0;
+		default: break;
+	}
+	return (uint32_t)-1;
+}
+
+static uint32_t handle_ecall_open(uint32_t device, byte* options) {
+	switch (device) {
+		case UART_DEV_NUM: return (uint32_t)-1;
+		case DISK_DEV_NUM: return disk_dev_open(options);
+		default: break;
+	}
+	return 0;
+}
+
+//
+// Close handlers
+//
+
+/* Called by:
+		fclose()
+*/
+static uint32_t disk_dev_close(byte* options) {
+	disk_dev_opts* opts = (disk_dev_opts*)options;
+	return close(opts->file);
+	return (uint32_t)-1;
+}
+
+static uint32_t handle_ecall_close(uint32_t device, byte* options) {
+	switch (device) {
+		case UART_DEV_NUM: return (uint32_t)-1;
+		case DISK_DEV_NUM: return disk_dev_close(options);
+		default: break;
+	}
+	return 0;
+}
+
+//
+// Read handlers
+//
+
+/* Called by:
+		fread()
+		readdir()
+*/
+static uint32_t disk_dev_read(byte* options) {
+	disk_dev_opts* opts = (disk_dev_opts*)options;
+	switch (opts->mode) {
+		case FILE_READ: return read(opts->file, opts->buff_out, opts->length);
+		case DIR_READ:
+			if (opts->length == 0) return 0;
+			dirent_t parent;
+			uint8_t status = resolve_dir((const char*)opts->buff_in, thread_table[current_thread].cwd, &parent);
+			if (status != 0) return status;
+			if (parent.type != EN_DIR) return 3;
+			char dirname[FILENAME_LEN];
+			status = path_to_name((const char*)opts->buff_in, dirname);
+			if (status != 1 && status != 2) return status;
+			if (strcmp(dirname, parent.name)) return 2;
+
+			dir_iter_t iter;
+			dirent_t* children = (dirent_t*)opts->buff_out;
+			dir_open(parent.inode, &iter);
+			uint32_t count = 0;
+			for (; count <= opts->length && dir_next(&iter, children) == 1; ++count, ++children);
+			return count;
+		default: break;
+	}
+	return (uint32_t)-1;
+}
+
+static uint32_t uart_dev_read(byte* options) {
+	uart_dev_opts* opts = (uart_dev_opts*)options;
+	if (opts->buffer == NULL || opts->length == 0) return 0;
+	return get_line((char*)opts->buffer, opts->length);
+}
+
+static uint32_t handle_ecall_read(uint32_t device, byte* options) {
+	switch (device) {
+		case UART_DEV_NUM: return uart_dev_read(options);
+		case DISK_DEV_NUM: return disk_dev_read(options);
+		default: break;
+	}
+	return 0;
+}
+
+//
+// Write handlers
+//
+
+/* Called by:
+		fwrite()
+*/
+static uint32_t disk_dev_write(byte* options) {
+	disk_dev_opts* opts = (disk_dev_opts*)options;
+	switch (opts->mode) {
+		case FILE_WRITE: return write(opts->file, opts->buff_in, opts->length);
+		default: break;
+	}
+	return (uint32_t)-1;
+}
+
+static uint32_t uart_dev_write(byte* options) {
+	uart_dev_opts* opts = (uart_dev_opts*)options;
+	byte* buff = malloc(opts->length + 1);
+	memcpy(buff, opts->buffer, opts->length);
+	buff[opts->length] = '\0';
+	kprintf((char*)buff);
+	free(buff);
+	return 0;
+}
+
+static uint32_t handle_ecall_write(uint32_t device, byte* options) {
+	switch (device) {
+		case UART_DEV_NUM: return uart_dev_write(options);
+		case DISK_DEV_NUM: return disk_dev_write(options);
+		default: break;
+	}
+	return (uint32_t)-1;
+}
+
+//
+// Entry point
+//
+
+uint32_t handle_device_ecall(ecall_number id, uint32_t device, byte* options) {
+	switch (id) {
+		case ECALL_OPEN: return handle_ecall_open(device, options);
+		case ECALL_CLOSE: return handle_ecall_close(device, options);
+		case ECALL_READ: return handle_ecall_read(device, options);
+		case ECALL_WRITE: return handle_ecall_write(device, options);
+		default: break;
+	}
+	return (uint32_t)-1;
+}

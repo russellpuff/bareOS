@@ -51,7 +51,7 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
 	dirent_t* root = &boot_fsd->super.root_dirent;
 	root->name[0] = '/';
 	root->name[1] = '\0';
-	root->type = DIR;
+	root->type = EN_DIR;
 	root->inode = in_find_free();
 	inode_t rino;
 	rino.head = allocate_block();
