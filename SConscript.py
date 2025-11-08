@@ -156,6 +156,12 @@ if "debug" in COMMAND_LINE_TARGETS:
 	env['qflags'] += f" -S -gdb tcp::{env['port']}"
 
 def run_qemu(target, source, env):
+	if "no-shell" not in COMMAND_LINE_TARGETS:
+		load_dir = Dir('#/load').abspath
+		shell_path = os.path.join(load_dir, 'shell.elf')
+		if not os.path.isdir(load_dir) or not os.path.isfile(shell_path):
+			error(1, "[Error] Missing load/shell.elf; you probably need to build the shell (try `scons build shell` from the user/ directory).")
+
 	# This has to happen immediately prior to QEMU spinup so the helper can read the memmap.
 	load_flags = prepare_generic_loader(env)
 	print(env['qflags'])
@@ -164,7 +170,7 @@ def run_qemu(target, source, env):
 		print(load_flags)
 
 	args = [env['QEMU'], '-kernel', str(source[0])] + env['qflags'].split()
-	if "debug" not in COMMAND_LINE_TARGETS:
+	if "debug" not in COMMAND_LINE_TARGETS: # When not debugging, clear the build output before running
 		subprocess.run("clear", shell=True, check=True)
 	return subprocess.call(args)
 
