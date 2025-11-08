@@ -12,7 +12,6 @@
 directory_t cwd;
 
 command_t builtin_commands[] = {
-	{ "hello", (function_t)builtin_hello },
 	{ "echo", (function_t)builtin_echo },
 	{ "cat", (function_t)builtin_cat },
 	{ "shutdown", (function_t)builtin_shutdown },

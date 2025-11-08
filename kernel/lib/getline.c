@@ -26,7 +26,7 @@ uint32_t get_line(char* buffer, uint32_t size) {
 				if (a == '[') {
 					while (1) {
 						a = (uint8_t)getc();
-						if (a >= 0x40 && a <= 0x7E) break;
+						if (a >= 0x40 && a <= 0x7E) break; /* End of ANSI sequence */
 					}
 				}
 				else if (a == 'O') { (void)getc(); }
