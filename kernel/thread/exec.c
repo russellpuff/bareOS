@@ -60,7 +60,7 @@ int32_t exec(const char* program_name) {
 	FILE f;
 	f.fd = (FD)-1;
 	open(filename, &f, boot_fsd->super.root_dirent);
-	if ((FD)-1 < 0) {
+	if (f.fd == (FD)-1) {
 		return -2;
 	}
 

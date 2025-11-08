@@ -54,12 +54,15 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
 	root->type = EN_DIR;
 	root->inode = in_find_free();
 	inode_t rino;
+	memset(&rino, 0, sizeof(rino));
+	rino.parent = root->inode;
+	rino.type = EN_DIR;
 	rino.head = allocate_block();
+	write_inode(rino, root->inode);
 	dirent_t self_dot = get_dot_entry(root->inode, ".");
 	dirent_t parent_dot = get_dot_entry(root->inode, "..");
 	dir_write_entry(*root, self_dot);
 	dir_write_entry(*root, parent_dot);
-	write_inode(rino, root->inode);
 
 	/* Write super to the super block. It will be restored to the real fsd if this blank *
 	 * filesystem is mounted by the user                                                 */

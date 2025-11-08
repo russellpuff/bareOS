@@ -54,24 +54,25 @@ static void display_welcome(void) {
 		(uint64_t)&mem_start,
 		(uint64_t)(&mem_end - &mem_start));
 	
-	///* Janky way of detecting importer status on boot. */
-	//char sentinel[] = "Importer finished with no errors.";
-	//int16_t fd = open("importer.log");
-	//uint16_t BUFFER_SIZE = 1024;
-	//char buffer[BUFFER_SIZE];
-	//memset(buffer, '\0', BUFFER_SIZE);
-	//read(fd, buffer, BUFFER_SIZE);
-	//close(fd);
-	//byte ok = 0;
-	//for (char *p = buffer; *p; ++p) { 
-	//	const char *s = p, *t = sentinel;
-	//	while (*t && *s == *t) { ++s; ++t; }
-	//	if (*t == '\0') { ok = 1; break; }  // matched full sentinel
-	//}
-	//const char *result = ok 
-	//	? "The importer finished successfully." 
-	//	: "The importer ran into an error.";
-	//kprintf("%s Check importer.log for more details.\n\n", result);
+	/* Janky way of detecting importer status on boot. */
+	char sentinel[] = "Importer finished with no errors.";
+	FILE f;
+	open("importer.log", &f, boot_fsd->super.root_dirent);
+	uint16_t BUFFER_SIZE = 1024;
+	char buffer[BUFFER_SIZE];
+	memset(buffer, '\0', BUFFER_SIZE);
+	read(&f, (byte*)buffer, BUFFER_SIZE);
+	close(&f);
+	byte ok = 0;
+	for (char *p = buffer; *p; ++p) { 
+		const char *s = p, *t = sentinel;
+		while (*t && *s == *t) { ++s; ++t; }
+		if (*t == '\0') { ok = 1; break; }  // matched full sentinel
+	}
+	const char *result = ok 
+		? "The importer finished successfully." 
+		: "The importer ran into an error.";
+	kprintf("%s Check importer.log for more details.\n\n", result);
 }
 
 static void sys_idle() { while (1); }

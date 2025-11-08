@@ -39,10 +39,11 @@ function_t get_command(const char* name) {
  */
 int32_t main(void) {
 	byte last_retval = 0;
-	cwd.path[0] = '/';
-	cwd.path[1] = '\0';
+	*cwd.path = '\0';
+	builtin_cd("/");
+
 	while (1) {
-		printf("&x%s&0:&b%s&0$", PROMPT, cwd.path);
+		printf("&x%s&0:&b%s&0$ ", PROMPT, cwd.path);
 		char line[LINE_SIZE];
 		gets(line, LINE_SIZE);
 
@@ -58,8 +59,10 @@ int32_t main(void) {
 		/* Replace line placeholders with enviornment variables. */
 		byte chSz = DIGITS(last_retval);
 		char prompt[LINE_SIZE + 64]; /* Arbitrary extra space. */
-		char* l_ptr = line;
+		char* l_ptr = line + ctr;
+		while (*l_ptr == ' ') ++l_ptr; /* Advance past whitespace and clean up */
 		char* p_ptr = prompt;
+		*p_ptr = '\0';
 		while (*l_ptr != '\0') {
 			if (*l_ptr == '$' && *(l_ptr + 1) == '?') {
 				sprintf((byte*)p_ptr, "%u", last_retval);
@@ -69,7 +72,6 @@ int32_t main(void) {
 			else *p_ptr++ = *l_ptr++;
 		}
 		*p_ptr = '\0';
-		//uint64_t prompt_len = (uint64_t)(p_ptr - prompt + 1);
 
 		function_t func = get_command(arg0);
 		if(func) { last_retval = func(prompt); } 

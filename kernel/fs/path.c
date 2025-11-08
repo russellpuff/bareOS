@@ -93,8 +93,13 @@ bool dir_child_exists(dirent_t parent, const char* name, dirent_t* out) {
  * here), 3 = a part of the path that wasn't the target was a file, 4 =     *
  * full path or component was too long                                      */
 uint8_t resolve_dir(const char* path, const dirent_t cwd, dirent_t* out) {
-	if (path == NULL || *path == '\0') return 1; /* Invalid call */
+	if (path == NULL) return 1; /* Invalid call */
 	if (strlen(path) > MAX_PATH_LEN) return 4; /* Path too long */
+
+	if (*path == '\0') {
+		memcpy(out, &cwd, sizeof(dirent_t));
+		return 0;
+	}
 
 	const char* p = path;
 	dirent_t iter;
@@ -138,7 +143,10 @@ uint8_t resolve_dir(const char* path, const dirent_t cwd, dirent_t* out) {
 		}
 
 		/* Final component reached, if it's a file, resolve its parent */
-		if (iter.type != EN_DIR) iter = parent;
+		if (iter.type != EN_DIR) {
+			iter = parent;
+			break;
+		}
 	}
 
 	memcpy(out, &iter, sizeof(dirent_t));
@@ -148,7 +156,7 @@ uint8_t resolve_dir(const char* path, const dirent_t cwd, dirent_t* out) {
 /* Takes a path and populates a buffer with its predicted name       *
  * Return code can be used to help guess what kind of path this is   *
  * 0 = error, 1 = directory, 2 = file (or dir without '/'), 3 = root *
- * 'buffer' will not be populated when returning 0 or 3              *
+ * 4 = cwd, 'buffer' will not be populated when returning 0, 3, or 4 *
  *                                                                   *
  * This is for finding target name for API calls like open & mkdir,  *
  * so the caller must decide how to handle 2 based on context        *
@@ -166,7 +174,7 @@ uint8_t path_to_name(const char* path, char* buffer) {
 	if (path == NULL || buffer == NULL || path == buffer) return 0;
 	uint64_t len = strlen(path);
 
-	if (len == 0) return 0;
+	if (len == 0 || !strcmp(path, ".")) return 4;
 	/* We don't populate the buffer because the caller will either treat  *
 	 * this like an error, or have a unique handler for when the root is  *
 	 * targeted here. Either way, everything knows the root's name.       */

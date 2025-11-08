@@ -26,6 +26,7 @@ int32_t create(const char* path, dirent_t cwd) {
 	uint32_t len = strlen(filename);
 	memcpy(entry.name, filename, len);
 	entry.name[len] = '\0';
+	entry.type = EN_FILE;
 
 	/* Create inode */
 	entry.inode = in_find_free();
@@ -111,7 +112,7 @@ int32_t close(FILE* f) {
 	entry->mode = RD_ONLY;
 	entry->in_dirty = false;
 	entry->curr_index = 0;
-	memset(entry->inode, 0, sizeof(inode_t));
+	entry->inode = NULL;
 
 	return 0;
 }
@@ -137,15 +138,19 @@ int8_t mk_dir(const char* path, dirent_t cwd, dirent_t* out) {
 	char dir_name[FILENAME_LEN];
 	res = path_to_name(path, dir_name);
 	if (res != 1 && res != 2) return -2; /* Invalid directory name */
-	if (strcmp(dir_name, parent.name)) return -3; /* Directory exists, resolve_dir resolved the preexisting target dir */
+	if (!strcmp(dir_name, parent.name)) return -3; /* Directory exists, resolve_dir resolved the preexisting target dir */
 
 	out->type = EN_DIR;
 	out->inode = in_find_free();
+	if (out->inode == IN_ERR) return -4; /* Error creating entry */
 	uint32_t len = strlen(dir_name);
 	memcpy(out->name, dir_name, len);
 	out->name[len] = '\0';
 
 	inode_t inode;
+	memset(&inode, 0, sizeof(inode));
+	inode.type = EN_DIR;
+	inode.parent = parent.inode;
 	/* Allocate inode block */
 	inode.head = allocate_block();
 	if (inode.head == FAT_BAD) {
@@ -154,6 +159,7 @@ int8_t mk_dir(const char* path, dirent_t cwd, dirent_t* out) {
 		write_inode(inode, out->inode);
 		return -4; /* Error creating entry */
 	}
+	write_inode(inode, out->inode);
 
 	/* Make default subdirectories */
 	dirent_t self_dot = get_dot_entry(out->inode, ".");
@@ -163,8 +169,6 @@ int8_t mk_dir(const char* path, dirent_t cwd, dirent_t* out) {
 
 	/* Write dirent to parent if self isn't parent. */
 	if (out->inode != parent.inode) dir_write_entry(parent, *out);
-
-	write_inode(inode, out->inode);
 
 	return 0;
 }

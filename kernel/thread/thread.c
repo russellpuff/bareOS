@@ -49,22 +49,24 @@ void landing_pad(void) {
  *  It ensures  that setup is performed  before the function  is called and  *
  *  cleanup is performed after it completes.                                 */
 void wrapper(byte(*proc)(char*)) {
-	char* arg = thread_table[current_thread].argptr;
-	thread_table[current_thread].retval = proc(arg);  /*  Call the thread's entry point function and store the result on return */
-	thread_table[current_thread].state = TH_ZOMBIE;
-	if(thread_table[current_thread].argptr != NULL) free(thread_table[current_thread].argptr);
-	thread_table[current_thread].argptr = NULL;
+	thread_t* thread = &thread_table[current_thread];
+	char* arg = thread->argptr;
+	thread->retval = proc(arg);  /*  Call the thread's entry point function and store the result on return */
+	thread->state = TH_ZOMBIE;
+	if(thread->argptr != NULL) free(thread->argptr);
+	thread->argptr = NULL;
 	enqueue_thread(&reap_list, current_thread);
 	wait_for_reaper();
 }
 
 /* user_thread_exit is a jump point after a user process sends an ecall to exit */
 void user_thread_exit(trapframe* tf) {
-	thread_table[current_thread].retval = (byte)(tf->a0 & 0xFF);
-	thread_table[current_thread].state = TH_ZOMBIE;
-	if (thread_table[current_thread].argptr != NULL) {
-		free(thread_table[current_thread].argptr);
-		thread_table[current_thread].argptr = NULL;
+	thread_t* thread = &thread_table[current_thread];
+	thread->retval = (byte)(tf->a0 & 0xFF);
+	thread->state = TH_ZOMBIE;
+	if (thread->argptr != NULL) {
+		free(thread->argptr);
+		thread->argptr = NULL;
 	}
 	enqueue_thread(&reap_list, current_thread);
 	tf->sstatus |= SSTATUS_SPP | SSTATUS_SPIE;
@@ -85,6 +87,7 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen, thread_mode mode) 
 	if (new_id == NTHREADS) {
 		panic("No free thread entries in the thread table for this new thread. No handler exists to wait for one to become free.\n");
 	}
+	thread_t* thread = &thread_table[new_id];
 
 	/* Allocate per-thread address space for VM */
 	uint64_t root_ppn = alloc_page(new_id);
@@ -97,18 +100,18 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen, thread_mode mode) 
 	}
 	
 	if (arglen > 0) {
-		thread_table[new_id].argptr = malloc(arglen);
-		if (thread_table[new_id].argptr == NULL) {
+		thread->argptr = malloc(arglen);
+		if (thread->argptr == NULL) {
 			panic("Couldn't malloc enough space for the new thread's arg.\n");
 		}
-		memcpy(thread_table[new_id].argptr, arg, arglen);
+		memcpy(thread->argptr, arg, arglen);
 	}
 	else {
-		thread_table[new_id].argptr = NULL;
+		thread->argptr = NULL;
 	}
 
 	/* Layout: [ kernel stack � ][ trapframe ][ context ][TOP] */
-	byte* ktop = thread_table[new_id].kstack_top; /* Virtual if MMU on, physical if MMU off */
+	byte* ktop = thread->kstack_top; /* Virtual if MMU on, physical if MMU off */
 	if (ktop == NULL) {
 		panic("kstack top pointer is null\n");
 	}
@@ -135,22 +138,22 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen, thread_mode mode) 
 	tf->sp = STACK_BASE + STACK_SIZE - 0x20;
 	
 	/* Publish into thread record */
-	thread_table[new_id].tf = tf;
-	thread_table[new_id].ctx = ctx;
-	thread_table[new_id].stackptr = (uint64_t*)ktop;
-	thread_table[new_id].root_ppn = root_ppn;
-	thread_table[new_id].asid = next_asid++;
-	thread_table[new_id].state = TH_SUSPEND;
-	thread_table[new_id].priority = 0;
-	thread_table[new_id].parent = current_thread;
-	thread_table[new_id].sem = create_sem(0);
-	thread_table[new_id].mode = mode;
-	thread_table[new_id].cwd = boot_fsd->super.root_dirent;
+	thread->tf = tf;
+	thread->ctx = ctx;
+	thread->stackptr = (uint64_t*)ktop;
+	thread->root_ppn = root_ppn;
+	thread->asid = next_asid++;
+	thread->state = TH_SUSPEND;
+	thread->priority = 0;
+	thread->parent = current_thread;
+	thread->sem = create_sem(0);
+	thread->mode = mode;
+	thread->cwd = boot_fsd->super.root_dirent;
 
 	/* First thread means these were set to physical and have to be virtual after being loaded */
 	if (!MMU_ENABLED) {
-		thread_table[new_id].kstack_base += KVM_BASE;
-		thread_table[new_id].kstack_top += KVM_BASE;
+		thread->kstack_base += KVM_BASE;
+		thread->kstack_top += KVM_BASE;
 	}
 	
 	return new_id;
@@ -160,16 +163,17 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen, thread_mode mode) 
  *  mark  the thread  as TH_FREE  and return its  `retval`.   Otherwise  *
  *  raise RESCHED and loop to check again later.                         */
 int32_t join_thread(uint32_t threadid) {
-	if (threadid >= NTHREADS || thread_table[threadid].state == TH_FREE) {
+	thread_t* thread = &thread_table[threadid];
+	if (threadid >= NTHREADS || thread->state == TH_FREE) {
 		return -1;
 	}
 
-	if (thread_table[threadid].state != TH_DEFUNCT) {
-		wait_sem(&thread_table[threadid].sem);
+	if (thread->state != TH_DEFUNCT) {
+		wait_sem(&thread->sem);
 	}
 
-	thread_table[threadid].state = TH_FREE;
-	return thread_table[threadid].retval;
+	thread->state = TH_FREE;
+	return thread->retval;
 }
 
 /* Takes an index into the thread table and marks the thread as defunct and *
@@ -178,31 +182,32 @@ int32_t join_thread(uint32_t threadid) {
  * their context is swapped from for the last time. So there's no possible  *
  * chance of context corruption from freeing pages                          */
 int32_t kill_thread(uint32_t thread_id) {
-	if (thread_id >= NTHREADS || thread_table[thread_id].state == TH_FREE) /*                                                             */
+	thread_t* thread = &thread_table[thread_id];
+	if (thread_id >= NTHREADS || thread->state == TH_FREE) /*                                                             */
 		return -1;                                                       /*  Return if the requested thread is invalid or already free  */
 
 	/* TODO: This is lousy and unsafe. Doesn't properly reap anything. */
 	/* Actually don't do this at all, this kills the idle and shell when root is reaped LOL 
 	
 	for (uint32_t i = 0; i < NTHREADS; ++i) {
-		if (thread_table[i].parent == threadid) {
-			thread_table[i].state = TH_FREE;
+		if (thread->parent == threadid) {
+			thread->state = TH_FREE;
 		}
 	}
 	*/
 	/* Free in case of premature kill */
-	if (thread_table[thread_id].argptr != NULL) {
-		free(thread_table[thread_id].argptr);
-		thread_table[thread_id].argptr = NULL;
+	if (thread->argptr != NULL) {
+		free(thread->argptr);
+		thread->argptr = NULL;
 	}
 
-	if (thread_table[thread_id].root_ppn != kernel_root_ppn) {
+	if (thread->root_ppn != kernel_root_ppn) {
 		free_process_pages(thread_id);   /*  Free pages associated with thread     */
 	}
-	thread_table[thread_id].root_ppn = NULL;
-	post_sem(&thread_table[thread_id].sem); /* Notify waiting threads. */
-	free_sem(&thread_table[thread_id].sem); /* Calls resched after dumping children. */
+	thread->root_ppn = NULL;
+	post_sem(&thread->sem); /* Notify waiting threads. */
+	free_sem(&thread->sem); /* Calls resched after dumping children. */
 
-	thread_table[thread_id].state = TH_DEFUNCT;         /*  Set the thread's state to TH_DEFUNCT  */
+	thread->state = TH_DEFUNCT;         /*  Set the thread's state to TH_DEFUNCT  */
 	return 0;
 }

@@ -5,6 +5,8 @@
 #include <lib/bareio.h>
 #include <system/thread.h>
 
+thread_t* proc;
+
 /* Copied from io.h because my life is in shambles. I mean no unified source yet. */
 typedef enum {
 	FILE_CREATE,
@@ -48,29 +50,35 @@ static uint32_t disk_dev_open(byte* options) {
 	disk_dev_opts* opts = (disk_dev_opts*)options;
 	switch (opts->mode) {
 		case FILE_OPEN:
-			return (uint32_t)open((const char*)opts->buff_in, opts->file, thread_table[current_thread].cwd);
+			return (uint32_t)open((const char*)opts->buff_in, opts->file, proc->cwd);
 		case FILE_CREATE:
-			return (uint32_t)create((const char*)opts->buff_in, thread_table[current_thread].cwd);
+			return (uint32_t)create((const char*)opts->buff_in, proc->cwd);
 		case DIR_CREATE:
-			return (uint32_t)mk_dir((const char*)opts->buff_in, thread_table[current_thread].cwd, (dirent_t*)opts->buff_out);
+			return (uint32_t)mk_dir((const char*)opts->buff_in, proc->cwd, (dirent_t*)opts->buff_out);
 		case DIR_OPEN: /* Poorly named alias for fetching a directory and possibly switching cwd to it */
 			directory_t* target = (directory_t*)opts->buff_out;
 			bool chdir = *(bool*)opts->buff_in;
 			const char* path = (const char*)opts->buff_in + sizeof(bool);
-			uint8_t status = resolve_dir(path, thread_table[current_thread].cwd, &target->dir);
+			uint8_t status = resolve_dir(path, proc->cwd, &target->dir);
 			if (status != 0) return status;
 			if (target->dir.type != EN_DIR) return 3;
 			char dirname[FILENAME_LEN];
 			status = path_to_name(path, dirname);
-			if (status != 1 && status != 2) return status;
-			if (strcmp(target->dir.name, dirname) && chdir) { /* If directory is different and we want to change it. */
-				char temp[MAX_PATH_LEN];
-				memset(temp, '\0', MAX_PATH_LEN);
+			if (status == 3 || status == 4) {
+				target->dir = status == 3 ? boot_fsd->super.root_dirent : thread_table[current_thread].cwd;
+				uint32_t len = status == 3 ? 1 : sizeof(thread_table[current_thread].cwd.name);
+				char* ref = status == 3 ? boot_fsd->super.root_dirent.name : thread_table[current_thread].cwd.name;
+				memcpy(dirname, ref, len);
+				ref[len] = '\0';
+			}
+			if (status == 0) return 1;
+
+			/* New processes spawn with a directory_t with a blank path... until default cd, allow that to populate */
+			if ((strcmp(target->dir.name, dirname) || *target->path == '\0') && chdir) { /* If directory is different and we want to change it. */
 				char* pos = dirent_path_expand(target->dir, target->path);
-				uint32_t l = strlen(pos);
-				memset(target->path, '\0', MAX_PATH_LEN);
+				uint32_t l = strlen(pos) + 1;
 				memcpy(target->path, pos, l);
-				thread_table[current_thread].cwd = target->dir;
+				proc->cwd = target->dir;
 			}
 			return 0;
 		default: break;
@@ -124,19 +132,22 @@ static uint32_t disk_dev_read(byte* options) {
 		case DIR_READ:
 			if (opts->length == 0) return 0;
 			dirent_t parent;
-			uint8_t status = resolve_dir((const char*)opts->buff_in, thread_table[current_thread].cwd, &parent);
+			uint8_t status = resolve_dir((const char*)opts->buff_in, proc->cwd, &parent);
 			if (status != 0) return status;
 			if (parent.type != EN_DIR) return 3;
+
 			char dirname[FILENAME_LEN];
 			status = path_to_name((const char*)opts->buff_in, dirname);
-			if (status != 1 && status != 2) return status;
-			if (strcmp(dirname, parent.name)) return 2;
-
+			if (status == 0) return 1;
+			if (status == 3) parent = boot_fsd->super.root_dirent;
+			if (status == 4) parent = thread_table[current_thread].cwd;
+			if ((status == 1 || status == 2) && strcmp(dirname, parent.name)) return 2;
+			
 			dir_iter_t iter;
 			dirent_t* children = (dirent_t*)opts->buff_out;
 			dir_open(parent.inode, &iter);
 			uint32_t count = 0;
-			for (; count <= opts->length && dir_next(&iter, children) == 1; ++count, ++children);
+			for (; count < opts->length && dir_next(&iter, children) == 1; ++count, ++children);
 			return count;
 		default: break;
 	}
@@ -198,6 +209,7 @@ static uint32_t handle_ecall_write(uint32_t device, byte* options) {
 //
 
 uint32_t handle_device_ecall(ecall_number id, uint32_t device, byte* options) {
+	proc = &thread_table[current_thread];
 	switch (id) {
 		case ECALL_OPEN: return handle_ecall_open(device, options);
 		case ECALL_CLOSE: return handle_ecall_close(device, options);

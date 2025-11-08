@@ -11,7 +11,7 @@
 byte builtin_echo(char* arg) {
   const uint32_t LINE_SIZE = 1024;
   uint32_t char_cnt = 0;
-  if(strlen(arg) <= 5) {  /* arg0 - "echo" w/ space */
+  if(strlen(arg) == 0) { 
 	while(1) { 
 	  char line[LINE_SIZE]; 
 	  char_cnt += gets(line, LINE_SIZE);
@@ -19,7 +19,6 @@ byte builtin_echo(char* arg) {
 	  printf("%s\n", line);
 	}
   } else {
-	arg += 5;
 	printf("%s\n", arg);
   }
   return (byte)char_cnt;
