@@ -83,6 +83,13 @@ static void root_thread(void) {
 	resume_thread(idle_tid);
 	uint32_t reaper_tid = create_thread(&reaper, "", 0, MODE_S);
 	resume_thread(reaper_tid);
+
+	/* When true, echoes all keyboard input but strips nonprint 
+	   When false, filters and discards unhandled nonprint without echo
+	   Preferred false unless you need to test something. 
+	 */
+	RAW_GETLINE = false; 
+
 	FILE f;
 	f.fd = (FD)-1;
 	open("shell.elf", &f, boot_fsd->super.root_dirent);

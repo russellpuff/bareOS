@@ -18,4 +18,6 @@ void vkrprintf(const char*, va_list);
 void kuprintf(const char*, uint32_t);
 uint32_t get_line(char*, uint32_t);
 
+extern bool RAW_GETLINE;
+
 #endif

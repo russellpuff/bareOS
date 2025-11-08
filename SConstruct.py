@@ -17,7 +17,7 @@ Commands:
   run
 	usage: scons run [debug] [no-shell]
   build
-    usage: scons build
+	usage: scons build
 
 """)
 
