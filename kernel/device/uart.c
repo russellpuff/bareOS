@@ -49,17 +49,7 @@ char putc(char ch) {
 }
 
 char getc(void) {
-  char ch = tty_getc(); /*  Fetch next char from TTY ring buffer      */
-  if(ch == '\r') {
-	tty_putc('\r');
-	tty_putc('\n');
-	return '\n'; /* Replace CR with newline */
-  } else if(ch == '\b' || ch == 0x7f) {
-	return '\b'; /* Don't put a backspace, caller handles processing this. */
-  } else {
-	tty_putc(ch);
-	return ch;
-  }
+  return tty_getc(); /*  Fetch next char from TTY ring buffer      */
 }
 
 /*  This function is used to enable or disable interrupt generation on the NS16550  *

@@ -13,13 +13,29 @@ uint32_t get_line(char* buffer, uint32_t size) {
 		switch(ch) {
 			case '\r':
 			case '\n':
+				putc('\r');
+				putc('\n');
 				*ptr = '\0';
 				return (uint32_t)(ptr - buffer);
 			case '\b':
 			case 0x7f:
 				if (ptr > buffer) { tty_bkspc(); --ptr; }
 				break;
-			default: /* TODO: handle nonprint characters I don't want. */
+			case 0x1b: /* Kill pesky ANSI sequence junk */
+				uint8_t a = (uint8_t)getc();
+				if (a == '[') {
+					while (1) {
+						a = (uint8_t)getc();
+						if (a >= 0x40 && a <= 0x7E) break;
+					}
+				}
+				else if (a == 'O') { (void)getc(); }
+				else {
+					/* Handle future ESC x sequences if necessary. If just ESC, it's gone. */
+				}
+			default:
+				if (ch < 0x20 || ch > 0x7E) break; /* Consume unspecified nonprint characters. */
+				putc(ch);
 				if (ptr < end) *ptr++ = ch;
 				break;
 		}
