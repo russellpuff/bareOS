@@ -152,8 +152,36 @@ def prepare_generic_loader(env):
 
 env.Alias("build", elf)
 # ----------------------  Virtualization  ----------------------------
-if "debug" in COMMAND_LINE_TARGETS:
-	env['qflags'] += f" -S -gdb tcp::{env['port']}"
+if "debug" in COMMAND_LINE_TARGETS or os.getenv("BAREOS_QEMU_DEBUG") == "1":
+		env['qflags'] += f" -S -gdb tcp::{env['port']}"
+
+# Provide a helper target for exporting the full QEMU flag set without
+# launching the emulator. This allows automated tooling to invoke QEMU
+# independently of SCons while still reusing the dynamically generated
+# loader arguments.
+def write_qemu_flags(target, source, env):
+	"""Write the QEMU command-line flags (including loader data) to a file.
+
+	Args:
+		target: The output file that will receive the generated flag string.
+		source: The bareOS ELF image that triggers loader preparation.
+		env: The active SCons construction environment.
+
+	Returns:
+		int: Zero on success so SCons treats the action as successful.
+	"""
+	load_flags = prepare_generic_loader(env)
+	flag_string = env['qflags']
+	if load_flags:
+		flag_string = f"{flag_string} {load_flags.strip()}"
+	with open(str(target[0]), 'w') as tf:
+		tf.write(flag_string.strip() + "\n")
+	print(flag_string.strip())
+	return 0
+
+qemu_flags_file = env.Command("#/.build/qemu_flags.txt", img_file, write_qemu_flags)
+env.Depends(qemu_flags_file, elf)
+env.Alias("qemu-flags", qemu_flags_file)
 
 def run_qemu(target, source, env):
 	if "no-shell" not in COMMAND_LINE_TARGETS:

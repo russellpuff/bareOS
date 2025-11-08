@@ -35,6 +35,12 @@ cd ..
 scons run                     # build and launch bareOS in QEMU
 ```
 
+If you are running in an automated testing environment, SCons can cause stdio related fuckery. 
+To fix this, just run the provided helper that automates a full rebuild and QEMU launch without SCons.
+```sh
+./run_os.sh [--debug]
+```
+
 Use the `shutdown` command inside bareOS to exit QEMU. Clean build artifacts with:
 
 ```sh

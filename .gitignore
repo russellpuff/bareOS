@@ -14,3 +14,4 @@ user/build/
 .msfile
 kernel/include/system/version.h
 !/user/*.sh
+!run_os.sh
