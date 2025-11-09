@@ -10,6 +10,7 @@
 #include <mm/malloc.h>
 #include <mm/vm.h>
 #include <device/tty.h>
+#include <device/rtc.h>
 #include <fs/fs.h>
 #include <fs/importer.h>
 
@@ -39,14 +40,19 @@ static void initialize(void) {
 	boot_fsd = reg_drives->drive.fsd;
 	generic_importer(imp);
 	free(imp); 
+	init_rtc();
 	init_pages();
 	init_interrupts();
 }
 
 /* This function displays the welcome screen when the system and shell boot. */
 static void display_welcome(void) {
+	datetime now = rtc_read_datetime();
+	char time[TIME_BUFF_SZ];
+	dt_to_string(now, time, TIME_BUFF_SZ);
+
 	kprintf("Welcome to bareOS alpha%d-%d.%d.%d (qemu-system-riscv64)\n\n", VERSION_ALPHA, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-	kprintf("  Kernel information as of Who Knows When\n\n");
+	kprintf("  Kernel information as of %s\n\n", time);
 	kprintf("  Kernel start: %x\n  Kernel size: %d\n  Globals start: %x\n  Heap/Stack start: %x\n  Free Memory Available: %d\n\n",
 		(uint64_t)&text_start,
 		(uint64_t)(&data_start - &text_start),
