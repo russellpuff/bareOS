@@ -79,9 +79,9 @@ int8_t fopen(const char*, FILE*);
 int8_t fclose(FILE*);
 uint32_t fread(FILE*, byte*, uint32_t);
 uint32_t fwrite(FILE*, byte*, uint32_t);
-//void fdelete();
+int8_t fdelete(const char*);
 int8_t mkdir(const char*);
-//void rmdir();
+int8_t rmdir(const char*);
 int8_t rddir(const char*, dirent_t*, uint32_t);
 int8_t getdir(const char*, directory_t*, bool);
 

@@ -193,3 +193,135 @@ void dir_close(dir_iter_t* it) {
 	if (it == NULL) return;
 	memset(it, 0, sizeof(*it));
 }
+
+/* Helper removes a dirent_t from a parent directory by overwriting 
+   the matching slot with a tombstone entry. */
+static int8_t dir_remove_entry(dirent_t parent, dirent_t target) {
+	if (parent.type != EN_DIR) return -1; /* Parent isn't a directory */
+
+	dir_iter_t it;
+	if (dir_open(parent.inode, &it) != 0) return -1; /* Couldn't open directory */
+
+	dirent_t entry;
+	while (dir_next(&it, &entry) == 1) {
+		if (entry.inode != target.inode) continue;
+		if (strcmp(entry.name, target.name)) continue;
+
+		uint32_t offset = it.offset - sizeof(dirent_t);
+		dirent_t tombstone;
+		memset(&tombstone, 0, sizeof(tombstone));
+		tombstone.type = EN_FREE;
+
+		inode_t parent_inode = get_inode(parent.inode);
+		if (iwrite(&parent_inode, (byte*)&tombstone, offset, sizeof(dirent_t)) != sizeof(dirent_t)) {
+			dir_close(&it);
+			return -2; /* Failed to write to parent inode blocks */
+		}
+		write_inode(parent_inode, parent.inode);
+		dir_close(&it);
+		return 0;
+	}
+
+	dir_close(&it);
+	return -3; /* Failed to find child */
+}
+
+/* Helper releases all FAT blocks owned by an inode, clears the block usage bit, and marks the
+ * inode table entry as free so the inode can be reused later. */
+static void inode_release(uint16_t inode_idx) {
+	inode_t inode = get_inode(inode_idx);
+	int16_t block = inode.head;
+	while (block >= 0) {
+		int16_t next = fat_get(block);
+		bm_clear(block);
+		fat_set(block, FAT_FREE);
+		if (next == FAT_END) break;
+		block = next;
+	}
+
+	memset(&inode, 0, sizeof(inode));
+	inode.type = EN_FREE;
+	inode.head = IN_ERR;
+	inode.parent = IN_ERR;
+	write_inode(inode, inode_idx);
+}
+
+/* Delete an empty directory */
+int32_t rm_dir(const char* path, dirent_t cwd) {
+	if (path == NULL) return -1;
+
+	dirent_t container;
+	uint8_t status = resolve_dir(path, cwd, &container);
+	if (status != 0) return -1; /* Invalid path */
+
+	char dirname[FILENAME_LEN];
+	status = path_to_name(path, dirname);
+	if (status == 0) return -2; /* Invalid directory name */
+	if (status == 3) return -3; /* Root directory is immutable */
+	if (status == 4 || status == 5) return -2; /* Dot entries not valid targets */
+
+	dirent_t parent = container;
+	dirent_t target;
+	bool found = dir_child_exists(parent, dirname, &target);
+	if (!found) {
+		if (parent.type == EN_DIR && !strcmp(parent.name, dirname)) {
+			target = parent;
+			inode_t inode = get_inode(target.inode);
+			if (inode.parent == target.inode) return -3; /* Root directory */
+			memset(&parent, 0, sizeof(parent));
+			parent.type = EN_DIR;
+			parent.inode = inode.parent;
+		}
+		else {
+			return -4; /* Directory missing */
+		}
+	}
+
+	if (target.type != EN_DIR) return -5; /* Target is not a directory */
+	if (!strcmp(target.name, ".") || !strcmp(target.name, "..")) return -2; /* Reject dot entries */
+
+	dir_iter_t it;
+	if (dir_open(target.inode, &it) != 0) return -7; /* Unable to read directory */
+
+	dirent_t entry;
+	while (dir_next(&it, &entry) == 1) {
+		if (!strcmp(entry.name, ".") || !strcmp(entry.name, "..")) continue;
+		dir_close(&it);
+		return -6; /* Directory not empty */
+	}
+	dir_close(&it);
+
+	if (dir_remove_entry(parent, target) != 0) return -7; /* Could not update parent */
+
+	inode_release(target.inode);
+	return 0;
+}
+
+/* Delete a file. In the future it'll remove links until non remain and then delete it */
+int32_t unlink(const char* path, dirent_t cwd) {
+	if (path == NULL) return -1;
+
+	dirent_t parent;
+	uint8_t status = resolve_dir(path, cwd, &parent);
+	if (status != 0) return -1; /* Invalid path */
+
+	char filename[FILENAME_LEN];
+	status = path_to_name(path, filename);
+	if (status != 2) return -2; /* Invalid filename */
+
+	dirent_t target;
+	if (!dir_child_exists(parent, filename, &target)) {
+		if (parent.type == EN_DIR && !strcmp(parent.name, filename)) return -4; /* Directory targeted */
+		return -3; /* Target missing */
+	}
+	if (target.type != EN_FILE) return -4; /* Target not a file */
+
+	for (uint8_t i = 0; i < OFT_MAX; ++i) {
+		if (boot_fsd->oft[i].state == OPEN && boot_fsd->oft[i].in_index == target.inode) return -5; /* File is open */
+	}
+
+	if (dir_remove_entry(parent, target) != 0) return -6; /* Could not update parent */
+
+	inode_release(target.inode);
+	return 0;
+}

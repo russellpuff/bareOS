@@ -19,6 +19,8 @@ byte builtin_clear(char*);
 byte builtin_ls(char*);
 byte builtin_cd(char*);
 byte builtin_mkdir(char*);
+byte builtin_rm(char*);
+byte builtin_rmdir(char*);
 function_t get_command(const char* name);
 
 extern command_t builtin_commands[];

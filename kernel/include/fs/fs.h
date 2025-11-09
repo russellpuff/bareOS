@@ -47,7 +47,9 @@ uint32_t iread(inode_t, byte*, uint32_t, uint32_t);
 uint32_t iwrite(inode_t*, byte*, uint32_t, uint32_t); /* Write to an inode's blocks         */
 uint32_t write(FILE*, byte*, uint32_t); /* Write to a file                               */
 uint32_t read(FILE*, byte*, uint32_t);    /* Read from file                                */
+int32_t unlink(const char*, dirent_t); /* Delete a file */
 int8_t mk_dir(const char*, dirent_t, dirent_t*);         /* Create an empty directory                     */
+int32_t rm_dir(const char*, dirent_t);
 uint8_t resolve_dir(const char*, const dirent_t, dirent_t*); /* Resolves the lowest directory from a path     */
 uint8_t path_to_name(const char*, char*);
 int16_t index_to_block(inode_t, uint32_t);

@@ -105,8 +105,15 @@ uint32_t fwrite(FILE* file, byte* buffer, uint32_t len) {
 	return ecall_write(DISK_DEV_NUM, (byte*)&options);
 }
 
-void fdelete() {
-	
+/* Deletes a file at path */
+int8_t fdelete(const char* path) {
+	disk_dev_opts options;
+	options.file = NULL;
+	options.mode = FILE_TRUNCATE;
+	options.buff_in = (byte*)path;
+	options.buff_out = NULL;
+	options.length = 0;
+	return (int8_t)ecall_write(DISK_DEV_NUM, (byte*)&options);
 }
 
 /* Creates a new directory at path */
@@ -121,9 +128,16 @@ int8_t mkdir(const char* path) {
 	return ecall_open(DISK_DEV_NUM, (byte*)&options);
 }
 
-//int8_t rmdir() {
-//	// unimplemented
-//}
+/* Deletes an empty directory at path */
+int8_t rmdir(const char* path) {
+	disk_dev_opts options;
+	options.file = NULL;
+	options.mode = DIR_TRUNCATE;
+	options.buff_in = (byte*)path;
+	options.buff_out = NULL;
+	options.length = 0;
+	return (int8_t)ecall_write(DISK_DEV_NUM, (byte*)&options);
+}
 
 /* Function requires an array of dirent_t to hold the response
    The 'count' field is the maximum number of children the array can hold */

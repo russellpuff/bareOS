@@ -21,6 +21,8 @@ command_t builtin_commands[] = {
 	{ "cd", (function_t)builtin_cd },
 	{ "mkdir", (function_t)builtin_mkdir },
 	{ "print", (function_t)builtin_print },
+	{ "rm", (function_t)builtin_rm },
+	{ "rmdir", (function_t)builtin_rmdir },
 	{ NULL, NULL }
 };
 

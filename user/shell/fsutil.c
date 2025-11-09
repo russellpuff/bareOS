@@ -43,7 +43,7 @@ byte builtin_cd(char* arg) {
 	directory_t old = cwd;
 	uint8_t status = getdir(arg, &cwd, true);
 	if(status != 0) {
-		printf("failed to change directory: %u\n", status);
+		printf("Error - failed to change directory\n");
 		cwd = old;
 		return status;
 	}
@@ -63,7 +63,8 @@ byte builtin_mkdir(char* arg) {
 			case -4: reason = "allocation failure"; break;
 		default: break;
 		}
-		printf("mkdir failed (%d): %s\n", code, reason);
+		printf("Error - %s\n", reason);
+		return code * -1; /* this sucks lol */
 	}
 	return 0;
 }
@@ -80,7 +81,10 @@ byte builtin_mkdir(char* arg) {
    Will overwrite an existing file in its entirety. 
 */
 byte builtin_print(char* arg) {
-	if (!arg || *arg == '\0') return 1;
+	if (!arg || *arg == '\0') {
+		printf("Error - path required\n");
+		return 1;
+	}
 	char* sep = (char*)strrchr(arg, '>');
 	if (!sep) {
 		printf("Error - No separator\n");
@@ -135,5 +139,58 @@ byte builtin_print(char* arg) {
 	}
 
 	fclose(&f);
+	return 0;
+}
+
+byte builtin_rm(char* arg) {
+	if (arg == NULL || *arg == '\0') {
+		printf("Error - path required\n");
+		return 1;
+	}
+
+	int8_t status = fdelete(arg);
+	if (status != 0) {
+		int32_t code = status;
+		if (code > 127) code -= 256;
+		const char* reason = "unknown error";
+		switch (code) {
+			case -1: reason = "invalid path"; break;
+			case -2: reason = "invalid file name"; break;
+			case -3: reason = "file not found"; break;
+			case -4: reason = "target is a directory"; break;
+			case -5: reason = "file is open"; break;
+			case -6: reason = "filesystem error"; break;
+		default: break;
+		}
+		printf("Error - %s\n", reason);
+		return code * -1; /* lousy */
+	}
+	return 0;
+}
+
+byte builtin_rmdir(char* arg) {
+	if (arg == NULL || *arg == '\0') {
+		printf("Error - path required\n");
+		return 1;
+	}
+
+	int8_t status = rmdir(arg);
+	if (status != 0) {
+		int32_t code = status;
+		if (code > 127) code -= 256;
+		const char* reason = "unknown error";
+		switch (code) {
+		case -1: reason = "invalid path"; break;
+		case -2: reason = "invalid directory name"; break;
+		case -3: reason = "cannot remove root"; break;
+		case -4: reason = "directory not found"; break;
+		case -5: reason = "target is not a directory"; break;
+		case -6: reason = "directory not empty"; break;
+		case -7: reason = "filesystem error"; break;
+		default: break;
+		}
+		printf("Error - %s\n", reason);
+		return code * -1;
+	}
 	return 0;
 }
