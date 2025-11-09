@@ -74,6 +74,10 @@ int32_t open(const char* path, FILE* f, dirent_t cwd) {
 	if (!dir_child_exists(parent, filename, &file)) return -3; /* File doesn't exist */
 	if (file.type == EN_DIR) return -4; /* File is a directory */
 
+	for (uint8_t i = 0; i < OFT_MAX; ++i) {
+		if (boot_fsd->oft[i].state == OPEN && boot_fsd->oft[i].in_index == file.inode) return -5; /* File in use by other process */
+	}
+
 	uint8_t fd = (uint8_t)-1;
 	for (uint8_t i = 0; i < OFT_MAX; ++i) {
 		if (boot_fsd->oft[i].state == CLOSED) fd = i;

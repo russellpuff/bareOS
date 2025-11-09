@@ -105,9 +105,9 @@ uint32_t fwrite(FILE* file, byte* buffer, uint32_t len) {
 	return ecall_write(DISK_DEV_NUM, (byte*)&options);
 }
 
-//void fdelete() {
-//	// unimplemented
-//}
+void fdelete() {
+	
+}
 
 /* Creates a new directory at path */
 int8_t mkdir(const char* path) {

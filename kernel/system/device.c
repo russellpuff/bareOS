@@ -189,11 +189,23 @@ static uint32_t handle_ecall_read(uint32_t device, byte* options) {
 
 /* Called by:
 		fwrite()
+		fdelete()
+		rmdir()
 */
 static uint32_t disk_dev_write(byte* options) {
 	disk_dev_opts* opts = (disk_dev_opts*)options;
 	switch (opts->mode) {
 		case FILE_WRITE: return write(opts->file, opts->buff_in, opts->length);
+		case FILE_TRUNCATE:
+			if (opts->length == 0) { /* Delete the file */
+
+			}
+			// No method exists to properly truncate files, don't call this yet.
+			return 0;
+		case DIR_TRUNCATE:
+			if (opts->length == 0) { /* Delete the directory */
+				// dir can only be deleted if empty, no -f exists
+			}
 		default: break;
 	}
 	return (uint32_t)-1;
