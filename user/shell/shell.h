@@ -11,7 +11,7 @@ typedef struct {
 } command_t;
 
 byte builtin_echo(char*);
-byte builtin_hello(char*);
+byte builtin_print(char*);
 byte builtin_cat(char*);
 byte builtin_shutdown(char*);
 byte builtin_reboot(char*);

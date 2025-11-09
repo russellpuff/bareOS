@@ -1,5 +1,7 @@
 #!/bin/sh
 # Helper script to rebuild bareOS and launch QEMU using the generated loader flags.
+# Used when a testing environment becomes corrupt due to the scons layer between stdin and QEMU
+# Also usable as a quick and dirty full-rebuild-and-run
 set -eu
 
 usage() {

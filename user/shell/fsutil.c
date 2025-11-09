@@ -67,3 +67,73 @@ byte builtin_mkdir(char* arg) {
 	}
 	return 0;
 }
+
+/* This test function is meant to replicate behavior observed in 
+   bash when doing printf "some string" > file.txt 
+   It requires the > character and looks for the rightmost one, so you
+   can have > in the target string
+
+   usage:
+   'print this string gets printed > out.txt'
+   out.txt is created and its contents are "this string gets printed\0"
+
+   Will overwrite an existing file in its entirety. 
+*/
+byte builtin_print(char* arg) {
+	if (!arg || *arg == '\0') return 1;
+	char* sep = (char*)strrchr(arg, '>');
+	if (!sep) {
+		printf("Error - No separator\n");
+		return 1;
+	}
+
+	if (sep == arg) { /* nothing before '>' */
+		printf("Error - Nothing to write\n");
+		return 1;        
+	}
+	if (*(sep - 1) != ' ' && sep[1] != ' ') { /* must be space before '>' */
+		printf("Error - Bad format\n");
+		return 1; 
+	}
+
+	/* terminate the text at the space before '>' */
+	*(sep - 1) = '\0';
+
+	/* path starts after ' > ' */
+	char* path = sep + 2;
+	if (*path == '\0') {
+		printf("Error - No output path\n");
+		return 1;
+	}
+
+	char* text = arg;
+	uint32_t to_write = (uint32_t)strlen(text) + 1; /* include NUL */
+
+	FILE f;
+	if (fopen(path, &f) != 0) { 
+		/* File doesn't exist, create it */
+		if (fcreate(path) != 0) {
+			printf("Error - Couldn't create file\n");
+			return 1;
+		}
+		if (fopen(path, &f) != 0) {
+			printf("Error - Couldn't open file\n");
+			return 1;
+		}
+	}
+
+	/* overwrite semantics */
+	if (to_write >= f.inode.size) {
+		fwrite(&f, (byte*)text, to_write);
+	}
+	else {
+		/* pad with NULs up to existing size; arg length <= 1024 by shell limit */
+		char buffer[1024];
+		memcpy(buffer, text, to_write);
+		memset(buffer + to_write, 0, f.inode.size - to_write);
+		fwrite(&f, (byte*)buffer, f.inode.size);
+	}
+
+	fclose(&f);
+	return 0;
+}

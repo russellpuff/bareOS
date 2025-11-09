@@ -20,6 +20,7 @@ command_t builtin_commands[] = {
 	{ "ls", (function_t)builtin_ls },
 	{ "cd", (function_t)builtin_cd },
 	{ "mkdir", (function_t)builtin_mkdir },
+	{ "print", (function_t)builtin_print },
 	{ NULL, NULL }
 };
 
@@ -39,7 +40,7 @@ function_t get_command(const char* name) {
 int32_t main(void) {
 	byte last_retval = 0;
 	*cwd.path = '\0';
-	builtin_cd("/");
+	builtin_cd("home");
 
 	while (1) {
 		printf("&x%s&0:&b%s&0$ ", PROMPT, cwd.path);
@@ -54,6 +55,7 @@ int32_t main(void) {
 			arg0[ctr] = line[ctr];
 		}
 		arg0[ctr] = '\0';
+		if (strlen(arg0) == 0) continue;
 
 		/* Replace line placeholders with enviornment variables. */
 		byte chSz = DIGITS(last_retval);
@@ -70,7 +72,7 @@ int32_t main(void) {
 			}
 			else *p_ptr++ = *l_ptr++;
 		}
-		*p_ptr = '\0';
+		*p_ptr = '\0'; 
 
 		function_t func = get_command(arg0);
 		if(func) { last_retval = func(prompt); } 
