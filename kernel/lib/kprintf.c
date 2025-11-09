@@ -4,7 +4,7 @@
 #include <mm/vm.h>
 
 /* Helper functions. printf_putc is the only thing that can advance the buffer pointer so always return it for updates */
-byte* printf_putc(char c, byte mode, byte* ptr) {
+byte* printf_putc(char c, uint8_t mode, byte* ptr) {
 	switch(mode) {
 		case MODE_REGULAR: putc(c); break;
 		case MODE_BUFFER: *ptr++ = c; break;

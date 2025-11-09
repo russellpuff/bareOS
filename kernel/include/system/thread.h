@@ -54,8 +54,8 @@ typedef struct {
 	uint32_t priority;  /* Thread priority (0=highest MAX_UINT32=lowest)                           */
 	uint32_t parent;    /* The index into the 'thread_table' of the thread's parent                */
 	uint16_t asid;      /* Address space identifier for this thread. For now, it's just the ID     */
-	byte state;         /* The current state of the thread                                         */
-	byte retval;        /* The return value of the function (only valid when state == TH_DEFUNCT)  */
+	uint8_t state;      /* The current state of the thread                                         */
+	uint8_t retval;     /* The return value of the function (only valid when state == TH_DEFUNCT)  */
 	semaphore_t sem;    /* Semaphore for the current thread                                        */
 	byte* kstack_base;  /* Kernel VA, bottom of stack                                              */
 	byte* kstack_top;   /* Kernel VA, top of stack                                                 */

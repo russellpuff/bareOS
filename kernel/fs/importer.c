@@ -34,13 +34,13 @@ byte* run_to_nc(byte* ptr) {
 /* Generic importer, companion function to the QEMU generic loader. Reads the  *
  * data injected into the top of the heap by the loader and writes it to the   *
  * ramdisk.                                                                    */
-byte generic_importer(byte* ptr) {
-	byte status = 0;
+uint8_t generic_importer(byte* ptr) {
+	uint8_t status = 0;
 	const uint16_t BUFFER_SIZE = 1024;
 	byte buffer[BUFFER_SIZE];
 	byte* bptr = (byte*)buffer;
 	memset(buffer, '\0', BUFFER_SIZE);
-	byte num_files = *(ptr++);
+	uint8_t num_files = *(ptr++);
 	ksprintf(bptr, "Importer is trying to import %d files...\n", num_files & 0xFF);
 	bptr = run_to_nc(bptr);
 
@@ -52,9 +52,9 @@ byte generic_importer(byte* ptr) {
 		num_files = 0;
 	}
 
-	for(byte i = 0; i < num_files; ++i) {
+	for(uint8_t i = 0; i < num_files; ++i) {
 		char name[FILENAME_LEN]; /* Read the file's name. */
-		for(byte j = 0; j < FILENAME_LEN; ++j) {
+		for(uint8_t j = 0; j < FILENAME_LEN; ++j) {
 			name[j] = *ptr;
 			++ptr;
 			if(name[j] == '\0') { ptr += (FILENAME_LEN - j - 1); break; }

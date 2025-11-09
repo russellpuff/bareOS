@@ -55,9 +55,9 @@ char getc(void) {
 /*  This function is used to enable or disable interrupt generation on the NS16550  *
  *  It is NOT modifying the behavior of the OS level interrupt handling.  This will *
  *  not - for instance - disable timer interrupts, only UART TX interrupts          */
-void set_uart_interrupt(byte enabled) {
+void set_uart_interrupt(uint8_t enabled) {
 	uart = (volatile byte*)PA_TO_KVA(UART0_CFG_REG); 
-	byte state = uart[UART0_INTR_REG];
+	uint8_t state = uart[UART0_INTR_REG];
 	uart[UART0_INTR_REG] = (enabled ? (state | UART_TX_ON) : (state & ~UART_TX_ON));  /*  Set the "write ready" interrupt on the UART  */
 }
 
@@ -66,7 +66,7 @@ void set_uart_interrupt(byte enabled) {
  *     (see '__traps' in bootstrap.s)
  */
 void uart_handler(void) {
-	byte code = uart[UART0_INT_STAT] & UART_INT_MASK;
+	uint8_t code = uart[UART0_INT_STAT] & UART_INT_MASK;
 	if(code == UART_RX_INTR) {  /*  If interrupt was caused by a keypress */
 	  char c = uart[UART0_RW_REG];
 

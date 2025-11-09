@@ -3,24 +3,24 @@
 
 #include <lib/barelib.h>
 
-typedef byte (*function_t)(char*);
+typedef uint8_t (*function_t)(char*);
 
 typedef struct {
 	const char* name;
 	function_t func;
 } command_t;
 
-byte builtin_echo(char*);
-byte builtin_print(char*);
-byte builtin_cat(char*);
-byte builtin_shutdown(char*);
-byte builtin_reboot(char*);
-byte builtin_clear(char*);
-byte builtin_ls(char*);
-byte builtin_cd(char*);
-byte builtin_mkdir(char*);
-byte builtin_rm(char*);
-byte builtin_rmdir(char*);
+uint8_t builtin_echo(char*);
+uint8_t builtin_print(char*);
+uint8_t builtin_cat(char*);
+uint8_t builtin_shutdown(char*);
+uint8_t builtin_reboot(char*);
+uint8_t builtin_clear(char*);
+uint8_t builtin_ls(char*);
+uint8_t builtin_cd(char*);
+uint8_t builtin_mkdir(char*);
+uint8_t builtin_rm(char*);
+uint8_t builtin_rmdir(char*);
 function_t get_command(const char* name);
 
 extern command_t builtin_commands[];

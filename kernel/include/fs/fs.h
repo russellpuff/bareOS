@@ -25,11 +25,11 @@ int32_t allocate_block(void);                             /* Finds a free block 
 
 void bm_set(uint32_t);   /* Mark a block as used      */
 void bm_clear(uint32_t); /* Mark a block as unused    */
-byte bm_get(uint32_t); /* Get the state of a block  */
+uint8_t bm_get(uint32_t); /* Get the state of a block  */
 int32_t bm_findfree(void); /* Find a free block. */
 
-byte mkfs(uint32_t, uint32_t); /* Create a blank file system               */
-byte discover_drive(byte*); /* Try to discover a drive from a ramdisk in memory */
+uint8_t mkfs(uint32_t, uint32_t); /* Create a blank file system               */
+uint8_t discover_drive(byte*); /* Try to discover a drive from a ramdisk in memory */
 uint32_t mount_fs(drive_t*, const char*);       /* Build the structures for the file system */
 uint32_t umount_fs(void);      /* Clear the structures for the file system */
 
@@ -37,7 +37,7 @@ int16_t fat_get(int16_t);          /* Get the next FAT index at the current bloc
 int16_t fat_set(int16_t, int16_t); /* Set a value to the specified index.          */
 
 uint16_t in_find_free(void);        /* Find a free entry in the inode table  */
-byte write_inode(inode_t, uint16_t); /* Write an in-memory inode to the table */
+uint8_t write_inode(inode_t, uint16_t); /* Write an in-memory inode to the table */
 inode_t get_inode(uint16_t);        /* Get a live copy of the inode at index */
 
 int32_t create(const char*, dirent_t);                    /* Create a file and save it to the block device */
@@ -54,7 +54,7 @@ uint8_t resolve_dir(const char*, const dirent_t, dirent_t*); /* Resolves the low
 uint8_t path_to_name(const char*, char*);
 int16_t index_to_block(inode_t, uint32_t);
 int16_t dir_next(dir_iter_t*, dirent_t*);
-byte dir_open(uint16_t, dir_iter_t*);
+uint8_t dir_open(uint16_t, dir_iter_t*);
 void dir_close(dir_iter_t*);
 char* dirent_path_expand(dirent_t, char*);
 bool dir_child_exists(dirent_t, const char*, dirent_t*);

@@ -34,7 +34,7 @@ static void backtrace(uint64_t fp, uint32_t max_frames) {
 
 static void dump_stack(uint64_t sp) {
 	uint64_t* p = (uint64_t*)(sp & ~0x7UL);
-	for (byte i = 0; i < 16; i++) { // 16 * 8 = 128 bytes
+	for (uint8_t i = 0; i < 16; i++) { // 16 * 8 = 128 bytes
 		krprintf("  %x: %x\n", (uint64_t)(p + i), p[i]);
 	}
 }

@@ -40,7 +40,7 @@ function_t get_command(const char* name) {
  * on the text read in from the user.
  */
 int32_t main(void) {
-	byte last_retval = 0;
+	uint8_t last_retval = 0;
 	*cwd.path = '\0';
 	builtin_cd("home");
 
@@ -60,7 +60,7 @@ int32_t main(void) {
 		if (strlen(arg0) == 0) continue;
 
 		/* Replace line placeholders with enviornment variables. */
-		byte chSz = DIGITS(last_retval);
+		uint8_t chSz = DIGITS(last_retval);
 		char prompt[LINE_SIZE + 64]; /* Arbitrary extra space. */
 		char* l_ptr = line + ctr;
 		while (*l_ptr == ' ') ++l_ptr; /* Advance past whitespace and clean up */

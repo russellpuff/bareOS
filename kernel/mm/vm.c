@@ -18,7 +18,7 @@ static inline uint64_t va_vpn0(uint64_t va) { return (va >> 12) & 0x1ff; }
 byte* page_freemask;
 uint64_t kernel_root_ppn;
 byte* s_trap_top;
-volatile byte MMU_ENABLED;
+volatile uint8_t MMU_ENABLED;
 
 //
 // Bitmask operators
@@ -31,7 +31,7 @@ static void pfm_set(uint64_t ppn) {
 
 /* Unused for now, removed bc -Wall -Werror */
 // /* Returns whether a ppn is used (1) or free (0) */
-// static byte pfm_get(uint64_t ppn) {
+// static uint8_t pfm_get(uint64_t ppn) {
 // 	uint64_t x = PPN_TO_IDX(ppn);
 // 	return (page_freemask[x / 8] >> (x % 8)) & 0x1;
 // }
@@ -46,7 +46,7 @@ static void pfm_clear(uint64_t ppn) {
 static int64_t pfm_findfree_4k(void) {
 	for (uint32_t i = 0; i < FREEMASK_SZ; ++i) {
 		if (page_freemask[i] != 0xFF) {
-			for (byte j = 0; j < 8; ++j) {
+			for (uint8_t j = 0; j < 8; ++j) {
 				if (((page_freemask[i] >> j) & 0x1) == 0x0) {
 					return IDX_TO_PPN((i * 8) + j);
 				}
@@ -58,11 +58,11 @@ static int64_t pfm_findfree_4k(void) {
 
 /* Returns a free megapage ppn */
 static int64_t pfm_findfree_2m(void) {
-	byte chunksz = 64;
+	uint8_t chunksz = 64;
 	uint64_t limit = (FREEMASK_SZ / chunksz) * chunksz;
 	for (uint64_t i = 0; i < limit; i += chunksz) {
 		byte* offset = &page_freemask[i];
-		byte j = 0;
+		uint8_t j = 0;
 		for (; j < chunksz; ++j)
 			if (offset[j] != 0) break;
 		if (j == chunksz)
@@ -161,7 +161,7 @@ static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
 //	l0[i0] = make_leaf(PA_TO_PPN(page_addr), R, W, X, G, U);
 //}
 
-static void clone_page_tables(uint64_t dst_ppn, uint64_t src_ppn, byte level) {
+static void clone_page_tables(uint64_t dst_ppn, uint64_t src_ppn, uint8_t level) {
 	byte* dst = (byte*)PPN_TO_KVA(dst_ppn);
 	byte* src = (byte*)PPN_TO_KVA(src_ppn);
 

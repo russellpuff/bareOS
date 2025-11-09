@@ -4,7 +4,7 @@
 
 __attribute__((noinline))
 static void spin(uint64_t iters) {
-	byte stg_num = 1;
+	uint8_t stg_num = 1;
 	uint64_t counter = 1;
 	const uint64_t stage = 50000000UL;
 	for (uint64_t i = 1; i <= iters; ++i, ++counter) {

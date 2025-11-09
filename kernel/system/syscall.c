@@ -29,9 +29,9 @@ void handle_syscall(uint64_t* frame) {
 		syscall_table[signum](&handle_syscall);
 }
 
-static byte handle_ecall_spawn(char* name, char* arg) {
+static uint8_t handle_ecall_spawn(char* name, char* arg) {
 	(void)arg; /* unused for now */
-	byte ret = 0;
+	uint8_t ret = 0;
 	int32_t tid = exec(name);
 	if (tid >= 0) {
 		resume_thread(tid);

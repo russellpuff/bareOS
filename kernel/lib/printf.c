@@ -1,6 +1,6 @@
 #include <lib/printf.h>
 
-static byte* put_number(uint64_t u, byte mode, byte* ptr) {
+static byte* put_number(uint64_t u, uint8_t mode, byte* ptr) {
 	if (u == 0) { return printf_putc('0', mode, ptr); }
 	char buff[20];
 	int16_t i = 0;
@@ -9,7 +9,7 @@ static byte* put_number(uint64_t u, byte mode, byte* ptr) {
 	return ptr;
 }
 
-static byte* put_str(const char* s, byte mode, byte* ptr) {
+static byte* put_str(const char* s, uint8_t mode, byte* ptr) {
 	while (*s) ptr = printf_putc(*s++, mode, ptr);
 	return ptr;
 }
@@ -29,7 +29,7 @@ char* get_color_str(char t) {
 	}
 }
 
-static byte* write_color_token(char t, byte mode, byte* ptr) {
+static byte* write_color_token(char t, uint8_t mode, byte* ptr) {
 	char* str = get_color_str(t);
 	if (str == NULL) {
 		ptr = printf_putc('&', mode, ptr);
@@ -41,7 +41,7 @@ static byte* write_color_token(char t, byte mode, byte* ptr) {
 	return ptr;
 }
 
-void printf_core(byte mode, byte* ptr, const char* format, va_list ap) {
+void printf_core(uint8_t mode, byte* ptr, const char* format, va_list ap) {
 	while (*format != '\0') {
 		if (*format == '%') {
 			switch (*(++format)) {

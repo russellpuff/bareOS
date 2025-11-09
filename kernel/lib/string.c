@@ -36,7 +36,7 @@ char* strstr(const char* s1, const char* s2) {
 	return NULL;
 }
 
-void* memset(void* s, byte c, uint64_t n) {
+void* memset(void* s, uint8_t c, uint64_t n) {
 	byte* p = (byte*)s;
 	for(; n; --n) *p++ = c;
 	return s;

@@ -11,7 +11,7 @@ mount_t* mounted = NULL;
 
 /* Initializes a blank filesystem and block device and writes it to its own super block * 
  * registers the new fs as a newly-discovered drive                                     */
-byte mkfs(uint32_t blocksize, uint32_t numblocks) {
+uint8_t mkfs(uint32_t blocksize, uint32_t numblocks) {
 	/* Set up a fresh fsd and blank block range to associate with it. */
 	fsystem_t temp_fsd;
 	boot_fsd = &temp_fsd; /* For functions that operate on the fsd, this avoids passing a reference to all of them. */
@@ -82,7 +82,7 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
 
 	boot_fsd = NULL;
 
-	byte status = discover_drive(temp_fsd.device->ramdisk);
+	uint8_t status = discover_drive(temp_fsd.device->ramdisk);
 	if (status != 0) {
 		// todo: same error conditions as above
 		const char* str = "couldn't discover new fs:";
@@ -100,7 +100,7 @@ byte mkfs(uint32_t blocksize, uint32_t numblocks) {
 /* Since drives right now are stored in RAM as ramdisk, the only way to discover them is *
  * to know the pointer to the start of that ramdisk. Looks for a MAGIC it knows about to *
  * try to guess whether the pointer is valid. Only mounting it is definitive proof.      */
-byte discover_drive(byte* ramdisk) {
+uint8_t discover_drive(byte* ramdisk) {
 	if (*(uint32_t*)ramdisk != FS_MAGIC) return 1; /* Not a readable drive. */
    
 	drv_reg* new = malloc(sizeof(drv_reg));
@@ -148,7 +148,7 @@ uint32_t mount_fs(drive_t* drive, const char* mount_point) {
 	boot_fsd = old_fsd;
 
 	/* Init oft */
-	for (byte i = 0; i < OFT_MAX; ++i) {
+	for (uint8_t i = 0; i < OFT_MAX; ++i) {
 		drive->fsd->oft[i].state = CLOSED;
 		drive->fsd->oft[i].mode = RD_ONLY;
 		drive->fsd->oft[i].curr_index = 0;

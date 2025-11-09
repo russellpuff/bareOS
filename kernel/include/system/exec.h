@@ -38,7 +38,7 @@
   */
 
 typedef struct {
-	byte e_ident[EI_NIDENT];    /* Identification bytes, including ELF magic           */
+	uint8_t e_ident[EI_NIDENT];    /* Identification bytes, including ELF magic           */
 	uint16_t e_type;            /* Object file type (executable, relocatable, etc.)    */
 	uint16_t e_machine;         /* Instruction set architecture of the binary          */
 	uint32_t e_version;         /* ELF version for the rest of the header              */

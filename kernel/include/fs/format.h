@@ -88,14 +88,14 @@ typedef struct {
  * the in-RAM filesystem_t to function.                                                 */
 typedef struct {
 	uint32_t magic;        /* Magic number used to identify the type of filesystem      */
-	byte version;          /* The filesystem's version                                  */
+	uint8_t version;       /* The filesystem's version                                  */
 	uint16_t fat_head;     /* Index of the first FAT table block                        */
 	uint16_t fat_size;     /* The number of blocks the FAT table occupies               */
 	uint16_t intable_head; /* Index of the first inode table block                      */
 	uint16_t intable_size; /* Current capacity of innode table given allocated blocks   */
 	dirent_t root_dirent;  /* Index in the inode table of the root directory inode      */
 	uint16_t intable_blocks[MAX_INTABLE_BLOCKS]; /* FAT path of inode table blocks for O(1) lookup time */
-	byte intable_numblks;  /* Number of blocks ACTUALLY used by the inode table         */
+	uint8_t intable_numblks; /* Number of blocks ACTUALLY used by the inode table       */
 } fsuper_t;
 
 /* 'fsystem_t' is the combined overarching master record of all the information about a *
@@ -110,7 +110,7 @@ typedef struct {
 /* 'drive_t' is the master authority of a block device. If unmounted, it frees fsd resource while keeping *
  * the bdev intact. If the drive is mounted again later, the fsd is remade from the bdev's super block.   */
 typedef struct {
-	byte id;
+	uint8_t id;
 	bdev_t bdev;
 	fsystem_t* fsd;
 	bool mounted;

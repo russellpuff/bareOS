@@ -48,7 +48,7 @@ void landing_pad(void) {
 /*  `wrapper` acts as a decorator function for the thread's entry function.  *
  *  It ensures  that setup is performed  before the function  is called and  *
  *  cleanup is performed after it completes.                                 */
-void wrapper(byte(*proc)(char*)) {
+void wrapper(uint8_t (*proc)(char*)) {
 	thread_t* thread = &thread_table[current_thread];
 	char* arg = thread->argptr;
 	thread->retval = proc(arg);  /*  Call the thread's entry point function and store the result on return */
@@ -62,7 +62,7 @@ void wrapper(byte(*proc)(char*)) {
 /* user_thread_exit is a jump point after a user process sends an ecall to exit */
 void user_thread_exit(trapframe* tf) {
 	thread_t* thread = &thread_table[current_thread];
-	thread->retval = (byte)(tf->a0 & 0xFF);
+	thread->retval = (uint8_t)(tf->a0 & 0xFF);
 	thread->state = TH_ZOMBIE;
 	if (thread->argptr != NULL) {
 		free(thread->argptr);

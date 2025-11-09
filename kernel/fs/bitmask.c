@@ -17,7 +17,7 @@ void bm_clear(uint32_t x) {
 }
 
 /* Returns the current value of the block at index 'x' in the block device. 0 = free, 1 = used. */
-byte bm_get(uint32_t x) {
+uint8_t bm_get(uint32_t x) {
 	if (boot_fsd == NULL) return -1;
 	byte* b = bm_base();
 	return (b[x / 8] >> (x % 8)) & 0x1;
@@ -28,7 +28,7 @@ int32_t bm_findfree(void) {
 	byte* b = bm_base();
 	for (uint16_t i = 0; i < boot_fsd->device->block_size; ++i) {
 		if (b[i] != 0xFF) {
-			for (byte j = 0; j < 8; ++j) {
+			for (uint8_t j = 0; j < 8; ++j) {
 				if (((b[i] >> j) & 0x1) == 0x0) {
 					return (i * 8) + j;
 				}

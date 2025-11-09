@@ -9,7 +9,7 @@
 /* Userland override for putc, without access to the tty/uart,
    we can only stuff the result into a buffer and let the kernel
    do the real printing                                          */
-byte* printf_putc(char c, byte mode, byte* ptr) {
+byte* printf_putc(char c, uint8_t mode, byte* ptr) {
 	(void)mode;
 	*ptr++ = c;
 	return ptr;

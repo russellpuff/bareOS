@@ -20,6 +20,6 @@ char tty_getc(void);
 void tty_putc(char);
 void tty_bkspc(void);
 
-void set_uart_interrupt(byte);
+void set_uart_interrupt(uint8_t);
 
 #endif

@@ -5,7 +5,7 @@
 
 /* builtin_cat takes a file name and attempts to print its contents. *
  * It just assumes the files is in the current directory right now.  */
-byte builtin_cat(char* arg) {
+uint8_t builtin_cat(char* arg) {
 	if (strlen(arg) <= 1) {
 		printf("Nothing to cat\n");
 		return 0;
@@ -26,7 +26,7 @@ byte builtin_cat(char* arg) {
 	return 0;
 }
 
-byte builtin_ls(char* arg) {
+uint8_t builtin_ls(char* arg) {
 	const uint32_t CHILD_MAX = 64;
 	dirent_t children[CHILD_MAX];
 	uint8_t c = rddir(arg, children, CHILD_MAX);
@@ -39,7 +39,7 @@ byte builtin_ls(char* arg) {
 	return 0;
 }
 
-byte builtin_cd(char* arg) {
+uint8_t builtin_cd(char* arg) {
 	directory_t old = cwd;
 	uint8_t status = getdir(arg, &cwd, true);
 	if(status != 0) {
@@ -50,7 +50,7 @@ byte builtin_cd(char* arg) {
 	return 0;
 }
 
-byte builtin_mkdir(char* arg) {
+uint8_t builtin_mkdir(char* arg) {
 	int8_t status = mkdir(arg);
 	if (status != 0) {
 		int32_t code = status;
@@ -80,7 +80,7 @@ byte builtin_mkdir(char* arg) {
 
    Will overwrite an existing file in its entirety. 
 */
-byte builtin_print(char* arg) {
+uint8_t builtin_print(char* arg) {
 	if (!arg || *arg == '\0') {
 		printf("Error - path required\n");
 		return 1;
@@ -142,7 +142,7 @@ byte builtin_print(char* arg) {
 	return 0;
 }
 
-byte builtin_rm(char* arg) {
+uint8_t builtin_rm(char* arg) {
 	if (arg == NULL || *arg == '\0') {
 		printf("Error - path required\n");
 		return 1;
@@ -168,7 +168,7 @@ byte builtin_rm(char* arg) {
 	return 0;
 }
 
-byte builtin_rmdir(char* arg) {
+uint8_t builtin_rmdir(char* arg) {
 	if (arg == NULL || *arg == '\0') {
 		printf("Error - path required\n");
 		return 1;

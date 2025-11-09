@@ -30,9 +30,9 @@ char tty_getc(void) {
 }
 
 /* Helper function bc I'm tired of rewriting this so many times. */
-byte put_to_tail(char ch) {
+uint8_t put_to_tail(char ch) {
 	wait_sem(&tty_out.sem);
-	byte needs_wake = (tty_out.count == 0);
+	uint8_t needs_wake = (tty_out.count == 0);
 	uint32_t tail = (tty_out.head + tty_out.count) % TTY_BUFFLEN;
 	tty_out.buffer[tail] = ch;
 	++tty_out.count;
@@ -44,7 +44,7 @@ byte put_to_tail(char ch) {
  *  semaphore  until notified  that there  space has  been  *
  *  made in the  buffer by the UART. */
 void tty_putc(char ch) {
-	byte needs_wake = 0;
+	uint8_t needs_wake = 0;
 	if (ch == '\n') needs_wake |= put_to_tail('\r');
 	needs_wake |= put_to_tail(ch);
 	if (needs_wake) uart_wake_tx();
@@ -53,7 +53,7 @@ void tty_putc(char ch) {
 /* Enqueue the backspace erase sequence into the tty while only *
  * waking the UART once for the whole sequence. Reducing lag.  */
 void tty_bkspc(void) {
-	byte needs_wake = 0;
+	uint8_t needs_wake = 0;
 	needs_wake |= put_to_tail('\b');
 	needs_wake |= put_to_tail(' ');
 	needs_wake |= put_to_tail('\b');

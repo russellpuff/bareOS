@@ -177,7 +177,7 @@ int8_t mk_dir(const char* path, dirent_t cwd, dirent_t* out) {
 	return 0;
 }
 
-byte dir_open(uint16_t inode_idx, dir_iter_t* it) {
+uint8_t dir_open(uint16_t inode_idx, dir_iter_t* it) {
 	if (it == NULL) return 1;
 	inode_t inode = get_inode(inode_idx);
 	if (inode.type != EN_DIR) return 1;

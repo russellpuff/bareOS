@@ -9,7 +9,7 @@
 /*  Each semaphore's state is stored in a 'semaphore_t' structure found in the sem_table  *
  *    (see system/semaphore.c)                                                            */
 typedef struct _sem {
-  byte state;           /*  The current state of the semaphore (S_FREE or S_USED)  */
+  uint8_t state;        /*  The current state of the semaphore (S_FREE or S_USED)  */
   queue_t queue;        /*  Queue containing all thread awaiting this semaphore    */
 } semaphore_t;
 

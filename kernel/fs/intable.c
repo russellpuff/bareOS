@@ -11,9 +11,9 @@ static inline byte* get_block(uint16_t index) {
  * the fsd super. If it finds a free entry, returns the index. Otherwise it  *
  * will try to allocate a new block for the table and then returns an index  */
 uint16_t in_find_free(void) {
-	for (byte blk_idx = 0; blk_idx < boot_fsd->super.intable_numblks; ++blk_idx) {
+	for (uint8_t blk_idx = 0; blk_idx < boot_fsd->super.intable_numblks; ++blk_idx) {
 		inode_t* block = (inode_t*)get_block(boot_fsd->super.intable_blocks[blk_idx]);
-		for (byte in = 0; in < IN_PER_BLOCK; ++in) {
+		for (uint8_t in = 0; in < IN_PER_BLOCK; ++in) {
 			inode_t* inode = &block[in];
 			if (inode->type == EN_FREE) { /* A previously-freed or zeroed-out block should work here. */
 				memset((byte*)inode, 0, sizeof(inode_t));
@@ -39,7 +39,7 @@ uint16_t in_find_free(void) {
 }
 
 /* Writes an in-memory inode to the inode table at index. Currently assumes valid index. */
-byte write_inode(inode_t inode, uint16_t index) {
+uint8_t write_inode(inode_t inode, uint16_t index) {
 	uint16_t tbl_idx = index / IN_PER_BLOCK;
 	uint16_t offset = index % IN_PER_BLOCK;
 	inode_t* block = (inode_t*)get_block(boot_fsd->super.intable_blocks[tbl_idx]);

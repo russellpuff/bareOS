@@ -3,7 +3,7 @@
 
 #include <lib/barelib.h>
 
-extern volatile byte MMU_ENABLED;
+extern volatile uint8_t MMU_ENABLED;
 
 #define KVM_BASE 0xFFFFFFC000000000UL
 #define PAGE_SIZE 0x1000UL
