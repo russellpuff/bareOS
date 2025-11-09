@@ -2,23 +2,59 @@
 #include <system/panic.h>
 #include <lib/string.h>
 
+/* Normalizes dot entries to their canonical dirent_t representation so callers
+ * never have to reason about '.' or '..' aliases. Returns false if the canonical
+ * record cannot be located which should only happen if the filesystem metadata
+ * is inconsistent or otherwise corrupt. */
+static bool canonicalize_dirent(dirent_t* entry) {
+	if (entry == NULL) return false;
+	if (strcmp(entry->name, ".") && strcmp(entry->name, "..")) return true;
+
+	/* Self is root */
+	uint16_t target = entry->inode;
+	if (target == boot_fsd->super.root_dirent.inode) {
+		memcpy(entry, &boot_fsd->super.root_dirent, sizeof(dirent_t));
+		return true;
+	}
+
+	/* Parent is root */
+	inode_t ino = get_inode(target);
+	if (ino.parent == target) {
+		memcpy(entry, &boot_fsd->super.root_dirent, sizeof(dirent_t));
+		return true;
+	}
+
+	/* Search parent for this entry's canon dirent_t */
+	dir_iter_t iter;
+	if (dir_open(ino.parent, &iter) != 0) return false;
+	dirent_t candidate;
+	while (dir_next(&iter, &candidate) == 1) {
+		if (!strcmp(candidate.name, ".") || !strcmp(candidate.name, "..")) continue;
+		if (candidate.inode == target) {
+			memcpy(entry, &candidate, sizeof(dirent_t));
+			dir_close(&iter);
+			return true;
+		}
+	}
+	dir_close(&iter);
+	return false;
+}
+
+
 /* Takes a dirent_t and a string buffer and populates the buffer with a full         *
  * path from the root to the entry                                                   *
  * Expects the buffer to be MAX_PATH_LEN in size, for now. Returns updated pointer   */
 char* dirent_path_expand(dirent_t this, char* buffer) {
 	if (buffer == NULL) return NULL;
 
+	if (!strcmp(this.name, ".") || !strcmp(this.name, "..")) {
+		if (!canonicalize_dirent(&this)) return NULL;
+	}
+
 	if (boot_fsd->super.root_dirent.inode == this.inode) {
 		buffer[0] = '/';
 		buffer[1] = '\0';
 		return buffer;
-	}
-
-	/* Never emit "." or ".." in the output path */
-	if (!strcmp(this.name, "..")) {
-		inode_t temp = get_inode(this.inode);
-		this.inode = temp.parent; /* Normalize to parent inode */
-		this.type = EN_DIR;
 	}
 
 	buffer[MAX_PATH_LEN - 1] = '\0';
@@ -135,6 +171,9 @@ uint8_t resolve_dir(const char* path, const dirent_t cwd, dirent_t* out) {
 			return 2; /* Part of the path didn't exist */
 		}
 
+		/* Handle dot entries if necessary */
+		if (!canonicalize_dirent(&iter)) return 2;
+
 		if (*r == '/') {
 			if (r[1] == '/') return 2; /* // in path */
 			if (iter.type != EN_DIR) return 3; /* Part of the path was a file */
@@ -142,9 +181,8 @@ uint8_t resolve_dir(const char* path, const dirent_t cwd, dirent_t* out) {
 			continue;
 		}
 
-		/* Final component reached, if it's a file, resolve its parent */
-		if (iter.type != EN_DIR) {
-			iter = parent;
+		if (*r == '\0') {
+			if (iter.type != EN_DIR) iter = parent; /* Final component was a file */
 			break;
 		}
 	}
@@ -156,7 +194,7 @@ uint8_t resolve_dir(const char* path, const dirent_t cwd, dirent_t* out) {
 /* Takes a path and populates a buffer with its predicted name       *
  * Return code can be used to help guess what kind of path this is   *
  * 0 = error, 1 = directory, 2 = file (or dir without '/'), 3 = root *
- * 4 = cwd, 'buffer' will not be populated when returning 0, 3, or 4 *
+ * 4 = cwd, 5 = parent dir, 'buffer' not be populated on 0, 3, or 4  *
  *                                                                   *
  * This is for finding target name for API calls like open & mkdir,  *
  * so the caller must decide how to handle 2 based on context        *
@@ -203,6 +241,8 @@ uint8_t path_to_name(const char* path, char* buffer) {
 	}
 	if (len > FILENAME_LEN - 1) return 0; /* Filename policy: caller required to create a buffer of FILENAME_LEN size */
 	
+	if (len == 1 && *ptr == '.') return 4;
+	if (len == 2 && !strcmp(ptr, "..")) return 5;
 	if (*ptr == '/' || ptr[len - 1] == '.') return 0;
 	memcpy(buffer, ptr, len);
 	buffer[len] = '\0';

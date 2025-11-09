@@ -64,17 +64,27 @@ static uint32_t disk_dev_open(byte* options) {
 			if (target->dir.type != EN_DIR) return 3;
 			char dirname[FILENAME_LEN];
 			status = path_to_name(path, dirname);
-			if (status == 3 || status == 4) {
+			if (status == 5) {
+				uint32_t len = strlen(target->dir.name);
+				memcpy(dirname, target->dir.name, len + 1);
+			}
+			else if (status == 3 || status == 4) {
 				target->dir = status == 3 ? boot_fsd->super.root_dirent : thread_table[current_thread].cwd;
-				uint32_t len = status == 3 ? 1 : sizeof(thread_table[current_thread].cwd.name);
-				char* ref = status == 3 ? boot_fsd->super.root_dirent.name : thread_table[current_thread].cwd.name;
-				memcpy(dirname, ref, len);
-				ref[len] = '\0';
+				const char* ref = status == 3 ? boot_fsd->super.root_dirent.name : thread_table[current_thread].cwd.name;
+				uint32_t len = strlen(ref);
+				memcpy(dirname, ref, len + 1);
+			}
+			if ((status == 1 || status == 2) && strcmp(dirname, target->dir.name)) {
+				dirent_t candidate;
+				if (!dir_child_exists(target->dir, dirname, &candidate)) return 2; /* Target missing */
+				if (candidate.type != EN_DIR) return 3; /* Target is not a directory */
+				target->dir = candidate;
 			}
 			if (status == 0) return 1;
 
-			/* New processes spawn with a directory_t with a blank path... until default cd, allow that to populate */
-			if ((strcmp(target->dir.name, dirname) || *target->path == '\0') && chdir) { /* If directory is different and we want to change it. */
+			/* Update process cwd when the resolved directory differs or when we need to seed the initial path */
+			bool dir_changed = proc->cwd.inode != target->dir.inode;
+			if ((dir_changed || *target->path == '\0') && chdir) {
 				char* pos = dirent_path_expand(target->dir, target->path);
 				uint32_t l = strlen(pos) + 1;
 				memcpy(target->path, pos, l);
@@ -141,6 +151,10 @@ static uint32_t disk_dev_read(byte* options) {
 			if (status == 0) return 1;
 			if (status == 3) parent = boot_fsd->super.root_dirent;
 			if (status == 4) parent = thread_table[current_thread].cwd;
+			if (status == 5) {
+				/* Parent already canonicalized by resolve_dir */
+				memcpy(dirname, parent.name, strlen(parent.name) + 1);
+			}
 			if ((status == 1 || status == 2) && strcmp(dirname, parent.name)) return 2;
 			
 			dir_iter_t iter;
