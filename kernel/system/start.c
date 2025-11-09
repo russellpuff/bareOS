@@ -54,25 +54,35 @@ static void display_welcome(void) {
 		(uint64_t)&mem_start,
 		(uint64_t)(&mem_end - &mem_start));
 	
-	/* Janky way of detecting importer status on boot. */
-	char sentinel[] = "Importer finished with no errors.";
-	FILE f;
-	open("importer.log", &f, boot_fsd->super.root_dirent);
-	uint16_t BUFFER_SIZE = 1024;
-	char buffer[BUFFER_SIZE];
-	memset(buffer, '\0', BUFFER_SIZE);
-	read(&f, (byte*)buffer, BUFFER_SIZE);
-	close(&f);
-	byte ok = 0;
-	for (char *p = buffer; *p; ++p) { 
-		const char *s = p, *t = sentinel;
-		while (*t && *s == *t) { ++s; ++t; }
-		if (*t == '\0') { ok = 1; break; }  // matched full sentinel
+	/* Query the importer log to determine whether the importer finished cleanly. */
+	const char sentinel[] = "Importer finished with no errors.";
+	const char* log_path = "/etc/importer.log";
+	FILE f = { 0 };
+	f.fd = (FD)-1;
+	bool importer_ok = false;
+	bool log_available = open(log_path, &f, boot_fsd->super.root_dirent) == 0;
+	if (log_available) {
+		const uint16_t BUFFER_SIZE = 1024;
+		char buffer[BUFFER_SIZE];
+		memset(buffer, '\0', BUFFER_SIZE);
+		uint32_t read_bytes = read(&f, (byte*)buffer, BUFFER_SIZE - 1);
+		if (read_bytes >= BUFFER_SIZE) buffer[BUFFER_SIZE - 1] = '\0';
+		close(&f);
+		uint32_t sentinel_len = strlen(sentinel);
+		for (uint32_t idx = 0; idx + sentinel_len <= read_bytes; ++idx) {
+			if (memcmp(buffer + idx, sentinel, sentinel_len) == 0) {
+				importer_ok = true;
+				break;
+			}
+		}
 	}
-	const char *result = ok 
-		? "The importer finished successfully." 
+	const char* result = importer_ok
+		? "The importer finished successfully."
 		: "The importer ran into an error.";
-	kprintf("%s Check importer.log for more details.\n\n", result);
+	const char* detail = log_available
+		? "Check /etc/importer.log for more details."
+		: "Importer log unavailable.";
+	kprintf("%s %s\n\n", result, detail);
 }
 
 static void sys_idle() { while (1); }
@@ -90,9 +100,13 @@ static void root_thread(void) {
 	 */
 	RAW_GETLINE = false; 
 
+	dirent_t bin;
+	if (!dir_child_exists(boot_fsd->super.root_dirent, "bin", &bin))
+		panic("Fatal: /bin missing, cannot start shell.\n");
+
 	FILE f;
 	f.fd = (FD)-1;
-	open("shell.elf", &f, boot_fsd->super.root_dirent);
+	open("shell.elf", &f, bin);
 	if (f.fd == (FD)-1)
 		panic("Fatal: no shell to run on boot.\n");
 	close(&f);

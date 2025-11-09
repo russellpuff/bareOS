@@ -57,9 +57,15 @@ int32_t exec(const char* program_name) {
 	memcpy(filename, program_name, base_len); /* Get full filename */
 	memcpy(filename + base_len, suffix, 5); /* Add suffix */
 
+	dirent_t bin;
+	if (!dir_child_exists(boot_fsd->super.root_dirent, "bin", &bin)) {
+		kprintf("%s: /bin directory is missing\n");
+		return -1;
+	}
+
 	FILE f;
 	f.fd = (FD)-1;
-	open(filename, &f, boot_fsd->super.root_dirent);
+	open(filename, &f, bin);
 	if (f.fd == (FD)-1) {
 		return -2;
 	}

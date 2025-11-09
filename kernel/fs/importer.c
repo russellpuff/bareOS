@@ -43,6 +43,15 @@ byte generic_importer(byte* ptr) {
 	byte num_files = *(ptr++);
 	ksprintf(bptr, "Importer is trying to import %d files...\n", num_files & 0xFF);
 	bptr = run_to_nc(bptr);
+
+	/* Set up working directories to determine where files go */
+	dirent_t bin, home;
+	if (!dir_child_exists(boot_fsd->super.root_dirent, "bin", &bin) ||
+		!dir_child_exists(boot_fsd->super.root_dirent, "home", &home)) {
+		status = 1;
+		num_files = 0;
+	}
+
 	for(byte i = 0; i < num_files; ++i) {
 		char name[FILENAME_LEN]; /* Read the file's name. */
 		for(byte j = 0; j < FILENAME_LEN; ++j) {
@@ -50,15 +59,20 @@ byte generic_importer(byte* ptr) {
 			++ptr;
 			if(name[j] == '\0') { ptr += (FILENAME_LEN - j - 1); break; }
 		}
-		/* Write to fd */
+
+		/* Set cwd to /bin if it's an elf or /home otherwise */
+		uint64_t sz = strlen(name);
+		dirent_t cwd = sz >= 4 && memcmp(name + sz - 4, ".elf", 4) == 0 ? bin : home;
+
+		/* Write to dir */
 		uint32_t size = bytes_to_u32(ptr);
 		ptr += 4;
-		if(create(name, boot_fsd->super.root_dirent) != 0) {
+		if(create(name, cwd) != 0) {
 			status = -1;
 			break;
 		}
 		FILE f = { 0 };
-		open(name, &f, boot_fsd->super.root_dirent);
+		open(name, &f, cwd);
 		write(&f, ptr, size);
 		close(&f);
 		ksprintf(bptr, "Importer wrote %s (%u bytes).\n", name, size);
@@ -70,7 +84,7 @@ byte generic_importer(byte* ptr) {
 	else { ksprintf(bptr, "The importer had an error and had to stop: couldn't create one of the files.\n"); }
 	bptr = run_to_nc(bptr);
 	
-	char n[] = "importer.log\0";
+	char n[] = "/etc/importer.log\0";
 	create(n, boot_fsd->super.root_dirent);
 	FILE f2 = { 0 };
 	open(n, &f2, boot_fsd->super.root_dirent);
