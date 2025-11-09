@@ -85,7 +85,7 @@ byte builtin_print(char* arg) {
 		printf("Error - path required\n");
 		return 1;
 	}
-	char* sep = (char*)strrchr(arg, '>');
+	char* sep = strrchr(arg, '>');
 	if (!sep) {
 		printf("Error - No separator\n");
 		return 1;

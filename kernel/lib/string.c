@@ -17,14 +17,23 @@ uint64_t strlen(const char* str) {
 }
 
 /* Returns a pointer to the last instance of 'c' in a string, or NULL if not found */
-const char* strrchr(const char* s, char c) {
+char* strrchr(const char* s, char c) {
 	const char* p = NULL;
 	while (1) {
 		if (*s == c)
 			p = s;
 		if (*s++ == '\0')
-			return p;
+			return (char*)p;
 	}
+}
+
+/* Returns a pointer to the first instance of a substring s2 found in s1 or null if not found */
+char* strstr(const char* s1, const char* s2) {
+	uint32_t n = strlen(s2);
+	while (*s1)
+		if (!memcmp(s1++, s2, n))
+			return (char*)(s1 - 1);
+	return NULL;
 }
 
 void* memset(void* s, byte c, uint64_t n) {

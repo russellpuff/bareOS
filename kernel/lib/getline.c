@@ -1,20 +1,75 @@
 #include <lib/barelib.h>
 #include <lib/bareio.h>
+#include <lib/string.h>
+#include <fs/fs.h>
 #include <mm/malloc.h>
 #include <device/tty.h>
+#include <system/thread.h>
 
 #define CSI_MAX_CHARS 32
 #define OSC_MAX_CHARS 256
 #define ESC_INTERMEDIATE_MAX 8
 bool RAW_GETLINE = false; /* Determines whether we run get_line in new "swallow" mode or old "manual filter" mode */
 
+/* Try to autocomplete. Returns updated pointer. */
+char* autocomplete(char* line) {
+	if (line == NULL) return line;
+	/* Split after last whitespace, since line might contain a command */
+	char* end = line + strlen(line);
+	char* space = strrchr(line, ' ');
+	char* token = space ? space + 1 : line;
+	if (*token == '\0') return end;
+
+	char* slash = (char*)strrchr(token, '/');
+	const char* partial = slash ? slash + 1 : token;
+	if (!strcmp(partial, "..") || !strcmp(partial, ".")) return end; /* Do not rewrite dot entries. */
+
+
+	/* Resolve possible parent of autocomplete target */
+	dirent_t parent;
+	if (slash) {
+		uint32_t parent_len = (uint32_t)(slash - token + 1);
+		if (parent_len >= MAX_PATH_LEN) return end;
+		char parent_path[MAX_PATH_LEN];
+		memcpy(parent_path, token, parent_len);
+		parent_path[parent_len] = '\0';
+		if (resolve_dir(parent_path, thread_table[current_thread].cwd, &parent) != 0) return end;
+	}
+	else memcpy(&parent, &thread_table[current_thread].cwd, sizeof(dirent_t));
+
+	uint32_t plen = (uint32_t)strlen(partial);
+
+	dir_iter_t it;
+	dir_open(parent.inode, &it);
+	dirent_t child;
+	while (dir_next(&it, &child) == 1) {
+		if (!strcmp(child.name, ".") || !strcmp(child.name, "..")) continue;
+		/* prefix-match the child's name */
+		if (plen == 0 || memcmp(child.name, partial, plen) == 0) {
+			/* Overwrite last component in line with autofill */
+			char* base = slash ? slash + 1 : token;
+			uint32_t nlen = strlen(child.name);
+			memcpy(base, child.name, nlen);
+			base[nlen] = '\0'; /* Ensure the buffer reflects just the completed name. */
+			const char* suffix = child.name + plen;
+			if (*suffix) kprintf("%s", suffix);
+			break;
+		}
+	}
+	char* new_end = line;
+	while (*new_end) ++new_end;
+	return new_end;
+}
+
 /* Raw line getting, takes all characters then filters out nonprint for the caller
    This is for debugging purposes and should eventually be removed                 */
 uint32_t get_raw_line(char* buffer, uint32_t size) {
 	if (size == 0) return 0;
 	char* raw_in = malloc(size * 2);
+	memset(raw_in, '\0', size * 2);
 	char* ptr = raw_in;
 	char* end = raw_in + (size * 2) - 1;
+	*ptr = '\0';
 	bool doit = true;
 	while (doit) {
 		char ch = getc();
@@ -28,15 +83,21 @@ uint32_t get_raw_line(char* buffer, uint32_t size) {
 			break;
 		case '\b':
 		case 0x7f:
-			if (ptr > raw_in) { 
-				tty_bkspc(); 
-				--ptr; 
+			if (ptr > raw_in) {
+				tty_bkspc();
+				--ptr;
+				*ptr = '\0';
 			}
+			break;
+		case '\t':
+			ptr = autocomplete(raw_in);
+			if (ptr > end) ptr = end;
 			break;
 		default:
 			if (ptr < end) {
 				*ptr++ = ch;
 				putc(ch);
+				*ptr = '\0';
 			}
 			break;
 		}
@@ -111,6 +172,7 @@ uint32_t get_line(char* buffer, uint32_t size) {
 
 	char* ptr = buffer;
 	char* end = buffer + size - 1;
+	*ptr = '\0';
 	while (1) {
 		char ch = getc();
 		switch (ch) {
@@ -124,14 +186,12 @@ uint32_t get_line(char* buffer, uint32_t size) {
 		case 0x7f:
 			if (ptr > buffer) {
 				tty_bkspc();
-				--ptr;
+				*(--ptr) = '\0';
 			}
 			break;
 		case '\t':
-			putc('\t');
-			if (ptr < end) {
-				*ptr++ = '\t';
-			}
+			ptr = autocomplete(buffer);
+			if (ptr > end) ptr = end;
 			break;
 		case 0x1b: {	/* Consume ANSI/VT escape sequences before they leak into the buffer. */
 			/*
@@ -171,7 +231,9 @@ uint32_t get_line(char* buffer, uint32_t size) {
 			putc(ch);
 			if (ptr < end) {
 				*ptr++ = ch;
+				*ptr = '\0';
 			}
+			break;
 			break;
 		}
 		if (ptr == end) {
