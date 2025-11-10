@@ -9,35 +9,6 @@
 
 thread_t* proc;
 
-/* Copied from io.h because my life is in shambles. I mean no unified source yet. */
-typedef enum {
-	FILE_CREATE,
-	FILE_OPEN,
-	FILE_READ,
-	FILE_WRITE,
-	FILE_TRUNCATE,
-	DIR_CREATE,
-	DIR_OPEN,
-	DIR_READ,
-	DIR_WRITE,
-	DIR_TRUNCATE,
-} DISKMODE;
-
-/* Options for io ecall request */
-typedef struct {
-	byte* buffer;
-	uint32_t length;
-} uart_dev_opts;
-
-/* Options for disk ecall request */
-typedef struct {
-	DISKMODE mode;
-	FILE* file;
-	byte* buff_in;
-	byte* buff_out;
-	uint32_t length;
-} disk_dev_opts;
-
 //
 // Open handlers
 //

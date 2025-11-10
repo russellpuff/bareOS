@@ -3,74 +3,7 @@
 
 #include <barelib.h>
 #include <dev/printf_iface.h>
-
-/* This file includes a few things copied from format.h without exposing all the fs details *
- * In the future, both the kernel layer and user layer will draw from a unified source      */
-
-#define FILENAME_LEN 56 
-#define MAX_PATH_DEPTH 32
-#define MAX_PATH_LEN ((FILENAME_LEN * MAX_PATH_DEPTH) + MAX_PATH_DEPTH + 1)
-typedef uint8_t FD;
-
-typedef enum { EN_FREE, EN_BUSY, EN_FILE, EN_DIR } EN_TYPE;
-
-typedef enum {
-	FILE_CREATE,
-	FILE_OPEN,
-	FILE_READ,
-	FILE_WRITE,
-	FILE_TRUNCATE,
-	DIR_CREATE,
-	DIR_OPEN,
-	DIR_READ,
-	DIR_WRITE,
-	DIR_TRUNCATE,
-} DISKMODE;
-
-//
-// from format.h
-//
-typedef struct {
-	uint32_t size;
-	EN_TYPE type;
-	int16_t head;
-	int16_t parent;
-	uint32_t modified;
-} inode_t;
-
-typedef struct {
-	FD fd;
-	inode_t inode;
-} FILE;
-
-typedef struct {
-	uint16_t inode;
-	EN_TYPE type;
-	char name[FILENAME_LEN];
-} dirent_t;
-
-typedef struct {
-	char path[MAX_PATH_LEN];
-	dirent_t dir;
-} directory_t;
-//
-//
-//
-
-/* Options for io ecall request */
-typedef struct {
-	byte* buffer;
-	uint32_t length;
-} uart_dev_opts;
-
-/* Options for disk ecall request */
-typedef struct {
-	DISKMODE mode;
-	FILE* file;
-	byte* buff_in;
-	byte* buff_out;
-	uint32_t length;
-} disk_dev_opts;
+#include <dev/io_iface.h>
 
 void printf(const char*, ...);
 void sprintf(byte*, const char*, ...);
