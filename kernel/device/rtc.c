@@ -178,6 +178,7 @@ static uint64_t transition_to_utc(uint16_t year, dst_param param, int32_t offset
 /* Only returns a single format for now */
 void dt_to_string(datetime dt, char* out, uint8_t len) {
 	if (len < TIME_BUFF_SZ) return; /* Minimum string size is 34 bytes for this format */
+	memset(out, '\0', len);
 
 	const char* tz = "UTC";
 	uint64_t utc_seconds = dt_to_seconds(dt);

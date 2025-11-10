@@ -23,6 +23,7 @@ command_t builtin_commands[] = {
 	{ "print", (function_t)builtin_print },
 	{ "rm", (function_t)builtin_rm },
 	{ "rmdir", (function_t)builtin_rmdir },
+	{ "time", (function_t)builtin_time },
 	{ NULL, NULL }
 };
 

@@ -6,6 +6,7 @@
 /* TEMPORARY */
 #define UART_DEV_NUM 0
 #define DISK_DEV_NUM 1
+#define RTC_DEV_NUM  2
 
 /* Enum assigns identifying numbers to different ecalls    *
  * This is based on common linux numbering but not exactly */

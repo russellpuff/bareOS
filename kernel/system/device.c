@@ -4,6 +4,7 @@
 #include <mm/malloc.h>
 #include <lib/bareio.h>
 #include <system/thread.h>
+#include <device/rtc.h>
 
 thread_t* proc;
 
@@ -40,7 +41,7 @@ typedef struct {
 typedef struct {
 	byte* buffer;
 	uint8_t length;
-};
+} rtc_dev_opts;
 
 //
 // Open handlers
@@ -140,7 +141,15 @@ static uint32_t handle_ecall_close(uint32_t device, byte* options) {
 /* Called by:
 		fread()
 		readdir()
+		rtc_read()
 */
+static uint32_t rtc_dev_read(byte* options) {
+	rtc_dev_opts* opts = (rtc_dev_opts*)options;
+	uint64_t* time = (uint64_t*)opts->buffer;
+	*time = rtc_read_seconds();
+	return 0;
+}
+
 static uint32_t disk_dev_read(byte* options) {
 	disk_dev_opts* opts = (disk_dev_opts*)options;
 	switch (opts->mode) {
@@ -184,6 +193,7 @@ static uint32_t handle_ecall_read(uint32_t device, byte* options) {
 	switch (device) {
 		case UART_DEV_NUM: return uart_dev_read(options);
 		case DISK_DEV_NUM: return disk_dev_read(options);
+		case RTC_DEV_NUM: return rtc_dev_read(options);
 		default: break;
 	}
 	return 0;
@@ -197,7 +207,19 @@ static uint32_t handle_ecall_read(uint32_t device, byte* options) {
 		fwrite()
 		fdelete()
 		rmdir()
+		rtc_chtz()
 */
+static uint32_t rtc_dev_write(byte* options) {
+	rtc_dev_opts* opts = (rtc_dev_opts*)options;
+	uint8_t code = change_localtime((const char*)opts->buffer);
+	if (code == 0) {
+		char time[TIME_BUFF_SZ];
+		dt_to_string(rtc_read_datetime(), time, TIME_BUFF_SZ);
+		kprintf("[Debug] %s\n", time);
+	}
+	return code;
+}
+
 static uint32_t disk_dev_write(byte* options) {
 	disk_dev_opts* opts = (disk_dev_opts*)options;
 	switch (opts->mode) {
@@ -232,6 +254,7 @@ static uint32_t handle_ecall_write(uint32_t device, byte* options) {
 	switch (device) {
 		case UART_DEV_NUM: return uart_dev_write(options);
 		case DISK_DEV_NUM: return disk_dev_write(options);
+		case RTC_DEV_NUM: return rtc_dev_write(options);
 		default: break;
 	}
 	return (uint32_t)-1;

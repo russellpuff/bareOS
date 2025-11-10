@@ -21,6 +21,7 @@ uint8_t builtin_cd(char*);
 uint8_t builtin_mkdir(char*);
 uint8_t builtin_rm(char*);
 uint8_t builtin_rmdir(char*);
+uint8_t builtin_time(char*);
 function_t get_command(const char* name);
 
 extern command_t builtin_commands[];
