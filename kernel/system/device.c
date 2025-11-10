@@ -213,11 +213,6 @@ static uint32_t handle_ecall_read(uint32_t device, byte* options) {
 static uint32_t rtc_dev_write(byte* options) {
 	rtc_dev_opts* opts = (rtc_dev_opts*)options;
 	uint8_t code = change_localtime((const char*)opts->buffer);
-	if (code == 0) {
-		char time[TIME_BUFF_SZ];
-		dt_to_string(rtc_read_datetime(), time, TIME_BUFF_SZ);
-		kprintf("[Debug] %s\n", time);
-	}
 	return code;
 }
 

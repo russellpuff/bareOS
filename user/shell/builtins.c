@@ -33,6 +33,7 @@ uint8_t builtin_echo(char* arg) {
 /* Only supported arguments are 'now' and 'tz'
    If 'tz', you must pass in a string for new tz
    Gotta do this the hard way                    */
+/* Todo: deshittify this builtin */
 uint8_t builtin_time(char* arg) {
 	if (strlen(arg) < 1) {
 		printf("Error - needs an argument.\n");
@@ -40,17 +41,22 @@ uint8_t builtin_time(char* arg) {
 	}
 	if (arg[0] == 'n' && arg[1] == 'o' && arg[2] == 'w') {
 		uint64_t time = rtc_read();
-		//char* str[TIME_BUFF_SZ];
-		printf("%ul\n", time);
+		if (arg[3] != '\0' && arg[4] == '-' && arg[5] == 's') {
+			printf("%lu\n", time);
+		}
+		else {
+			char str[TIME_BUFF_SZ];
+			dt_to_string(seconds_to_dt(time), str, TIME_BUFF_SZ);
+			printf("%s\n", str);
+		}
 		return 0;
 	}
 	if (arg[0] == 't' && arg[1] == 'z') {
 		char* p = arg + 3;
-		if (strlen(p) < 3) return 1;
 		uint8_t code = rtc_chtz(p);
 		const char* s = code == 0 ? "Successfully changed local timezone.\n" : "Failed to change local timezone.\n";
 		printf("%s", s);
-		return 0;
+		return code;
 	}
 	return 1;
 }

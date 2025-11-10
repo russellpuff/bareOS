@@ -156,7 +156,7 @@ env.Alias("build", elf)
 # Append the GDB stub configuration to QEMU if running in debug mode.
 def _apply_debug_qemu_flags() -> None:
 	if env.get("DEBUG_MODE"):
-		env["qflags"] += f" -S -gdb tcp::{env['port']}"
+		env["qflags"] += f" -S -gdb tcp::{env["port"]}"
 
 
 _apply_debug_qemu_flags()
