@@ -2,14 +2,18 @@
 #define H_SHELL
 
 #include <barelib.h>
+#include <dev/io.h>
 
 typedef uint8_t (*function_t)(char*);
 
 typedef struct {
 	const char* name;
 	function_t func;
+	const char* args;
+	const char* summary;
 } command_t;
 
+uint8_t builtin_help(char*);
 uint8_t builtin_echo(char*);
 uint8_t builtin_print(char*);
 uint8_t builtin_cat(char*);

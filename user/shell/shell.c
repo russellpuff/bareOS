@@ -11,31 +11,6 @@
 
 directory_t cwd;
 
-command_t builtin_commands[] = {
-	{ "echo", (function_t)builtin_echo },
-	{ "cat", (function_t)builtin_cat },
-	{ "shutdown", (function_t)builtin_shutdown },
-	//{ "reboot", (function_t)builtin_reboot },
-	{ "clear", (function_t)builtin_clear },
-	{ "ls", (function_t)builtin_ls },
-	{ "cd", (function_t)builtin_cd },
-	{ "mkdir", (function_t)builtin_mkdir },
-	{ "print", (function_t)builtin_print },
-	{ "rm", (function_t)builtin_rm },
-	{ "rmdir", (function_t)builtin_rmdir },
-	{ "time", (function_t)builtin_time },
-	{ NULL, NULL }
-};
-
-function_t get_command(const char* name) {
-	for(uint32_t i = 0; builtin_commands[i].name != NULL; ++i) {
-		if(!strcmp(name, builtin_commands[i].name)) {
-			return builtin_commands[i].func;
-		}
-	}
-	return NULL;
-}
-
 /*
  * 'shell' loops forever, prompting the user for input, then calling a function based
  * on the text read in from the user.
