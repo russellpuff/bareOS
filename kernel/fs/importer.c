@@ -37,12 +37,12 @@ byte* run_to_nc(byte* ptr) {
 uint8_t generic_importer(byte* ptr) {
 	uint8_t status = 0;
 	const uint16_t BUFFER_SIZE = 1024;
-	byte buffer[BUFFER_SIZE];
-	byte* bptr = (byte*)buffer;
-	memset(buffer, '\0', BUFFER_SIZE);
+	byte status_msg[BUFFER_SIZE];
+	byte* status_ptr = (byte*)status_msg;
+	memset(status_msg, '\0', BUFFER_SIZE);
 	uint8_t num_files = *(ptr++);
-	ksprintf(bptr, "Importer is trying to import %d files...\n", num_files & 0xFF);
-	bptr = run_to_nc(bptr);
+	ksprintf(status_ptr, "Importer is trying to import %d files...\n", num_files & 0xFF);
+	status_ptr = run_to_nc(status_ptr);
 
 	/* Set up working directories to determine where files go */
 	dirent_t bin, home;
@@ -71,24 +71,20 @@ uint8_t generic_importer(byte* ptr) {
 			status = -1;
 			break;
 		}
-		FILE f = { 0 };
+		FILE f;
 		open(name, &f, cwd);
 		write(&f, ptr, size);
 		close(&f);
-		ksprintf(bptr, "Importer wrote %s (%u bytes).\n", name, size);
-		bptr = run_to_nc(bptr);
+		ksprintf(status_ptr, "Importer wrote %s (%u bytes).\n", name, size);
+		status_ptr = run_to_nc(status_ptr);
 		ptr += size;
 	}
 	
-	if(status == 0) { ksprintf(bptr, "Importer finished with no errors.\n"); } 
-	else { ksprintf(bptr, "The importer had an error and had to stop: couldn't create one of the files.\n"); }
-	bptr = run_to_nc(bptr);
+	if(status == 0) { ksprintf(status_ptr, "Importer finished with no errors.\n"); } 
+	else { ksprintf(status_ptr, "The importer had an error and had to stop: couldn't create one of the files.\n"); }
+	status_ptr = run_to_nc(status_ptr);
 	
 	char n[] = "/etc/importer.log\0";
-	create(n, boot_fsd->super.root_dirent);
-	FILE f2 = { 0 };
-	open(n, &f2, boot_fsd->super.root_dirent);
-	write(&f2, buffer, bptr - buffer + 1);
-	close(&f2);
+	create_write(n, (char*)status_msg, boot_fsd->super.root_dirent);
 	return 0;
 }

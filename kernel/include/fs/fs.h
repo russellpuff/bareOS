@@ -60,6 +60,7 @@ char* dirent_path_expand(dirent_t, char*);
 bool dir_child_exists(dirent_t, const char*, dirent_t*);
 uint8_t dir_write_entry(dirent_t, dirent_t);
 dirent_t get_dot_entry(uint16_t, const char*);
+uint8_t create_write(const char*, const char*, dirent_t);
 
 extern fsystem_t* boot_fsd;
 extern drv_reg* reg_drives;

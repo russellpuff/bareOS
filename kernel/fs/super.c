@@ -65,10 +65,23 @@ uint8_t mkfs(uint32_t blocksize, uint32_t numblocks) {
 	dir_write_entry(*root, parent_dot);
 
 	/* Make some default subdirectories for the root */
-	dirent_t unused;
-	mk_dir("bin", boot_fsd->super.root_dirent, &unused); /* Where binaries are stored */
-	mk_dir("etc", boot_fsd->super.root_dirent, &unused); /* Where logs and config files are stored */
-	mk_dir("home", boot_fsd->super.root_dirent, &unused); /* Home directory (for the only user) */
+	dirent_t dir;
+	mk_dir("bin", boot_fsd->super.root_dirent, &dir); /* Where binaries are stored */
+	mk_dir("home", boot_fsd->super.root_dirent, &dir); /* Home directory (for the only user) */
+	mk_dir("etc", boot_fsd->super.root_dirent, &dir); /* Where logs and config files are stored */
+
+	
+
+	/* Set default tz. I go with EST because I want to */
+	create_write("timezone", "est", dir);
+
+	/* Make timezone subdir */
+	mk_dir("tzinfo", dir, &dir);
+
+	/* Make some default zone info files */
+	create_write("utc", "UTC0", dir); /* Default UTC */
+	create_write("est", "EST5EDT,M3.2.0/2,M11.1.0/2", dir); /* EST because that's where I live :D */
+	create_write("jst", "JST-9", dir); /* JST as one across the world with a negative offset */
 
 	/* Write super to the super block. It will be restored to the real fsd if this blank *
 	 * filesystem is mounted by the user                                                 */

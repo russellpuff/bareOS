@@ -21,13 +21,13 @@ typedef enum {
 	DIR_TRUNCATE,
 } DISKMODE;
 
-/* Options for io ecall optsuest */
+/* Options for io ecall request */
 typedef struct {
 	byte* buffer;
 	uint32_t length;
 } uart_dev_opts;
 
-/* Options for disk ecall optsuest */
+/* Options for disk ecall request */
 typedef struct {
 	DISKMODE mode;
 	FILE* file;
@@ -35,6 +35,12 @@ typedef struct {
 	byte* buff_out;
 	uint32_t length;
 } disk_dev_opts;
+
+/* Options for rtc ecall request */
+typedef struct {
+	byte* buffer;
+	uint8_t length;
+};
 
 //
 // Open handlers

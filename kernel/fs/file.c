@@ -325,3 +325,16 @@ int32_t unlink(const char* path, dirent_t cwd) {
 	inode_release(target.inode);
 	return 0;
 }
+
+/* Kernel helper function to create and quickly write a string to a file */
+uint8_t create_write(const char* filename, const char* str, dirent_t cwd) {
+	if (filename == NULL || str == NULL) return 1;
+	if (create(filename, cwd) != 0) return 1;
+	FILE f;
+	if (open(filename, &f, cwd) != 0) return 1;
+	uint32_t len = strlen(str);
+	uint32_t written = write(&f, (byte*)str, len);
+	close(&f);
+	if (written != len) return 1;
+	return 0;
+}

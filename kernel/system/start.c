@@ -94,6 +94,7 @@ static void display_welcome(void) {
 static void sys_idle() { while (1); }
 
 static void root_thread(void) {
+	change_localtime("est");
 	display_welcome();
 	uint32_t idle_tid = create_thread(&sys_idle, "", 0, MODE_S);
 	resume_thread(idle_tid);
