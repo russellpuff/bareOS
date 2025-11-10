@@ -1,9 +1,8 @@
 #ifndef H_IMPORTER
 #define H_IMPORTER
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
-void IMPORT_TEST(byte*);
 uint8_t generic_importer(byte*);
 void* malloc_loaded_range(void);
 

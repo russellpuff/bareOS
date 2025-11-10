@@ -1,10 +1,10 @@
-#include <lib/barelib.h>
 #include <lib/bareio.h>
-#include <lib/string.h>
 #include <fs/fs.h>
 #include <mm/malloc.h>
 #include <device/tty.h>
 #include <system/thread.h>
+#include <barelib.h>
+#include <string.h>
 
 #define CSI_MAX_CHARS 32
 #define OSC_MAX_CHARS 256

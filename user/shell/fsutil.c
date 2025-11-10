@@ -1,7 +1,8 @@
-/* File contains definitions for all shell based filesystem utility commands. */
-#include <lib/io.h>
-#include <lib/string.h>
+#include <io.h>
+#include <string.h>
 #include "shell.h"
+
+/* File contains definitions for all shell based filesystem utility commands. */
 
 /* builtin_cat takes a file name and attempts to print its contents. *
  * It just assumes the files is in the current directory right now.  */

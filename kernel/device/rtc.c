@@ -1,9 +1,9 @@
-#include <lib/string.h>
 #include <lib/bareio.h>
 #include <device/rtc.h>
 #include <mm/vm.h>
 #include <mm/malloc.h>
 #include <fs/fs.h>
+#include <string.h>
 
 tzrule localtime;
 static const uint8_t month_len[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };

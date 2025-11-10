@@ -1,5 +1,5 @@
-#include <lib/io.h>
-#include <lib/string.h>
+#include <io.h>
+#include <string.h>
 #include "shell.h"
 
 /*

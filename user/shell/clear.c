@@ -1,4 +1,4 @@
-#include <lib/io.h>
+#include <io.h>
 #include "shell.h"
 
 uint8_t builtin_clear(char* arg) {

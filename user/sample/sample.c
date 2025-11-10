@@ -1,4 +1,4 @@
-#include <lib/io.h>
+#include <io.h>
 
 /* This file is for testing various functions that will run entirely in user mode in virtual memory */
 

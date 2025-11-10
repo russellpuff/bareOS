@@ -1,272 +1,137 @@
-import json
-import os
 import re
 import shutil
-import stat
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Iterable, List, Sequence, Set
 
-from SCons.Script import ARGUMENTS, COMMAND_LINE_TARGETS, Exit, GetOption
+from SCons.Script import COMMAND_LINE_TARGETS, Exit, GetOption
 
 USER_DIR = Path(Dir('.').abspath)
 ROOT_DIR = USER_DIR.parent
-BUILD_ROOT = ROOT_DIR / 'user' / 'build'
+BUILD_ROOT = USER_DIR / 'build'
 LOAD_DIR = ROOT_DIR / 'load'
-KERNEL_INCLUDE = ROOT_DIR / 'kernel' / 'include'
+LIB_DIR = ROOT_DIR / 'library'
+LIB_INCLUDE_DIR = LIB_DIR / 'include'
 LINKER_SCRIPT = USER_DIR / 'linker.ld'
 START_SOURCE = USER_DIR / 'start.s'
-LIB_MAP_PATH = USER_DIR / 'libmap.json'
 
-AVAILABLE_PROGRAMS = sorted(
-	entry
-	for entry in USER_DIR.iterdir()
-	if entry.is_dir() and not entry.name.startswith('.')
-)
+# Map tells the compiler what source files come with what header
+# Prevents us from including unnecessary stuff in a user program
+LIBRARY_HEADER_MAP: Dict[str, List[str]] = {
+	'barelib.h': [],
+	'string.h': ['string.c'],
+	'printf.h': ['printf.c'],
+	'ecall.h': ['ecall.c'],
+	'io.h': ['io.c', 'printf.c', 'string.c', 'ecall.c'],
+}
 
+INCLUDE_PATTERN = re.compile(r'^\s*#include\s*([<"])([^">]+)[">]')
 
-def _print_usage() -> None:
-	print("usage: scons build <program> [<program> ...]")
-	if AVAILABLE_PROGRAMS:
-		joined = ', '.join(entry.name for entry in AVAILABLE_PROGRAMS)
-		print(f"available programs: {joined}")
-	else:
-		print("no user programs were found")
+def _fail(message: str) -> None:
+	print(f"[error] {message}")
+	Exit(1)
 
-
-def _safe_remove(path: Path) -> None:
-	if path.is_dir():
-		print(f"scons: Removing build directory: {path}")
-		shutil.rmtree(path)
-	elif path.is_file():
-		print(f"scons: Removing build artifact: {path}")
-		path.unlink()
-
-
-if GetOption('clean'):
+# Clean build artifacts and .elf files copied to load/
+# If the user put their own .elf file there manually, it's gone
+# No way to verify, just don't do it, you can't run it anyways?
+def _clean() -> None:
 	if BUILD_ROOT.exists():
-		_safe_remove(BUILD_ROOT)
+		shutil.rmtree(BUILD_ROOT)
 	if LOAD_DIR.exists():
-		removed = False
-		for program in AVAILABLE_PROGRAMS:
-			elf_path = LOAD_DIR / f"{program.name}.elf"
-			if elf_path.exists():
-				if not removed:
-					print("scons: Removing generated load artifacts")
-					removed = True
-				_safe_remove(elf_path)
-	Exit(0)
+		for elf_path in LOAD_DIR.glob('*.elf'):
+			elf_path.unlink()
 
-
-def _detect_arch() -> str:
-	arch = ARGUMENTS.get('arch')
-	if arch:
-		if not shutil.which(f"{arch}-gcc"):
-			print(f"[error] requested toolchain '{arch}' not found on PATH")
-			Exit(1)
-		return arch
-	for candidate in (
+# Detect if a usable compiler exists
+def _detect_compiler() -> str:
+	for prefix in (
 		'riscv64-unknown-elf',
 		'riscv64-unknown-linux-gnu',
 		'riscv64-linux-gnu',
 	):
-		if shutil.which(f"{candidate}-gcc"):
-			return candidate
-	print("[error] no suitable RISC-V cross compiler found on PATH")
-	Exit(1)
+		compiler = f"{prefix}-gcc"
+		if shutil.which(compiler):
+			return compiler
+	_fail('no suitable RISC-V cross compiler found on PATH')
+	raise AssertionError
 
+# Search user source files for what headers they need from the shared library folder
+def _parse_includes(paths: Iterable[Path]) -> Set[str]:
+	headers: Set[str] = set()
+	for path in paths:
+		for line in path.read_text().splitlines():
+			match = INCLUDE_PATTERN.match(line)
+			if match and match.group(1) == '<':
+				headers.add(match.group(2).strip())
+	return headers
 
-def _load_library_map() -> List[Dict[str, object]]:
-	if not LIB_MAP_PATH.is_file():
-		print(f"[error] library map missing: {LIB_MAP_PATH}")
-		Exit(1)
-	try:
-		data = json.loads(LIB_MAP_PATH.read_text())
-	except Exception as exc:  # pragma: no cover - defensive
-		print(f"[error] failed to parse {LIB_MAP_PATH}: {exc}")
-		Exit(1)
-	libraries = data.get('libraries', [])
-	if not isinstance(libraries, list):
-		print("[error] invalid library map format: 'libraries' should be a list")
-		Exit(1)
-	for lib in libraries:
-		if not all(key in lib for key in ('name', 'script', 'artifact', 'headers')):
-			print(f"[error] malformed library entry: {lib}")
-			Exit(1)
-		headers = lib.get('headers', [])
-		if not isinstance(headers, list):
-			print(f"[error] library headers must be a list: {lib}")
-			Exit(1)
-	return libraries
-
-
-INCLUDE_PATTERN = re.compile(r'^\s*#include\s*([<"])([^">]+)[">]')
-
-
-def _scan_program(program_dir: Path, libraries: List[Dict[str, object]]) -> Tuple[List[Path], List[Dict[str, object]]]:
+# Gets the sources in the mini project folder for building the user program
+def _collect_sources(program_dir: Path) -> List[Path]:
 	sources = sorted(program_dir.glob('*.c'))
 	if not sources:
-		print(f"[error] no C sources found in {program_dir}")
-		Exit(1)
+		_fail(f"no C sources found in {program_dir}")
+	return sources
 
-	headers = sorted(program_dir.glob('*.h'))
-	files_to_scan = sources + headers
-
-	local_headers: Set[str] = set()
-	angle_headers: Set[str] = set()
-
-	for path in files_to_scan:
-		try:
-			text = path.read_text()
-		except OSError as exc:
-			print(f"[error] failed to read {path}: {exc}")
-			Exit(1)
-		for line in text.splitlines():
-			match = INCLUDE_PATTERN.match(line)
-			if not match:
-				continue
-			delimiter, header = match.group(1), match.group(2).strip()
-			if delimiter == '<':
-				angle_headers.add(header)
-			else:
-				local_headers.add(header)
-
-	missing_locals = sorted(header for header in local_headers if not (program_dir / header).is_file())
-	if missing_locals:
-		for header in missing_locals:
-			print(f"[error] missing local header: {header}")
-		Exit(1)
-
-	header_to_libs: Dict[str, List[Dict[str, object]]] = {}
-	for lib in libraries:
-		for header in lib.get('headers', []):
-			header_to_libs.setdefault(header, []).append(lib)
-
-	required_headers = sorted(angle_headers)
-	if required_headers:
-		for header in required_headers:
-			if header not in header_to_libs:
-				print(f"[error] no library provides header: {header}")
-				Exit(1)
-
-	selected_libs: List[Dict[str, object]] = []
-	uncovered = set(required_headers)
-	available_libs = libraries[:]
-
-	while uncovered:
-		best_lib = None
-		best_cover: Set[str] = set()
-		for lib in available_libs:
-			covers = set(lib.get('headers', [])) & uncovered
-			if len(covers) > len(best_cover):
-				best_lib = lib
-				best_cover = covers
-		if best_lib is None:
-			print(f"[error] could not resolve libraries for headers: {sorted(uncovered)}")
-			Exit(1)
-		selected_libs.append(best_lib)
-		available_libs.remove(best_lib)
-		uncovered -= set(best_lib.get('headers', []))
-
-	return sources, selected_libs
-def _detect_compiler() -> str:
-	arch = _detect_arch()
-	return f"{arch}-gcc"
+# Gets the sources for shared library files after determining which ones we need
+def _resolve_library_sources(headers: Sequence[str], header_map: Dict[str, List[str]]) -> List[Path]:
+	missing = [header for header in headers if header not in header_map]
+	if missing:
+		_fail(f"no library provides header(s): {', '.join(missing)}")
+	resolved: Set[Path] = set()
+	for header in headers:
+		for source in header_map[header]:
+			resolved.add(LIB_DIR / source)
+	return sorted(resolved)
 
 
-def _run_command(command: List[str]) -> None:
+def _compile_objects(compiler: str, flags: Sequence[str], sources: Sequence[Path], output_dir: Path) -> List[Path]:
+	objects: List[Path] = []
+	for src in sources:
+		obj_path = output_dir / (src.stem + '.o')
+		command = [compiler, *flags, '-c', str(src), '-o', str(obj_path)]
+		print(' '.join(command))
+		subprocess.check_call(command)
+		objects.append(obj_path)
+	return list(objects)
+
+
+def _link(compiler: str, flags: Sequence[str], objects: Sequence[Path], output: Path, map_path: Path) -> None:
+	command = [compiler, *flags, f'-Wl,-Map,{map_path}', '-o', str(output), *map(str, objects)]
 	print(' '.join(command))
 	subprocess.check_call(command)
 
 
-def _prepare_script(script_path: Path) -> None:
-	try:
-		data = script_path.read_bytes()
-	except OSError as exc:
-		print(f"[error] failed to read script {script_path}: {exc}")
-		Exit(1)
-
-	if b"\r\n" in data:
-		try:
-			script_path.write_bytes(data.replace(b"\r\n", b"\n"))
-		except OSError as exc:
-			print(f"[error] failed to normalize line endings for {script_path}: {exc}")
-			Exit(1)
-
-	try:
-		mode = script_path.stat().st_mode
-	except OSError as exc:
-		print(f"[error] failed to stat script {script_path}: {exc}")
-		Exit(1)
-
-	desired_mode = mode | stat.S_IXUSR
-	if desired_mode != mode:
-		try:
-			script_path.chmod(desired_mode)
-		except OSError as exc:
-			print(f"[error] failed to set execute permissions on {script_path}: {exc}")
-			Exit(1)
-
-
-def _run_library_script(script_path: Path) -> None:
-	if not script_path.exists():
-		print(f"[error] library build script missing: {script_path}")
-		Exit(1)
-
-	_prepare_script(script_path)
-
-	if os.access(script_path, os.X_OK):
-		command = [str(script_path)]
-	else:
-		command = ['bash', str(script_path)]
-
-	print(f"[info] running library script: {script_path}")
-	_run_command(command)
-
-
-def _run_all_library_scripts() -> None:
-	scripts = sorted(USER_DIR.glob('build_*_lib.sh'))
-	if not scripts:
-		print('[info] no library build scripts found to execute')
-		Exit(0)
-
-	for script_path in scripts:
-		_run_library_script(script_path)
-
+if GetOption('clean'):
+	_clean()
 	Exit(0)
 
-
 if not COMMAND_LINE_TARGETS or COMMAND_LINE_TARGETS[0] != 'build':
-	_print_usage()
+	print("usage: scons build <program>")
 	Exit(1)
-
-program_names = COMMAND_LINE_TARGETS[1:]
-if not program_names:
-	_print_usage()
-	Exit(1)
-
-if program_names == ['lib']:
-	_run_all_library_scripts()
-
-available_program_names = {entry.name for entry in AVAILABLE_PROGRAMS}
-for program in program_names:
-	if program not in available_program_names:
-		print(f"[error] unknown program '{program}'")
-		_print_usage()
-		Exit(1)
+if len(COMMAND_LINE_TARGETS) < 2:
+	_fail("program name required (example: scons build shell)")
+program_name = COMMAND_LINE_TARGETS[1]
+program_dir = USER_DIR / program_name # programs can only be built if they have a subdir named after them
+if not program_dir.is_dir():
+	_fail(f"unknown program '{program_name}'")
 
 if not START_SOURCE.is_file():
-	print(f"[error] start source missing: {START_SOURCE}")
-	Exit(1)
+	_fail(f"start source missing: {START_SOURCE}")
 
 if not LINKER_SCRIPT.is_file():
-	print(f"[error] linker script missing: {LINKER_SCRIPT}")
-	Exit(1)
+	_fail(f"linker script missing: {LINKER_SCRIPT}")
 
-cc = _detect_compiler()
-libraries = _load_library_map()
+compiler = _detect_compiler()
 
-base_compile_flags = [
+sources = _collect_sources(program_dir)
+angle_headers = sorted(_parse_includes([*sources, *program_dir.glob('*.h')]))
+library_sources = _resolve_library_sources(angle_headers, LIBRARY_HEADER_MAP) if angle_headers else []
+
+build_dir = BUILD_ROOT / program_name
+if build_dir.exists():
+	shutil.rmtree(build_dir)
+build_dir.mkdir(parents=True, exist_ok=True)
+
+common_flags = [
 	'-std=gnu2x',
 	'-Wall',
 	'-Werror',
@@ -278,8 +143,19 @@ base_compile_flags = [
 	'-mcmodel=medany',
 	'-O0',
 	'-g',
-	f'-I{KERNEL_INCLUDE}',
+	f'-I{LIB_INCLUDE_DIR}',
+	f'-I{program_dir}',
 ]
+
+object_paths = _compile_objects(compiler, common_flags, sources, build_dir)
+lib_objects = _compile_objects(compiler, common_flags, library_sources, build_dir)
+
+start_obj = build_dir / 'start.o'
+start_cmd = [compiler, *common_flags, '-c', str(START_SOURCE), '-o', str(start_obj)]
+print(' '.join(start_cmd))
+subprocess.check_call(start_cmd)
+
+all_objects = [start_obj, *object_paths, *lib_objects]
 
 link_flags = [
 	'-nostdlib',
@@ -287,61 +163,11 @@ link_flags = [
 	f'-Wl,-T,{LINKER_SCRIPT}',
 ]
 
-executed_scripts: Set[Path] = set()
+elf_path = build_dir / f'{program_name}.elf'
+map_path = build_dir / f'{program_name}.map'
+_link(compiler, link_flags, all_objects, elf_path, map_path)
 
-for program in program_names:
-	program_dir = USER_DIR / program
-	print(f"[info] building user program '{program}'")
-	sources, selected_libs = _scan_program(program_dir, libraries)
+LOAD_DIR.mkdir(parents=True, exist_ok=True)
+shutil.copy2(elf_path, LOAD_DIR / f'{program_name}.elf') # copy compiled elf to the load directory
 
-	build_dir = BUILD_ROOT / program
-	if build_dir.exists():
-		shutil.rmtree(build_dir)
-	build_dir.mkdir(parents=True, exist_ok=True)
-
-	include_flags = [*base_compile_flags, f'-I{program_dir}']
-
-	object_paths: List[Path] = []
-	for src in sources:
-		obj_path = build_dir / (src.stem + '.o')
-		compile_cmd = [cc, *include_flags, '-c', str(src), '-o', str(obj_path)]
-		_run_command(compile_cmd)
-		object_paths.append(obj_path)
-		print(f"built {obj_path}")
-
-	start_obj = build_dir / 'start.o'
-	start_cmd = [cc, *include_flags, '-c', str(START_SOURCE), '-o', str(start_obj)]
-	_run_command(start_cmd)
-	object_paths.insert(0, start_obj)
-
-	lib_paths: List[Path] = []
-	for lib in selected_libs:
-		script_rel = lib.get('script', '') or ''
-		artifact_rel = lib.get('artifact', '') or ''
-
-		if script_rel:
-			script_path = USER_DIR / script_rel
-			if script_path not in executed_scripts:
-				_run_library_script(script_path)
-				executed_scripts.add(script_path)
-
-		if artifact_rel:
-			artifact_path = ROOT_DIR / artifact_rel
-			if not artifact_path.exists():
-				print(f"[error] expected library artifact not found: {artifact_path}")
-				Exit(1)
-			if artifact_path not in lib_paths:
-				lib_paths.append(artifact_path)
-
-	map_path = build_dir / f'{program}.map'
-	elf_path = build_dir / f'{program}.elf'
-	link_cmd = [cc, *link_flags, f'-Wl,-Map,{map_path}', '-o', str(elf_path), *map(str, object_paths), *map(str, lib_paths)]
-	_run_command(link_cmd)
-	print(f"{program}.elf written to {elf_path}")
-
-	LOAD_DIR.mkdir(parents=True, exist_ok=True)
-	dest = LOAD_DIR / f'{program}.elf'
-	shutil.copy2(elf_path, dest)
-	print(f"copied {elf_path} to {dest}")
-
-Exit(0)
+print(f"[done] built {program_name} -> {elf_path}")

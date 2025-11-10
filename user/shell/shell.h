@@ -1,7 +1,7 @@
 #ifndef H_SHELL
 #define H_SHELL
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
 typedef uint8_t (*function_t)(char*);
 

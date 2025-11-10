@@ -1,15 +1,15 @@
-#include <lib/barelib.h>
 #include <lib/bareio.h>
 #include <system/thread.h>
 #include <system/exec.h>
 #include <system/interrupts.h>
 #include <system/syscall.h>
 #include <system/queue.h>
-#include <lib/ecall.h>
 #include <system/panic.h>
 #include <device/timer.h>
 #include <mm/vm.h>
 #include <mm/malloc.h>
+#include <barelib.h>
+#include <ecall.h>
 
 /*
  *  This file contains code for handling exceptions generated

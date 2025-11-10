@@ -1,7 +1,7 @@
 #ifndef H_FORMAT
 #define H_FORMAT
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
 #define FS_MAGIC 0x62726673 /* 'brfs' - bare ram filesystem */
 #define FS_VERSION 2

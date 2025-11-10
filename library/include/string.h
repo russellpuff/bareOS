@@ -1,7 +1,7 @@
 #ifndef H_STRING
 #define H_STRING
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
 int16_t strcmp(const char*, const char*);
 uint64_t strlen(const char*);

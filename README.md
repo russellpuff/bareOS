@@ -5,8 +5,9 @@ bareOS is a small RISC-V operating system written in C (gnu2x) that began at Ind
 ## Features
 - 64-bit RISC-V kernel that runs under QEMU.
 - Preemptive threading and basic synchronization primitives.
-- Simple RAM-disk file system and a minimal shell.
+- Simple RAM-disk file system and a basic shell.
 - Basic virtual memory support, user binaries can be imported and run as programs.
+- Separation of user space and kernel space, users must ecall to access hardware.
 
 ## Getting Started
 
@@ -14,11 +15,7 @@ bareOS is a small RISC-V operating system written in C (gnu2x) that began at Ind
 On a Debian/Ubuntu system the following commands install the required toolchain and dependencies. The absolute ideal is to build your own cross compiler tools, but unknown-elf should work to achieve the intended bare-metal approach. 
 
 ```sh
-sudo apt-get install -y --no-install-recommends \
-	 qemu-system-riscv64 \
-	 gcc-riscv64-unknown-elf \
-	 gdb-multiarch
-	 
+sudo apt-get install -y --no-install-recommends qemu-system-riscv64 gcc-riscv64-unknown-elf gdb-multiarch
 pip install scons
 ```
 

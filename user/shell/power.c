@@ -1,5 +1,5 @@
-#include <lib/io.h>
-#include <lib/ecall.h>
+#include <io.h>
+#include <ecall.h>
 #include "shell.h"
 
 /* 'builtin_shutdown' and 'builtin_reboot' both ecall to write a magic     *

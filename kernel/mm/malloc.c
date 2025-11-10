@@ -1,8 +1,9 @@
-#include <lib/barelib.h>
+#include <system/memlayout.h>
 #include <system/thread.h>
 #include <system/panic.h>
 #include <mm/malloc.h>
 #include <mm/vm.h>
+#include <barelib.h>
 
 alloc_t* freelist;
 

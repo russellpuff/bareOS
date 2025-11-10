@@ -1,18 +1,20 @@
-#include <lib/barelib.h>
 #include <lib/bareio.h>
-#include <lib/string.h>
-#include <lib/ecall.h>
 #include <system/version.h>
 #include <system/thread.h>
 #include <system/interrupts.h>
 #include <system/queue.h>
 #include <system/panic.h>
+#include <system/memlayout.h>
 #include <mm/malloc.h>
 #include <mm/vm.h>
 #include <device/tty.h>
+#include <device/uart.h>
 #include <device/rtc.h>
 #include <fs/fs.h>
 #include <fs/importer.h>
+#include <barelib.h>
+#include <string.h>
+#include <ecall.h>
 
 /*
  *  This file contains the C code entry point executed by the kernel.

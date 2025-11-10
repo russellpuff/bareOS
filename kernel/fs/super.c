@@ -1,7 +1,6 @@
 #include <fs/fs.h>
-#include <lib/string.h>
-#include <lib/limits.h>
 #include <mm/malloc.h>
+#include <string.h>
 
 #include <lib/bareio.h>
 /* TODO: put these somewhere better */
@@ -69,8 +68,6 @@ uint8_t mkfs(uint32_t blocksize, uint32_t numblocks) {
 	mk_dir("bin", boot_fsd->super.root_dirent, &dir); /* Where binaries are stored */
 	mk_dir("home", boot_fsd->super.root_dirent, &dir); /* Home directory (for the only user) */
 	mk_dir("etc", boot_fsd->super.root_dirent, &dir); /* Where logs and config files are stored */
-
-	
 
 	/* Set default tz. I go with EST because I want to */
 	create_write("timezone", "est", dir);

@@ -1,7 +1,7 @@
 #ifndef H_RTC
 #define H_RTC
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
 #define TIME_BUFF_SZ 34
 

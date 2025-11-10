@@ -1,9 +1,9 @@
 #ifndef H_THREAD
 #define H_THREAD
 
-#include <lib/barelib.h>
 #include <system/semaphore.h>
 #include <fs/fs.h>
+#include <barelib.h>
 
 typedef enum {
 	MODE_S,

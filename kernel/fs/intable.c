@@ -1,5 +1,5 @@
 #include <fs/fs.h>
-#include <lib/string.h>
+#include <string.h>
 
 #define IN_PER_BLOCK (uint16_t)(boot_fsd->device->block_size / sizeof(inode_t))
 

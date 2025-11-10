@@ -5,9 +5,9 @@
  *  to the interrupt vector (see '__traps' in bootstrap.s).
  */
 
-#include <lib/barelib.h>
 #include <system/interrupts.h>
 #include <mm/vm.h>
+#include <barelib.h>
 
 #define PLIC_ENABLE 0x200
 #define PLIC_S_THRESH (0x0C201000UL + (MMU_ENABLED ? KVM_BASE : 0))

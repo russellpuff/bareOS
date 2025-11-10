@@ -1,11 +1,11 @@
 #ifndef H_EXEC
 #define H_EXEC
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
 /*
  * The following constants describe the subset of the ELF64 specification that
- * the kernel currently understands.  They are intentionally small – we only
+ * the kernel currently understands.  They are intentionally small â€“ we only
  * load 64-bit little-endian RISC-V executables that follow the base ABI.
  */
 
@@ -21,7 +21,7 @@
   * ELF file layout overview
   * ------------------------
   * An ELF binary begins with a fixed-size header (`elf64_ehdr`).  The first
-  * sixteen bytes – stored in `e_ident` – encode several identification values
+  * sixteen bytes â€“ stored in `e_ident` â€“ encode several identification values
   * such as the ELF magic number, whether the file is 32/64 bit, and the data
   * endianness.  The remaining fields provide offsets that let us locate the
   * rest of the file:

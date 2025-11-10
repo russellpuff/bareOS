@@ -1,4 +1,4 @@
-#include <lib/ecall.h>
+#include <ecall.h>
 
 static inline uint64_t ecall0(uint64_t signum) {
 	register uint64_t a7 asm("a7") = signum;

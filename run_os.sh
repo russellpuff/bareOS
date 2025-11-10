@@ -43,12 +43,11 @@ cd user
 scons build shell
 cd "$ROOT_DIR"
 
-scons build
 
 if [ "$DEBUG_MODE" -eq 1 ]; then
-	BAREOS_QEMU_DEBUG=1 scons qemu-flags
+	BAREOS_QEMU_DEBUG=1 scons build
 else
-	scons qemu-flags
+	scons build
 fi
 
 FLAGS_FILE="$ROOT_DIR/.build/qemu_flags.txt"

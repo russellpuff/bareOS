@@ -1,8 +1,9 @@
-#include <lib/barelib.h>
 #include <lib/bareio.h>
 #include <system/interrupts.h>
 #include <device/tty.h>
+#include <device/uart.h>
 #include <mm/vm.h>
+#include <barelib.h>
 
 #define UART_PRIO_ADDR 0xc000028UL         /*  These  values and  addresses  are used to  setup */
 #define UART_ENABLE 0x400                  /*  the UART on the PLIC.  The addresses must be set */

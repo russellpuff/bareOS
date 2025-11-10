@@ -1,6 +1,7 @@
 #ifndef H_PRINTF
 #define H_PRINTF
-#include <lib/barelib.h>
+
+#include <barelib.h>
 
 #define MODE_REGULAR 0
 #define MODE_BUFFER  1

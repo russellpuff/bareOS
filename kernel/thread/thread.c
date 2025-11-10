@@ -3,9 +3,9 @@
 #include <system/syscall.h>
 #include <system/panic.h>
 #include <mm/vm.h>
-#include <lib/string.h>
-#include <system/queue.h>
 #include <mm/malloc.h>
+#include <system/queue.h>
+#include <string.h>
 
 #define SSTATUS_SIE   (1UL << 1)
 #define SSTATUS_SPIE  (1UL << 5)

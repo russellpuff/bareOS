@@ -1,213 +1,206 @@
-import os, subprocess, re
-from SCons.Script import File
+# Kernel build graph and runtime helpers for bareOS.
+# Focuses on kernel-specific sources, QEMU integration, and loader preparation.
+
+from __future__ import annotations
+
+import os
+import re
+import subprocess
+from pathlib import Path
+
+from SCons.Script import COMMAND_LINE_TARGETS, Copy, Exit, File, Glob
+
 Import("env")
 
-img_file      = "bareOS.elf"
-HEAD_DIR = Dir('load').abspath
-ROOT_DIR = Dir('#').abspath
-KERNEL_ROOT = Dir('#/kernel').abspath
+IMG_FILE = "bareOS.elf"
+HEAD_DIR = Path(Dir("load").abspath)
+KERNEL_ROOT = Path(Dir("#/kernel").abspath)
+LIBRARY_ROOT = Path(Dir("#/library").abspath)
 
-def _normalize(path: str) -> str:
-	# Return a normalized path relative to the repository root.
-	if not os.path.isabs(path):
-		path = os.path.join(ROOT_DIR, path)
-	return os.path.normpath(os.path.relpath(path, ROOT_DIR))
-
-BLACKLIST = {
-	_normalize(os.path.join("kernel", "lib", "io.c")),
-	_normalize(os.path.join("kernel", "include", "lib", "io.h")),
-}
-
-# TODO: scons -c will check for blacklisted files for no good reason, fix that
-def _is_blacklisted(node) -> bool:
-	rel_path = _normalize(node.srcnode().get_abspath())
-	if rel_path in BLACKLIST:
-		print(f"[Info] Skipping blacklisted file: {rel_path}")
-		return True
-	return False
-
-def error(code, msg):
+# Print the provided message then abort the build with the given code.
+def error(code: int, msg: str) -> None:
 	print(msg)
 	Exit(code)
 
-# auto get src directories
-kernel_dirs = [
-	d
-	for d in os.listdir(KERNEL_ROOT)
-	if os.path.isdir(os.path.join(KERNEL_ROOT, d)) and d != "include"
-]
-kernel_files = []
-for directory in kernel_dirs:
-	pattern = os.path.join("kernel", directory, "*.[cs]")
-	for node in Glob(pattern):
-		if not _is_blacklisted(node):
-			kernel_files.append(node)
+# Return a list of kernel source nodes discovered automatically.
+def _gather_kernel_sources() -> list:
+	kernel_files = []
+	for directory in sorted(KERNEL_ROOT.iterdir()):
+		if directory.name == "include" or not directory.is_dir():
+				continue
+		pattern = os.path.join("kernel", directory.name, "*.[cs]")
+		kernel_files.extend(Glob(pattern))
+	return kernel_files
 
-def do_gdb(target, source, env):
-	gdb_file = img_file
-	os.system(f'{env["GDB"]} -ex "file {gdb_file}" -ex "target remote :{env["port"]}"')
-	env.Exit(0)
+# Collect shared library files that the kernel links against.
+# Unlike the user side, we manually declare what library files we need. 
+# Mainly because it's way too much work to scan the large codebase.
+def _kernel_library_sources() -> list:
+	sources = []
+	for candidate in ("string.c", "printf.c", "ecall.c"):
+		path = LIBRARY_ROOT / candidate
+		if path.exists():
+			sources.append(File(os.path.join("library", candidate)))
+	return sources
 
-bld_gdb = env.Builder(action=do_gdb)
-env["BUILDERS"]["GDB"] = bld_gdb
-
-def do_qemu(target, source, env):
-	env['qflags'] += f" -S -gdb tcp::{env['port']}"
-
-bld_qemu = env.Builder(action=do_qemu)
-env["BUILDERS"]["Qemu"] = bld_qemu
-
-# ----------------------  Build OS Image  ----------------------------
-objs   = env.Object(kernel_files)
-elf    = env.Program(img_file, objs)
-elf    = env.Command(None, elf, Copy(img_file, "$SOURCE"))
-env.Alias("gdb", objs)
-
-# ------------------- Do External File Load  -------------------------
-def prepare_generic_loader(env):
-	# Figure out heap start address based on the memmap. 
-	START_ADDR = 24 # sizeof(alloc_t)
+# Build loader metadata and return QEMU flag fragments.
+# This runs immediately after build to scan the memmap for the location of kernel heap/stack.
+def prepare_generic_loader(env) -> str:
+	start_addr = 24  # sizeof(alloc_t)
 	try:
 		with open(str(env["memmap"])) as mf:
 			heap_addr = None
 			for line in mf:
-				# look for the mem_start address after the compiler spits out a memmap
-				m = re.search(r"(0x[0-9a-fA-F]+)\s+PROVIDE \(mem_start", line)
-				if m:
-					heap_addr = int(m.group(1), 16)
+				match = re.search(r"(0x[0-9a-fA-F]+)\s+PROVIDE \(mem_start", line)
+				if match:
+					heap_addr = int(match.group(1), 16)
 					break
 		if heap_addr is not None:
 			print(f"[Info] Predicted heap start (mem_start): 0x{heap_addr:08x}")
-			START_ADDR += 0x80200000 if 0x80200000 > heap_addr else heap_addr # adjust for kernel megapage
-			print(f"[Info] Generic importer start location: 0x{START_ADDR:08x}")
+			if 0x80200000 > heap_addr:
+				start_addr += 0x80200000
+			else:
+				start_addr += heap_addr
+			print(f"[Info] Generic importer start location: 0x{start_addr:08x}")
 		else:
 			print("[Warning] Could not locate mem_start in linker map; skipping file load.")
-	except Exception as e:
-		print(f"[Warning] Failed to read linker map for heap prediction: {e}")
+	except OSError as exc:
+		print(f"[Warning] Failed to read linker map for heap prediction: {exc}")
 
-	FILENAME_LEN = 56
-	MAX_FILES = 100
-	MAX_TOTAL_PAYLOAD = int(1.5 * 1024 * 1024)
-	HEADER_SIZE = FILENAME_LEN + 4
+	filename_len = 56 # from format.h
+	max_files = 100 # Arbitrary limit since the ramdisk has no limits
+	max_total_payload = int(1.5 * 1024 * 1024) # Abitrary limit to avoid maxing out the ramdisk on boot
+	header_size = filename_len + 4
 
-	def do_name_bytes(filename: str) -> bytes:
-		b = filename.encode('utf-8')
-		if len(filename) > FILENAME_LEN - 1: # account for null terminator fs needs
+	# Encode the filename into the fixed-width header field.
+	def do_name_bytes(filename: str) -> bytes | None:
+		encoded = filename.encode("utf-8")
+		if len(filename) > filename_len - 1:
 			return None
-		return b[:FILENAME_LEN].ljust(FILENAME_LEN, b'\0')
+		return encoded[:filename_len].ljust(filename_len, b"\0")
 
+	# Convert the supplied size into the little-endian header payload.
 	def do_size_bytes(size: int) -> bytes:
-		return int(size).to_bytes(4, 'little')
+		return int(size).to_bytes(4, "little")
 
-	#Load user filess from /load, this is attached to qflags
-	load_flags = ""
+	load_flags = []
 
-	if START_ADDR > 24:
-		current = START_ADDR + 1
-		LOAD_DIR = Dir('#/load').abspath
-		if not os.path.exists(LOAD_DIR):
-			os.makedirs(LOAD_DIR)
-		if not os.path.exists(HEAD_DIR):
-			os.makedirs(HEAD_DIR)
+	if start_addr > 24:
+		current = start_addr + 1
+		load_dir = Path(Dir("#/load").abspath)
+		load_dir.mkdir(parents=True, exist_ok=True)
+		HEAD_DIR.mkdir(parents=True, exist_ok=True)
+
 		files = sorted(
-			f for f in os.listdir(LOAD_DIR)
-			if os.path.isfile(os.path.join(LOAD_DIR, f))
+			f for f in load_dir.iterdir() if f.is_file()
 		)
 
 		valid_files = 0
 		total_payload_bytes = 0
 
-		for filename in files:
-			if valid_files == MAX_FILES:
+		for path in files:
+			if valid_files == max_files:
 				break
-			name_bytes = do_name_bytes(filename)
+			name_bytes = do_name_bytes(path.name)
 			if name_bytes is None:
 				continue
 
-			path = os.path.join(LOAD_DIR, filename)
-			f_size = os.path.getsize(path)
-			if total_payload_bytes + f_size > MAX_TOTAL_PAYLOAD:
+			f_size = path.stat().st_size
+			if total_payload_bytes + f_size > max_total_payload:
 				continue
 
-			header_path = os.path.join(HEAD_DIR, f"{filename}.gih")
-
-			# Force rewrite header.
+			# Create .gih (generic importer header) files so the importer
+			# Can write header data in a single burst (opposed to 8-byte
+			# direct writes). These get cleaned when running scons -c.
+			header_path = HEAD_DIR / f"{path.name}.gih"
 			header = name_bytes + do_size_bytes(f_size)
-			assert len(header) == HEADER_SIZE
-			with open(header_path, 'wb') as hf:
-				hf.write(header)
+			header_path.write_bytes(header)
 
-			# load header
-			load_flags += f"-device loader,file={header_path},addr=0x{current:08x} "
-			current += HEADER_SIZE
+			load_flags.append(f"-device loader,file={header_path},addr=0x{current:08x}")
+			current += header_size
 
-			# load file
-			load_flags += f"-device loader,file={path},addr=0x{current:08x},force-raw=on "
+			load_flags.append(
+				f"-device loader,file={path},addr=0x{current:08x},force-raw=on"
+			)
 			current += f_size
 
 			total_payload_bytes += f_size
 			valid_files += 1
-		load_flags += f"-device loader,addr={START_ADDR:#x},data={valid_files:#x},data-len=1 "
-		return load_flags
 
+		load_flags.append(
+			f"-device loader,addr={start_addr:#x},data={valid_files:#x},data-len=1"
+		)
+
+	return " ".join(load_flags)
+
+
+all_kernel_sources = _gather_kernel_sources() + _kernel_library_sources()
+objs = env.Object(all_kernel_sources)
+elf = env.Program(IMG_FILE, objs)
+elf = env.Command(None, elf, Copy(IMG_FILE, "$SOURCE"))
 env.Alias("build", elf)
-# ----------------------  Virtualization  ----------------------------
-if "debug" in COMMAND_LINE_TARGETS or os.getenv("BAREOS_QEMU_DEBUG") == "1":
-		env['qflags'] += f" -S -gdb tcp::{env['port']}"
 
-# Provide a helper target for exporting the full QEMU flag set without
-# launching the emulator. This allows automated tooling to invoke QEMU
-# independently of SCons while still reusing the dynamically generated
-# loader arguments.
+
+# Append the GDB stub configuration to QEMU if running in debug mode.
+def _apply_debug_qemu_flags() -> None:
+	if env.get("DEBUG_MODE"):
+		env["qflags"] += f" -S -gdb tcp::{env['port']}"
+
+
+_apply_debug_qemu_flags()
+
+
+# Write the fully-expanded QEMU argument list to the output file.
+# Used by run_os.sh for running without scons surrounding execution.
 def write_qemu_flags(target, source, env):
-	"""Write the QEMU command-line flags (including loader data) to a file.
-
-	Args:
-		target: The output file that will receive the generated flag string.
-		source: The bareOS ELF image that triggers loader preparation.
-		env: The active SCons construction environment.
-
-	Returns:
-		int: Zero on success so SCons treats the action as successful.
-	"""
 	load_flags = prepare_generic_loader(env)
-	flag_string = env['qflags']
+	flag_string = env["qflags"]
 	if load_flags:
-		flag_string = f"{flag_string} {load_flags.strip()}"
-	with open(str(target[0]), 'w') as tf:
-		tf.write(flag_string.strip() + "\n")
-	print(flag_string.strip())
+		flag_string = f"{flag_string} {load_flags}".strip()
+	target_path = Path(str(target[0]))
+	target_path.parent.mkdir(parents=True, exist_ok=True)
+	target_path.write_text(flag_string + "\n")
+	print(flag_string)
 	return 0
 
-qemu_flags_file = env.Command("#/.build/qemu_flags.txt", img_file, write_qemu_flags)
+qemu_flags_file = env.Command("#/.build/qemu_flags.txt", [], write_qemu_flags)
 env.Depends(qemu_flags_file, elf)
-env.Alias("qemu-flags", qemu_flags_file)
+env.AlwaysBuild(qemu_flags_file)
+env.Alias("build", [elf, qemu_flags_file])
 
+# Launch bareOS under QEMU with the prepared loader data.
 def run_qemu(target, source, env):
+	# Allow the user to run without the shell. Note the system panics if it has no shell. 
+	# If "no-shell" is used but the shell was built, it'll get loaded anyways.
 	if "no-shell" not in COMMAND_LINE_TARGETS:
-		load_dir = Dir('#/load').abspath
-		shell_path = os.path.join(load_dir, 'shell.elf')
-		if not os.path.isdir(load_dir) or not os.path.isfile(shell_path):
-			error(1, "[Error] Missing load/shell.elf; you probably need to build the shell (try `scons build shell` from the user/ directory).")
+		load_dir = Path(Dir("#/load").abspath)
+		shell_path = load_dir / "shell.elf"
+		if not load_dir.is_dir() or not shell_path.is_file():
+			error(
+				1,
+				"[Error] Missing load/shell.elf; you probably need to build the shell "
+				"(try `scons build shell` from the user/ directory).",
+			)
 
-	# This has to happen immediately prior to QEMU spinup so the helper can read the memmap.
-	load_flags = prepare_generic_loader(env)
-	print(env['qflags'])
-	if load_flags:
-		env.Append(qflags=" " + load_flags)
-		print(load_flags)
+		load_flags = prepare_generic_loader(env)
+		print(env["qflags"])
+		if load_flags:
+			env.Append(qflags=" " + load_flags)
+			print(load_flags)
 
-	args = [env['QEMU'], '-kernel', str(source[0])] + env['qflags'].split()
-	if "debug" not in COMMAND_LINE_TARGETS: # When not debugging, clear the build output before running
-		subprocess.run("clear", shell=True, check=True)
-	return subprocess.call(args)
+		args = [env["QEMU"], "-kernel", str(source[0])] + env["qflags"].split()
+		if not env.get("DEBUG_MODE"):
+			subprocess.run("clear", shell=True, check=True)
+		return subprocess.call(args)
 
-run = env.Command(target="run_cmd", source=img_file, action=run_qemu)
+
+run = env.Command(target="run_cmd", source=IMG_FILE, action=run_qemu)
 env.Depends(run, elf)
+env.AlwaysBuild(run)
 env.Alias("run", run)
 
 # --------------------  Environment Management  ----------------------
 
 env.Clean(elf, env["memmap"])
 env.Clean(elf, HEAD_DIR)
-env.Clean(elf, f"#{img_file}")
+env.Clean(elf, f"#{IMG_FILE}")

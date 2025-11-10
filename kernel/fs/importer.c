@@ -1,9 +1,9 @@
 #include <fs/fs.h>
 #include <fs/importer.h>
-#include <lib/barelib.h>
 #include <lib/bareio.h>
-#include <lib/string.h>
 #include <mm/malloc.h>
+#include <barelib.h>
+#include <string.h>
 
 /* Mildly unsafe helper that reads the raw bytes from header to a uint32. */
 uint32_t bytes_to_u32(const byte* ptr) {

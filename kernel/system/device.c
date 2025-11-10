@@ -1,10 +1,10 @@
 #include <fs/fs.h>
-#include <lib/ecall.h>
-#include <lib/string.h>
 #include <mm/malloc.h>
 #include <lib/bareio.h>
 #include <system/thread.h>
 #include <device/rtc.h>
+#include <ecall.h>
+#include <string.h>
 
 thread_t* proc;
 

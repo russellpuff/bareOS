@@ -1,15 +1,15 @@
-#include <lib/barelib.h>
 #include <lib/bareio.h>
-#include <lib/string.h>
 #include <system/thread.h>
 #include <system/exec.h>
 #include <system/syscall.h>
 #include <system/queue.h>
-#include <lib/ecall.h>
 #include <system/panic.h>
 #include <mm/vm.h>
 #include <mm/malloc.h>
 #include <fs/fs.h>
+#include <barelib.h>
+#include <string.h>
+#include <ecall.h>
 
 #define SYSCON_ADDR 0x100000
 #define SYSCON_SHUTDOWN 0x5555

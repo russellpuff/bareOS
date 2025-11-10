@@ -1,9 +1,10 @@
 #include <mm/vm.h>
 #include <mm/malloc.h>
-#include <lib/barelib.h>
-#include <lib/string.h>
 #include <system/thread.h>
 #include <system/panic.h>
+#include <system/memlayout.h>
+#include <barelib.h>
+#include <string.h>
 
 #define FREEMASK_RANGE ((uint64_t)ALIGN_UP_2M(&mem_end - &text_start))
 #define FREEMASK_BITS (FREEMASK_RANGE / PAGE_SIZE)

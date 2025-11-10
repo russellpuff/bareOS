@@ -1,4 +1,3 @@
-#include <lib/barelib.h>
 #include <system/interrupts.h>
 #include <system/syscall.h>
 #include <system/queue.h>
@@ -6,6 +5,7 @@
 #include <system/panic.h>
 #include <device/timer.h>
 #include <mm/vm.h>
+#include <barelib.h>
 
 /*
  *  This file contains functions for initializing and handling interrupts

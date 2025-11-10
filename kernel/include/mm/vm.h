@@ -1,7 +1,7 @@
 #ifndef H_VM
 #define H_VM
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
 extern volatile uint8_t MMU_ENABLED;
 

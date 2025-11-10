@@ -1,6 +1,7 @@
 #ifndef H_IO
 #define H_IO
-#include <lib/barelib.h>
+
+#include <barelib.h>
 
 /* This file includes a few things copied from format.h without exposing all the fs details *
  * In the future, both the kernel layer and user layer will draw from a unified source      */

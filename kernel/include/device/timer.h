@@ -1,7 +1,7 @@
 #ifndef H_TIMER
 #define H_TIMER
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
 extern const uint64_t clint_timer_addr;
 extern const uint64_t timer_interval;

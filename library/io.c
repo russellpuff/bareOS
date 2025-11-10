@@ -1,8 +1,8 @@
-#include <lib/barelib.h>
-#include <lib/printf.h>
-#include <lib/io.h>
-#include <lib/ecall.h>
-#include <lib/string.h>
+#include <barelib.h>
+#include <printf.h>
+#include <io.h>
+#include <ecall.h>
+#include <string.h>
 
 #define UPRINTF_BUFF_SIZE 1024
 

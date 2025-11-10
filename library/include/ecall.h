@@ -1,7 +1,7 @@
 #ifndef H_ECALL
 #define H_ECALL
 
-#include <lib/barelib.h>
+#include <barelib.h>
 
 /* TEMPORARY */
 #define UART_DEV_NUM 0

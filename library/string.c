@@ -1,5 +1,5 @@
-#include <lib/barelib.h>
-#include <lib/string.h>
+#include <barelib.h>
+#include <string.h>
 
 /* Compares two strings and returns the difference between them (zero if equal) */
 int16_t strcmp(const char* str1, const char* str2) {

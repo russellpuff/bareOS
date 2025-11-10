@@ -1,8 +1,8 @@
 #ifndef H_FS
 #define H_FS
 
-#include <lib/barelib.h>
 #include <fs/format.h>
+#include <barelib.h>
 
 #define EMPTY -1        /* Used in FS whenever a field's state is undefined or unused */
 

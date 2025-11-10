@@ -1,7 +1,7 @@
 #include <lib/bareio.h>
-#include <lib/barelib.h>
-#include <lib/printf.h>
 #include <mm/vm.h>
+#include <barelib.h>
+#include <printf.h>
 
 /* Helper functions. printf_putc is the only thing that can advance the buffer pointer so always return it for updates */
 byte* printf_putc(char c, uint8_t mode, byte* ptr) {

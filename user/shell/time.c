@@ -1,5 +1,5 @@
-#include <lib/string.h>
-#include <lib/io.h>
+#include <string.h>
+#include <io.h>
 #include "shell.h"
 
 /* Only supported arguments are 'now' and 'tz' 

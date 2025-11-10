@@ -1,6 +1,6 @@
-#include <lib/barelib.h>
 #include <lib/bareio.h>
 #include <system/panic.h>
+#include <barelib.h>
 
 static inline uint64_t r_sstatus(void) { uint64_t x; asm volatile("csrr %0, sstatus":"=r"(x)); return x; }
 static inline uint64_t r_scause(void) { uint64_t x; asm volatile("csrr %0, scause":"=r"(x)); return x; }
