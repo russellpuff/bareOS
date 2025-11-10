@@ -5,7 +5,7 @@
 #include <mm/vm.h>
 #include <system/thread.h>
 #include <system/semaphore.h>
-#include <string.h>
+#include <util/string.h>
 
 static bool is_supported_elf(const elf64_ehdr* hdr, uint32_t file_size) {
 	if (hdr == NULL || file_size < sizeof(elf64_ehdr)) return false;

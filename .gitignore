@@ -15,3 +15,4 @@ user/build/
 kernel/include/system/version.h
 !/user/*.sh
 !run_os.sh
+CppProperties.json

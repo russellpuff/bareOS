@@ -1,4 +1,4 @@
-#include <printf.h>
+#include <dev/printf.h>
 
 static byte* put_number(uint64_t u, uint8_t mode, byte* ptr) {
 	if (u == 0) { return printf_putc('0', mode, ptr); }

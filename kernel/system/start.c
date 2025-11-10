@@ -12,9 +12,9 @@
 #include <device/rtc.h>
 #include <fs/fs.h>
 #include <fs/importer.h>
-#include <barelib.h>
-#include <string.h>
-#include <ecall.h>
+#include <util/string.h>
+#include <dev/ecall.h>
+#include <dev/time.h>
 
 /*
  *  This file contains the C code entry point executed by the kernel.

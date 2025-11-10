@@ -7,9 +7,9 @@
 #include <mm/vm.h>
 #include <mm/malloc.h>
 #include <fs/fs.h>
+#include <util/string.h>
+#include <dev/ecall.h>
 #include <barelib.h>
-#include <string.h>
-#include <ecall.h>
 
 #define SYSCON_ADDR 0x100000
 #define SYSCON_SHUTDOWN 0x5555

@@ -1,8 +1,7 @@
-#include <barelib.h>
-#include <printf.h>
-#include <io.h>
-#include <ecall.h>
-#include <string.h>
+#include <dev/printf.h>
+#include <dev/io.h>
+#include <dev/ecall.h>
+#include <util/string.h>
 
 #define UPRINTF_BUFF_SIZE 1024
 
@@ -171,20 +170,4 @@ int8_t getdir(const char* path, directory_t* out, bool chdir) {
 	options.buff_in = buffer;
 
 	return ecall_open(DISK_DEV_NUM, (byte*)&options);
-}
-
-uint64_t rtc_read(void) {
-	rtc_dev_opts options;
-	uint64_t time = 0;
-	options.buffer = (byte*)&time;
-	options.length = 0;
-	ecall_read(RTC_DEV_NUM, (byte*)&options);
-	return time;
-}
-
-int8_t rtc_chtz(char* newtz) {
-	rtc_dev_opts options;
-	options.buffer = (byte*)newtz;
-	options.length = strlen(newtz);
-	return (uint8_t)ecall_write(RTC_DEV_NUM, (byte*)&options);
 }

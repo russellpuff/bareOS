@@ -17,6 +17,17 @@ HEAD_DIR = Path(Dir("load").abspath)
 KERNEL_ROOT = Path(Dir("#/kernel").abspath)
 LIBRARY_ROOT = Path(Dir("#/library").abspath)
 
+# To avoid accidentally compiling library files the kernel shouldn't use,
+# we create this list of ok files for the build script to select from.
+# Later when these libraries become largely immutable, we'll move to an
+# archive format where we just ask for the archive like a dll.
+KERNEL_LIBRARY_SOURCES = [
+		"src/util/string.c",
+		"src/dev/printf.c",
+		"src/dev/ecall.c",
+		"src/dev/time.c",
+]
+
 # Print the provided message then abort the build with the given code.
 def error(code: int, msg: str) -> None:
 	print(msg)
@@ -27,7 +38,7 @@ def _gather_kernel_sources() -> list:
 	kernel_files = []
 	for directory in sorted(KERNEL_ROOT.iterdir()):
 		if directory.name == "include" or not directory.is_dir():
-				continue
+			continue
 		pattern = os.path.join("kernel", directory.name, "*.[cs]")
 		kernel_files.extend(Glob(pattern))
 	return kernel_files
@@ -37,9 +48,10 @@ def _gather_kernel_sources() -> list:
 # Mainly because it's way too much work to scan the large codebase.
 def _kernel_library_sources() -> list:
 	sources = []
-	for candidate in ("string.c", "printf.c", "ecall.c"):
+	sources = []
+	for candidate in KERNEL_LIBRARY_SOURCES:
 		path = LIBRARY_ROOT / candidate
-		if path.exists():
+		if path.exists(): # Safety check in case of library update without scons update
 			sources.append(File(os.path.join("library", candidate)))
 	return sources
 

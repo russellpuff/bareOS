@@ -3,8 +3,8 @@
 #include <system/thread.h>
 #include <system/panic.h>
 #include <system/memlayout.h>
+#include <util/string.h>
 #include <barelib.h>
-#include <string.h>
 
 #define FREEMASK_RANGE ((uint64_t)ALIGN_UP_2M(&mem_end - &text_start))
 #define FREEMASK_BITS (FREEMASK_RANGE / PAGE_SIZE)

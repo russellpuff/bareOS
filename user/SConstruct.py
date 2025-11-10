@@ -19,10 +19,13 @@ START_SOURCE = USER_DIR / 'start.s'
 # Prevents us from including unnecessary stuff in a user program
 LIBRARY_HEADER_MAP: Dict[str, List[str]] = {
 	'barelib.h': [],
-	'string.h': ['string.c'],
-	'printf.h': ['printf.c'],
-	'ecall.h': ['ecall.c'],
-	'io.h': ['io.c', 'printf.c', 'string.c', 'ecall.c'],
+    'util/string.h': ['src/util/string.c'],
+    'util/limits.h': [],
+    'dev/printf.h': ['src/dev/printf.c'],
+    'dev/printf_iface.h': ['src/dev/io.c', 'src/dev/printf.c'],
+    'dev/ecall.h': ['src/dev/ecall.c'],
+    'dev/io.h': ['src/dev/io.c', 'src/dev/printf.c', 'src/util/string.c', 'src/dev/ecall.c'],
+    'dev/time.h': ['src/dev/time.c', 'src/dev/io.c', 'src/util/string.c', 'src/dev/ecall.c', 'src/dev/printf.c'],
 }
 
 INCLUDE_PATTERN = re.compile(r'^\s*#include\s*([<"])([^">]+)[">]')
@@ -82,15 +85,20 @@ def _resolve_library_sources(headers: Sequence[str], header_map: Dict[str, List[
 			resolved.add(LIB_DIR / source)
 	return sorted(resolved)
 
-
+# Compile all the objects we've decided to include in this build.
+# Skips duplicate objects, namely when two libraries share the same parent.
 def _compile_objects(compiler: str, flags: Sequence[str], sources: Sequence[Path], output_dir: Path) -> List[Path]:
 	objects: List[Path] = []
+	seen: Set[Path] = set()
 	for src in sources:
+		if src in seen:
+			continue
 		obj_path = output_dir / (src.stem + '.o')
 		command = [compiler, *flags, '-c', str(src), '-o', str(obj_path)]
 		print(' '.join(command))
 		subprocess.check_call(command)
 		objects.append(obj_path)
+		seen.add(src)
 	return list(objects)
 
 

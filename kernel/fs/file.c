@@ -1,6 +1,6 @@
 #include <fs/fs.h>
 #include <mm/malloc.h>
-#include <string.h>
+#include <util/string.h>
 
 /* Resolve the directory from the provided filepath, if invalid or the file  *
  * already exists at that path, return an error. Otherwise create a new      *

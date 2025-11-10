@@ -1,6 +1,6 @@
-#include <io.h>
-#include <string.h>
-#include <ecall.h>
+#include <dev/io.h>
+#include <dev/ecall.h>
+#include <util/string.h>
 #include "shell.h"
 
 #define PROMPT "bareOS"  /*  Prompt printed by the shell to the user  */

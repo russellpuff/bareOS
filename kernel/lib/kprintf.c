@@ -1,7 +1,7 @@
 #include <lib/bareio.h>
 #include <mm/vm.h>
+#include <dev/printf.h>
 #include <barelib.h>
-#include <printf.h>
 
 /* Helper functions. printf_putc is the only thing that can advance the buffer pointer so always return it for updates */
 byte* printf_putc(char c, uint8_t mode, byte* ptr) {
@@ -45,4 +45,25 @@ void krprintf(const char* format, ...) {
 /* Only panic() should use this */
 void vkrprintf(const char* format, va_list ap) {
 	printf_core(MODE_RAW, NULL, format, ap);
+}
+
+/* Wrapper for below */
+static void kvprintf(uint8_t mode, byte* buff, const char* format, va_list ap) {
+	printf_core(mode, buff, format, ap);
+}
+
+/* Kernel-side implementation of printf, just routes to appropriate kprint version. 
+   Prefer not to use these in kernel code, only shared libraries.                   */
+void printf(const char* format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	kvprintf(MODE_REGULAR, NULL, format, ap);
+	va_end(ap);
+}
+
+void sprintf(byte* buff, const char* format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	kvprintf(MODE_BUFFER, buff, format, ap);
+	va_end(ap);
 }

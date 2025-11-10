@@ -3,8 +3,8 @@
 #include <mm/malloc.h>
 #include <device/tty.h>
 #include <system/thread.h>
+#include <util/string.h>
 #include <barelib.h>
-#include <string.h>
 
 #define CSI_MAX_CHARS 32
 #define OSC_MAX_CHARS 256

@@ -2,6 +2,7 @@
 #define H_BAREIO
 
 #include <barelib.h>
+#include <dev/printf_iface.h>
 
 /*
  *  This header includes function prototypes for IO procedures

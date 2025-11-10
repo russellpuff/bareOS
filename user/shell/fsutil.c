@@ -1,5 +1,5 @@
-#include <io.h>
-#include <string.h>
+#include <dev/io.h>
+#include <util/string.h>
 #include "shell.h"
 
 /* File contains definitions for all shell based filesystem utility commands. */

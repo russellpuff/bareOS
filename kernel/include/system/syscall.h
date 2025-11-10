@@ -2,7 +2,7 @@
 #define H_SYSCALL
 
 #include <barelib.h>
-#include <ecall.h>
+#include <dev/ecall.h>
 
 typedef enum { RESCHED, TICK } syscall_signum;
 

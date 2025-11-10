@@ -1,6 +1,6 @@
 #include <fs/fs.h>
 #include <system/panic.h>
-#include <string.h>
+#include <util/string.h>
 
 /* Normalizes dot entries to their canonical dirent_t representation so callers
  * never have to reason about '.' or '..' aliases. Returns false if the canonical

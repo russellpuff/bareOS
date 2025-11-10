@@ -3,8 +3,9 @@
 #include <lib/bareio.h>
 #include <system/thread.h>
 #include <device/rtc.h>
-#include <ecall.h>
-#include <string.h>
+#include <dev/ecall.h>
+#include <dev/time.h>
+#include <util/string.h>
 
 thread_t* proc;
 
@@ -36,12 +37,6 @@ typedef struct {
 	byte* buff_out;
 	uint32_t length;
 } disk_dev_opts;
-
-/* Options for rtc ecall request */
-typedef struct {
-	byte* buffer;
-	uint8_t length;
-} rtc_dev_opts;
 
 //
 // Open handlers
@@ -145,8 +140,14 @@ static uint32_t handle_ecall_close(uint32_t device, byte* options) {
 */
 static uint32_t rtc_dev_read(byte* options) {
 	rtc_dev_opts* opts = (rtc_dev_opts*)options;
-	uint64_t* time = (uint64_t*)opts->buffer;
-	*time = rtc_read_seconds();
+	if (opts->type == GET_SEC) {
+		uint64_t* time = (uint64_t*)opts->buffer;
+		*time = rtc_read_seconds();
+	}
+	else { /* GET_TZ */
+		tzrule* lt = (tzrule*)opts->buffer;
+		*lt = localtime;
+	}
 	return 0;
 }
 

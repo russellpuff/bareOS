@@ -1,6 +1,6 @@
 #include <fs/fs.h>
 #include <mm/malloc.h>
-#include <string.h>
+#include <util/string.h>
 
 #include <lib/bareio.h>
 /* TODO: put these somewhere better */

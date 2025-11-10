@@ -2,6 +2,7 @@
 #define H_IO
 
 #include <barelib.h>
+#include <dev/printf_iface.h>
 
 /* This file includes a few things copied from format.h without exposing all the fs details *
  * In the future, both the kernel layer and user layer will draw from a unified source      */
@@ -71,12 +72,6 @@ typedef struct {
 	uint32_t length;
 } disk_dev_opts;
 
-/* Options for rtc ecall request */
-typedef struct {
-	byte* buffer;
-	uint8_t length;
-} rtc_dev_opts;
-
 void printf(const char*, ...);
 void sprintf(byte*, const char*, ...);
 int32_t gets(char*, uint32_t);
@@ -91,9 +86,5 @@ int8_t mkdir(const char*);
 int8_t rmdir(const char*);
 int8_t rddir(const char*, dirent_t*, uint32_t);
 int8_t getdir(const char*, directory_t*, bool);
-
-/* Temporary location for rtc device related functions */
-uint64_t rtc_read(void);
-int8_t rtc_chtz(char*);
 
 #endif

@@ -8,8 +8,7 @@
 #include <device/timer.h>
 #include <mm/vm.h>
 #include <mm/malloc.h>
-#include <barelib.h>
-#include <ecall.h>
+#include <dev/ecall.h>
 
 /*
  *  This file contains code for handling exceptions generated

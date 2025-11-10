@@ -5,7 +5,7 @@
 #include <mm/vm.h>
 #include <mm/malloc.h>
 #include <system/queue.h>
-#include <string.h>
+#include <util/string.h>
 
 #define SSTATUS_SIE   (1UL << 1)
 #define SSTATUS_SPIE  (1UL << 5)
