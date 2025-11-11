@@ -69,6 +69,7 @@ typedef struct {
 extern thread_t thread_table[];
 extern uint32_t current_thread;    /*  The currently running thread  */
 extern queue_t sleep_list;
+extern semaphore_t reaper_sem; /* Global reaper sem zombie threads can post to */
 
 /*  Thread related prototypes  */
 void init_threads(void);

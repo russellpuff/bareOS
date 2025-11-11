@@ -119,7 +119,11 @@ static void root_thread(void) {
 	if (f.fd == (FD)-1)
 		panic("Fatal: no shell to run on boot.\n");
 	close(&f);
-	ecall_spawn("shell", NULL);
+	/* Spawning the shell will block execution of this thread until it finishes. 
+	   Then we just restart it. No logout mechanism exists.                      */
+	while (1) {
+		ecall_spawn("shell", NULL);
+	}
 }
 
 /*

@@ -17,6 +17,7 @@ thread_t thread_table[NTHREADS];  /*  Create a table of threads  */
 uint32_t current_thread; 
 queue_t sleep_list;
 uint16_t next_asid;
+semaphore_t reaper_sem; /* Wakes the reaper only when new zombies are reapable. */
 
 /*
  *  'thread_init' sets up the thread table so that each thread is
@@ -34,10 +35,12 @@ void init_threads(void) {
 		thread_table[i].mode = MODE_S;
 	}
 	next_asid = 1;
+	reaper_sem = create_sem(0);
 }
 
 /* This is where processes wait to be reaped. It's its own function for debugging clarity. */
 void wait_for_reaper(void) {
+	post_sem(&reaper_sem);
 	while (1);
 }
 
