@@ -71,6 +71,11 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 # Start spinner before the first run_scons call if in silent mode.
 start_spinner
 
+cd user
+run_scons -c
+run_scons build shell
+cd "$ROOT_DIR"
+
 # Full build. DEBUG toggles QEMU flag generation via env.
 if [ "${DEBUG_MODE}" -eq 1 ]; then
 	BAREOS_QEMU_DEBUG=1 run_scons build

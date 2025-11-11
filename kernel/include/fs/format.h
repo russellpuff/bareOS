@@ -37,7 +37,7 @@ typedef struct {
 typedef struct {
 	FSTATE state;        /* The current state of the entry, either FSTATE OPEN or CLOSED        */
 	FMODE mode;          /* The current ops mode. Read, write, read/write, or append            */
-	uint16_t curr_index; /* Current offset within the file                                      */
+	uint32_t curr_index; /* Current offset within the file                                      */
 	inode_t* inode;       /* Pointer to an in-memory copy of the inode, real one in FILE        */
 	uint16_t in_index;   /* Index of file's inode                                               */
 	bool in_dirty;       /* A flag saying whether the inode copy has to be written back         */

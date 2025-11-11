@@ -15,9 +15,11 @@ uint32_t read(FILE* f, byte* buff, uint32_t len) {
 	if (f->fd >= OFT_MAX) return 0;
 	filetable_t* entry = &boot_fsd->oft[f->fd];
 	if (entry->state != OPEN || len == 0) return 0;
-	//if (entry->curr_index >= entry->inode.size) return 0;
-	uint32_t bytes_read = iread(*entry->inode, buff, 0, len);
-	//entry->curr_index += bytes_read;
+
+	if (entry->curr_index >= entry->inode->size) return 0;
+	uint32_t bytes_read = iread(*entry->inode, buff, entry->curr_index, len);
+	entry->curr_index += bytes_read; /* Updates curr_index so subsequent reads get more of the file */
+
 	return bytes_read;
 }
 

@@ -36,11 +36,17 @@ byte* run_to_nc(byte* ptr) {
  * ramdisk.                                                                    */
 uint8_t generic_importer(byte* ptr) {
 	uint8_t status = 0;
-	const uint16_t BUFFER_SIZE = 1024;
-	byte status_msg[BUFFER_SIZE];
-	byte* status_ptr = (byte*)status_msg;
-	memset(status_msg, '\0', BUFFER_SIZE);
-	uint8_t num_files = *(ptr++);
+	uint8_t num_files = *(ptr++); /* Read num files from first byte */
+
+	/* Can support up to 100 files worth a combined total of 1.5MiB. Create log buffer big enough. */
+	enum { SIZE_DIGITS_MAX = 7, PER_LINE_OVERHEAD = 64, LOG_HEADER = 64, LOG_FOOTER = 128 };
+	const uint32_t LOG_PER_FILE = PER_LINE_OVERHEAD + FILENAME_LEN + SIZE_DIGITS_MAX;
+	uint32_t log_bytes = LOG_HEADER + (uint32_t)num_files * LOG_PER_FILE + LOG_FOOTER;
+
+	byte* status_msg = malloc(log_bytes);
+	memset(status_msg, 0, log_bytes);
+	byte* status_ptr = status_msg;
+
 	ksprintf(status_ptr, "Importer is trying to import %d files...\n", num_files & 0xFF);
 	status_ptr = run_to_nc(status_ptr);
 
@@ -86,5 +92,6 @@ uint8_t generic_importer(byte* ptr) {
 	
 	char n[] = "/etc/importer.log\0";
 	create_write(n, (char*)status_msg, boot_fsd->super.root_dirent);
+	free(status_msg);
 	return 0;
 }

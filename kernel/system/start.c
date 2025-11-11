@@ -70,19 +70,12 @@ static void display_welcome(void) {
 	bool importer_ok = false;
 	bool log_available = open(log_path, &f, boot_fsd->super.root_dirent) == 0;
 	if (log_available) {
-		const uint16_t BUFFER_SIZE = 1024;
-		char buffer[BUFFER_SIZE];
-		memset(buffer, '\0', BUFFER_SIZE);
-		uint32_t read_bytes = read(&f, (byte*)buffer, BUFFER_SIZE - 1);
-		if (read_bytes >= BUFFER_SIZE) buffer[BUFFER_SIZE - 1] = '\0';
+		char* buffer = (char*)malloc(f.inode.size + 1);
+		buffer[f.inode.size] = '\0';
+		read(&f, (byte*)buffer, f.inode.size);
+		importer_ok = strstr(buffer, sentinel) != NULL; /* Janky way of detecting status */
+		free(buffer);
 		close(&f);
-		uint32_t sentinel_len = strlen(sentinel);
-		for (uint32_t idx = 0; idx + sentinel_len <= read_bytes; ++idx) {
-			if (memcmp(buffer + idx, sentinel, sentinel_len) == 0) {
-				importer_ok = true;
-				break;
-			}
-		}
 	}
 	const char* result = importer_ok
 		? "The importer finished successfully."

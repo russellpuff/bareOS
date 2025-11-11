@@ -19,11 +19,18 @@ uint8_t builtin_cat(char* arg) {
 		return 1;
 	}
 
-	byte buffer[4096]; /* Placeholder until malloc */
-	fread(&f, buffer, f.inode.size);
+	/* Stream the file in fixed-size chunks so large imports cannot overflow the stack buffer. */
+	const uint16_t CHUNK_SIZE = 512;
+	char buffer[CHUNK_SIZE + 1];
+	while (1) {
+		uint32_t read_bytes = fread(&f, (byte*)buffer, CHUNK_SIZE);
+		if (read_bytes == 0) break;
+		buffer[read_bytes] = '\0';
+		printf("%s", buffer);
+		if (read_bytes < CHUNK_SIZE) break;
+	}
+
 	fclose(&f);
-	buffer[f.inode.size] = '\0';
-	printf("%s", buffer);
 	return 0;
 }
 
