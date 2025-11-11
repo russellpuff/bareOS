@@ -35,6 +35,13 @@ int32_t main(void) {
 		arg0[ctr] = '\0';
 		if (strlen(arg0) == 0) continue;
 
+		/* Debug for testing a shell fault and auto restart */
+		if (!strcmp(arg0, "die")) {
+			uint64_t addr = 0x80200000; /* Start of the kernel heap. Ok if S mode, bad if U mode. */
+			byte* bad = (byte*)addr;
+			bad[0] = '@';
+		}
+
 		/* Replace line placeholders with enviornment variables. */
 		uint8_t chSz = DIGITS(last_retval);
 		char prompt[LINE_SIZE + 64]; /* Arbitrary extra space. */

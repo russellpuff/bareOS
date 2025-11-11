@@ -22,10 +22,10 @@ LIBRARY_ROOT = Path(Dir("#/library").abspath)
 # Later when these libraries become largely immutable, we'll move to an
 # archive format where we just ask for the archive like a dll.
 KERNEL_LIBRARY_SOURCES = [
-		"src/util/string.c",
-		"src/dev/printf.c",
-		"src/dev/ecall.c",
-		"src/dev/time.c",
+	"src/util/string.c",
+	"src/dev/printf.c",
+	"src/dev/ecall.c",
+	"src/dev/time.c",
 ]
 
 # Print the provided message then abort the build with the given code.
