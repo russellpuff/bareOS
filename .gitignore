@@ -9,9 +9,10 @@ user/build/
 *.img
 *.elf
 *.sh
-*.sln
+*.sln*
 *.vcxproj*
 *.log
+*.json
 .msfile
 kernel/include/system/version.h
 !/user/*.sh

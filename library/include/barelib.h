@@ -3,6 +3,12 @@
 
 /* Shared basic typedefs and utility macros available to both the kernel and user space.*/
 
+/* Wrapper to trick intellisense into thinking newer C/gnu features are real
+   For morons who use Visual Studio to develop this junk                     */
+#ifdef __INTELLISENSE__
+typedef enum { false, true } bool;
+#endif
+
 #define NULL 0x0
 #define va_copy(dst, src)       __builtin_va_copy(dst, src)    /*                                      */
 #define va_start(last, va)      __builtin_va_start(last, va)   /*  GCC compiler builtins for variable  */

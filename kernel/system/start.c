@@ -48,49 +48,75 @@ static void initialize(void) {
 }
 
 /* This function displays the welcome screen when the system and shell boot. */
-static void display_welcome(void) {
+static void display_welcome(bool dailyMsg) {
 	datetime now = rtc_read_datetime();
 	char time[TIME_BUFF_SZ];
 	dt_to_string(now, time, TIME_BUFF_SZ);
 
-	kprintf("Welcome to bareOS alpha%d-%d.%d.%d (qemu-system-riscv64)\n\n", VERSION_ALPHA, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-	kprintf("  Kernel information as of %s\n\n", time);
-	kprintf("  Kernel start: %x\n  Kernel size: %d\n  Globals start: %x\n  Heap/Stack start: %x\n  Free Memory Available: %d\n\n",
+	dirent_t root = boot_fsd->super.root_dirent;
+
+	const uint16_t BUFF_SZ = 1024;
+	byte file_buff[BUFF_SZ];
+	memset(file_buff, '\0', BUFF_SZ);
+
+	ksprintf(file_buff,
+		"Welcome to bareOS alpha%d-%d.%d.%d (qemu-system-riscv64)\n\n"
+		"  Kernel information as of %s\n\n"
+		"  Kernel start: %x\n  Kernel size: %d\n  Globals start: %x\n  Heap/Stack start: %x\n  Free Memory Available: %d\n\n",
+		VERSION_ALPHA, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH,
+		time,
 		(uint64_t)&text_start,
 		(uint64_t)(&data_start - &text_start),
 		(uint64_t)&data_start,
 		(uint64_t)&mem_start,
-		(uint64_t)(&mem_end - &mem_start));
+		(uint64_t)(&mem_end - &mem_start)
+	);
 	
-	/* Query the importer log to determine whether the importer finished cleanly. */
-	const char sentinel[] = "Importer finished with no errors.";
-	const char* log_path = "/etc/importer.log";
-	FILE f = { 0 };
-	f.fd = (FD)-1;
-	bool importer_ok = false;
-	bool log_available = open(log_path, &f, boot_fsd->super.root_dirent) == 0;
-	if (log_available) {
-		char* buffer = (char*)malloc(f.inode.size + 1);
-		buffer[f.inode.size] = '\0';
-		read(&f, (byte*)buffer, f.inode.size);
-		importer_ok = strstr(buffer, sentinel) != NULL; /* Janky way of detecting status */
-		free(buffer);
-		close(&f);
+	if (dailyMsg) {
+		byte* p = file_buff;
+		while (*p++ != '\0');
+		--p;
+
+		/* Query the importer log to determine whether the importer finished cleanly. */
+		const char sentinel[] = "Importer finished with no errors.";
+		const char* log_path = "/etc/importer.log";
+		FILE f = { 0 };
+		f.fd = (FD)-1;
+		bool importer_ok = false;
+		bool log_available = open(log_path, &f, root) == 0;
+		if (log_available) {
+			char* buffer = (char*)malloc(f.inode.size + 1);
+			buffer[f.inode.size] = '\0';
+			read(&f, (byte*)buffer, f.inode.size);
+			importer_ok = strstr(buffer, sentinel) != NULL; /* Janky way of detecting status */
+			free(buffer);
+			close(&f);
+		}
+		const char* result = importer_ok
+			? "The importer finished successfully."
+			: "The importer ran into an error.";
+		const char* detail = log_available
+			? "Check /etc/importer.log for more details."
+			: "Importer log unavailable.";
+		ksprintf(p, "%s %s\n\n", result, detail);
 	}
-	const char* result = importer_ok
-		? "The importer finished successfully."
-		: "The importer ran into an error.";
-	const char* detail = log_available
-		? "Check /etc/importer.log for more details."
-		: "Importer log unavailable.";
-	kprintf("%s %s\n\n", result, detail);
+
+	char* fname = "/etc/.welcome";
+	if (create(fname, root) != 0) {
+		unlink(fname, root);
+		create(fname, root);
+	}
+	FILE f;
+	open(fname, &f, root);
+	write(&f, file_buff, strlen((const char*)file_buff));
+	close(&f);
 }
 
 static void sys_idle() { while (1); }
 
 static void root_thread(void) {
 	change_localtime("est");
-	display_welcome();
+	display_welcome(true);
 	uint32_t idle_tid = create_thread(&sys_idle, "", 0, MODE_S);
 	resume_thread(idle_tid);
 	uint32_t reaper_tid = create_thread(&reaper, "", 0, MODE_S);
@@ -116,6 +142,7 @@ static void root_thread(void) {
 	   Then we just restart it. No logout mechanism exists.                      */
 	while (1) {
 		ecall_spawn("shell", NULL);
+		display_welcome(false);
 	}
 }
 

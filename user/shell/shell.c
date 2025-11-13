@@ -20,6 +20,14 @@ int32_t main(void) {
 	*cwd.path = '\0';
 	builtin_cd("home");
 
+	FILE f;
+	if (fopen("/etc/.welcome", &f) == 0) {
+		char buff[LINE_SIZE];
+		fread(&f, (byte*)buff, LINE_SIZE);
+		printf("%s", buff);
+		fclose(&f);
+	}
+
 	while (1) {
 		printf("&x%s&0:&b%s&0$ ", PROMPT, cwd.path);
 		char line[LINE_SIZE];

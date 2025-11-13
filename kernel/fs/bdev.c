@@ -1,7 +1,7 @@
-#include <system/interrupts.h>
 #include <mm/malloc.h>
 #include <fs/fs.h>
 #include <util/string.h>
+#include <barelib.h>
 
 /* Initialize the block device by setting its block size/count for future reference. And allocates *
  * the memory for the device itself. This prefers the constants which are meant for the "primary"  *
