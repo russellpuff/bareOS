@@ -61,7 +61,6 @@ typedef struct {
 	byte* kstack_top;   /* Kernel VA, top of stack                                                 */
 	trapframe* tf;      /* Pointer to trapframe living in kstack                                   */
 	context* ctx;       /* Pointer to context living in kstack                                     */
-	char* argptr;       /* Holds the arg to the process this thread runs with                      */
 	thread_mode mode;   /* Determines whether a thread is running in supervisor or user mode       */
 	dirent_t cwd;       /* Holds the process current working directory                             */
 } thread_t;
@@ -73,7 +72,7 @@ extern semaphore_t reaper_sem; /* Global reaper sem zombie threads can post to *
 
 /*  Thread related prototypes  */
 void init_threads(void);
-int32_t create_thread(void*, char*, uint32_t, thread_mode);
+int32_t create_thread(void*, thread_mode);
 int32_t join_thread(uint32_t);
 int32_t kill_thread(uint32_t);
 int32_t suspend_thread(uint32_t);

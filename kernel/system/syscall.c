@@ -15,11 +15,9 @@
 #define SYSCON_SHUTDOWN 0x5555
 #define SYSCON_REBOOT 0x7777
 volatile uint64_t signum;
-static inline void reserved(void*) { return; }
 
 void (*syscall_table[])(void*) = {
-  resched,
-  reserved
+  resched
 };
 
 void handle_syscall(uint64_t* frame) {
@@ -30,9 +28,8 @@ void handle_syscall(uint64_t* frame) {
 }
 
 static uint8_t handle_ecall_spawn(char* name, char* arg) {
-	(void)arg; /* unused for now */
 	uint8_t ret = 0;
-	int32_t tid = exec(name);
+	int32_t tid = exec(name, arg);
 	if (tid >= 0) {
 		resume_thread(tid);
 		ret = join_thread(tid);
@@ -42,7 +39,7 @@ static uint8_t handle_ecall_spawn(char* name, char* arg) {
 	return ret;
 }
 
-void signal_syscon(uint16_t signal) {
+static void signal_syscon(uint16_t signal) {
 	const char* what = signal == SYSCON_SHUTDOWN ? "shut down" : "reboot";
 	krprintf("The system will %s now.\n", what);
 	*(uint16_t*)PA_TO_KVA(SYSCON_ADDR) = signal;

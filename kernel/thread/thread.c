@@ -39,25 +39,22 @@ void init_threads(void) {
 }
 
 /* This is where processes wait to be reaped. It's its own function for debugging clarity. */
-void wait_for_reaper(void) {
+static void wait_for_reaper(void) {
 	post_sem(&reaper_sem);
 	while (1);
 }
 
-void landing_pad(void) {
+static void landing_pad(void) {
 	trapret(thread_table[current_thread].tf);
 }
 
 /*  `wrapper` acts as a decorator function for the thread's entry function.  *
  *  It ensures  that setup is performed  before the function  is called and  *
  *  cleanup is performed after it completes.                                 */
-void wrapper(uint8_t (*proc)(char*)) {
+static void wrapper(uint8_t(*proc)()) {
 	thread_t* thread = &thread_table[current_thread];
-	char* arg = thread->argptr;
-	thread->retval = proc(arg);  /*  Call the thread's entry point function and store the result on return */
+	thread->retval = proc();
 	thread->state = TH_ZOMBIE;
-	if(thread->argptr != NULL) free(thread->argptr);
-	thread->argptr = NULL;
 	enqueue_thread(&reap_list, current_thread);
 	wait_for_reaper();
 }
@@ -67,10 +64,6 @@ void user_thread_exit(trapframe* tf) {
 	thread_t* thread = &thread_table[current_thread];
 	thread->retval = (uint8_t)(tf->a0 & 0xFF);
 	thread->state = TH_ZOMBIE;
-	if (thread->argptr != NULL) {
-		free(thread->argptr);
-		thread->argptr = NULL;
-	}
 	enqueue_thread(&reap_list, current_thread);
 	tf->sstatus |= SSTATUS_SPP | SSTATUS_SPIE;
 	tf->sepc = (uint64_t)wait_for_reaper;
@@ -80,7 +73,7 @@ void user_thread_exit(trapframe* tf) {
  *  point for a thread and selects an unused entry in the thread table.  It  *
  *  configures this  entry to represent a newly  created thread running the  *
  *  entry point function and places it in the suspended state.               */
-int32_t create_thread(void* proc, char* arg, uint32_t arglen, thread_mode mode) {
+int32_t create_thread(void* proc, thread_mode mode) {
 	uint64_t new_id;
 	/* Statically allocated by the simple allocator */
 	const uint64_t STACK_BASE = 0x200000UL;
@@ -96,21 +89,6 @@ int32_t create_thread(void* proc, char* arg, uint32_t arglen, thread_mode mode) 
 	uint64_t root_ppn = alloc_page(new_id);
 	if (root_ppn == NULL) {
 		panic("Page allocator failed to allocate a page for this new thread.\n");
-	}
-	
-	if (arglen > (STACK_SIZE - 64)) {
-		panic("Arglen was too big for the statically allocated stack size for this new thread.\n");
-	}
-	
-	if (arglen > 0) {
-		thread->argptr = malloc(arglen);
-		if (thread->argptr == NULL) {
-			panic("Couldn't malloc enough space for the new thread's arg.\n");
-		}
-		memcpy(thread->argptr, arg, arglen);
-	}
-	else {
-		thread->argptr = NULL;
 	}
 
 	/* Layout: [ kernel stack � ][ trapframe ][ context ][TOP] */
@@ -198,11 +176,6 @@ int32_t kill_thread(uint32_t thread_id) {
 		}
 	}
 	*/
-	/* Free in case of premature kill */
-	if (thread->argptr != NULL) {
-		free(thread->argptr);
-		thread->argptr = NULL;
-	}
 
 	if (thread->root_ppn != kernel_root_ppn) {
 		free_process_pages(thread_id);   /*  Free pages associated with thread     */

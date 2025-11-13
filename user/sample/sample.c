@@ -21,7 +21,13 @@ static void spin(uint64_t iters) {
 	}
 }
 
-int main(void) {
+int main(int argc, char** argv) {
+	/* Check if the args passed in when calling ar good */
+	printf("arg test: start\n");
+	printf("argc: %d\n", argc);
+	for (int i = 0; i < argc; ++i) printf("argv[%d]: %s\n", i, argv[i]);
+	printf("arg test: done\n");
+
 	/* Spin test: force execution to take several sections to test whether the scheduler breaks anything */
 	const uint64_t DELAY_ITERS = 250000000UL;
 	printf("spin task: start\n");

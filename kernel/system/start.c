@@ -117,9 +117,9 @@ static void sys_idle() { while (1); }
 static void root_thread(void) {
 	change_localtime("est");
 	display_welcome(true);
-	uint32_t idle_tid = create_thread(&sys_idle, "", 0, MODE_S);
+	uint32_t idle_tid = create_thread(&sys_idle, MODE_S);
 	resume_thread(idle_tid);
-	uint32_t reaper_tid = create_thread(&reaper, "", 0, MODE_S);
+	uint32_t reaper_tid = create_thread(&reaper, MODE_S);
 	resume_thread(reaper_tid);
 
 	/* When true, echoes all keyboard input but strips nonprint 
@@ -152,7 +152,7 @@ static void root_thread(void) {
  */
 void supervisor_start(void) {
 	initialize();
-	uint32_t root_tid = create_thread(&root_thread, "", 0, MODE_S);
+	uint32_t root_tid = create_thread(&root_thread, MODE_S);
 	context_load(&thread_table[root_tid], root_tid);
 	while(1);
 }
