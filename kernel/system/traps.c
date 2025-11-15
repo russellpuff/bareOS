@@ -7,7 +7,7 @@
 #include <system/panic.h>
 #include <device/timer.h>
 #include <mm/vm.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <dev/ecall.h>
 
 /*

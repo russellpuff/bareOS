@@ -1,5 +1,5 @@
 #include <fs/fs.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <lib/bareio.h>
 #include <system/thread.h>
 #include <device/rtc.h>
@@ -209,7 +209,7 @@ static uint32_t disk_dev_write(byte* options) {
 
 static uint32_t uart_dev_write(byte* options) {
 	uart_dev_opts* opts = (uart_dev_opts*)options;
-	byte* buff = malloc(opts->length + 1);
+	byte* buff = kmalloc(opts->length + 1);
 	memcpy(buff, opts->buffer, opts->length);
 	buff[opts->length] = '\0';
 	kprintf((char*)buff);

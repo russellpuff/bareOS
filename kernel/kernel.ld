@@ -25,7 +25,6 @@ ENTRY(_start)
 
   _kmap_write_start - Addresses below this point should be READ ONLY
   _kmap_global_ptr  - Address to initialize the RISC-V 'gp' register
-  _kmap_kstack_top  - Top of the Kernel stack
 */
 
 MEMORY {
@@ -56,17 +55,21 @@ SECTIONS {
 	} > _writable
 
 	.bss : {
-	    PROVIDE(bss_start = ABSOLUTE(.));
-	    *(.sbss .sbss.*)
-	    *(.bss .bss.*)
-	    PROVIDE(bss_end = ABSOLUTE(.));
-	} > _writable
+        PROVIDE(bss_start = ABSOLUTE(.));
+        *(.sbss .sbss.*)
+        *(.bss .bss.*)
+        PROVIDE(bss_end = ABSOLUTE(.));
+    } > _writable
 
-	. += 0x8000;
-	PROVIDE(_kmap_kstack_top = ABSOLUTE(.));
-	. += 0x1000;
+	. = ALIGN(0x1000); /* Page align after bss */
+
+	PROVIDE(ramdisk_start = ABSOLUTE(.));
+	. += 0x200000; /* Reserve boot ramdisk region. Remove this when ramdisk becomes physical disk. */
+
+	PROVIDE(krsvd = ABSOLUTE(.));
+    . += 0x4000; /* Add scratch space for starting kernel stack and reserved utility region. */
 
 	PROVIDE(_kmap_global_ptr = data_start + 0x0800);
-	PROVIDE(mem_start = ABSOLUTE(.));
-	PROVIDE(mem_end = ORIGIN(_writable) + (LENGTH(_writable)) - 1);
+    PROVIDE(mem_start = ABSOLUTE(.)); /* mem_start == kernel stack pointer starting location, also start of free memory */
+    PROVIDE(mem_end = ORIGIN(_writable) + (LENGTH(_writable)) - 1);
 }

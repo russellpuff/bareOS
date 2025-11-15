@@ -80,7 +80,7 @@ int32_t wait_sem(semaphore_t* sem) {
 	// Policy violation call 
 	// Reason for violation: pend_resched causes thread execution to erroneously continue without waiting
 	// Policy exception requested by: Robin
-	// Approved by: Robin
+	// Approved by: Robin (lol)
 	// Notes: This is a blocker that prevents the kernel from leaving alpha so long as this policy is violated
 	//
 	resched(&wait_sem); 

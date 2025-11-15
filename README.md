@@ -44,9 +44,7 @@ Use the `shutdown` command inside bareOS to exit QEMU. Clean build artifacts wit
 scons -c
 ```
 
-Files placed in the `load/` directory are injected into QEMU at boot and written to bareOS's RAM disk. The file system can hold up to 16 entries with names up to 15 characters. Each file may occupy at most 12 blocks of 512 bytes, which is 6KiB.
-
-See [`kernel/include/fs.h`](kernel/include/fs.h) for more details about these limits.
+Files placed in the `load/` directory are injected into QEMU at boot and written to bareOS's RAM disk. These loaded files have a name limit of 56 bytes and a total file limit of 100 files and 1.5 MiB combined filesize. ELF binaries compiled in the user/ folder will be automatically placed in the /bin directory while everything else is placed in the /home directory.
 
 ## License
 MIT. See [LICENSE](LICENSE).

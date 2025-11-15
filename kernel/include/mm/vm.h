@@ -5,7 +5,7 @@
 
 extern volatile uint8_t MMU_ENABLED;
 
-#define KVM_BASE 0xFFFFFFC000000000UL
+#define KVM_BASE 0xFFFFFFC000000000UL /* Base address of the kernel higher-half mapping range */
 #define PAGE_SIZE 0x1000UL
 #define PAGE_SHIFT 12
 
@@ -37,12 +37,14 @@ typedef struct {
 _Static_assert(sizeof(pte_t) == 8, "pte_t must be 8 bytes");
 
 void init_pages(void);
-uint64_t alloc_page(uint32_t);
-void free_pages(uint64_t);
-void free_process_pages(uint32_t);
-void* translate_user_address(uint64_t, uint64_t);
-int32_t copy_to_user(uint64_t, uint64_t, const void*, uint64_t);
-int32_t zero_user(uint64_t, uint64_t, uint64_t);
+uint64_t mmu_prepare_process(uint32_t, thread_mode);
+void mmu_free_table(uint64_t);
+void mmu_free_process(uint32_t);
+void mmu_migrate_kernel(void);
+uint32_t mmu_expand_heap(uint32_t, uint8_t);
+void* translate_user_va(uint64_t, uint64_t);
+int32_t copy_to_kva(uint64_t, uint64_t, const void*, uint64_t);
+int32_t zero_user_pages(uint64_t, uint64_t, uint64_t);
 
 extern uint64_t kernel_root_ppn;
 extern byte* s_trap_top;

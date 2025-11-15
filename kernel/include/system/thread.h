@@ -12,20 +12,27 @@ typedef enum {
 
 #define NTHREADS 20    /*  Maximum number of running threads  */
 
-#define THM_RUNNABLE  0x1  /*  These macros are not intended for  direct use.  Instead they  */
-#define THM_QUEUED    0x2  /*  represent features a thread  may have and are combined below  */
-#define THM_PAUSED    0x4  /*  to represent full states a thread  may be in.  They may also  */
-#define THM_DEAD      0x8  /*  be used as predicate filters to find threads with properties.  */
-#define THM_TIMED    0x10
+typedef enum {
+	/*  These macros are not intended for  direct use.  Instead they  */
+	/*  represent features a thread  may have and are combined below  */
+	/*  to represent full states a thread  may be in.  They may also  */
+	/*  be used as predicate filters to find threads with properties.  */
+	THM_RUNNABLE = 0x1,
+	THM_QUEUED = 0x2,
+	THM_PAUSED = 0x4,
+	THM_DEAD = 0x8,
+	THM_TIMED = 0x10,
 
-#define TH_FREE    0                                      /*                                                 */
-#define TH_RUNNING THM_RUNNABLE                            /*  Threads can be in one of several states        */
-#define TH_READY   (THM_RUNNABLE | THM_QUEUED | THM_PAUSED)  /*  This list will be extended as we add features  */
-#define TH_SUSPEND THM_PAUSED                              /*                                                 */
-#define TH_DEFUNCT THM_DEAD                                /*                                                 */
-#define TH_SLEEP (THM_QUEUED | THM_PAUSED | THM_TIMED)       /*                                                 */
-#define TH_WAITING (THM_QUEUED | THM_PAUSED)
-#define TH_ZOMBIE (THM_RUNNABLE | THM_DEAD)
+	/* Available states a thread can be in */
+	TH_FREE = 0,
+	TH_RUNNING = THM_RUNNABLE,
+	TH_READY = THM_RUNNABLE | THM_QUEUED | THM_PAUSED,
+	TH_SUSPEND = THM_PAUSED,
+	TH_DEFUNCT = THM_DEAD,
+	TH_SLEEP = THM_QUEUED | THM_PAUSED | THM_TIMED,
+	TH_WAITING = THM_QUEUED | THM_PAUSED,
+	TH_ZOMBIE = THM_RUNNABLE | THM_DEAD
+} thread_state;
 
 /* The context struct is used to hold information about kernel context during a context switch */
 typedef struct {
@@ -54,7 +61,8 @@ typedef struct {
 	uint32_t priority;  /* Thread priority (0=highest MAX_UINT32=lowest)                           */
 	uint32_t parent;    /* The index into the 'thread_table' of the thread's parent                */
 	uint16_t asid;      /* Address space identifier for this thread. For now, it's just the ID     */
-	uint8_t state;      /* The current state of the thread                                         */
+	uint64_t satp;      /* Fixed satp value of this thread                                         */
+	thread_state state; /* The current state of the thread                                         */
 	uint8_t retval;     /* The return value of the function (only valid when state == TH_DEFUNCT)  */
 	semaphore_t sem;    /* Semaphore for the current thread                                        */
 	byte* kstack_base;  /* Kernel VA, bottom of stack                                              */
@@ -63,6 +71,7 @@ typedef struct {
 	context* ctx;       /* Pointer to context living in kstack                                     */
 	thread_mode mode;   /* Determines whether a thread is running in supervisor or user mode       */
 	dirent_t cwd;       /* Holds the process current working directory                             */
+	uint32_t heap_sz;   /* Current size of process heap                                            */
 } thread_t;
 
 extern thread_t thread_table[];

@@ -5,7 +5,7 @@
 #include <system/queue.h>
 #include <system/panic.h>
 #include <mm/vm.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <fs/fs.h>
 #include <util/string.h>
 #include <dev/ecall.h>

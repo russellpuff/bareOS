@@ -36,7 +36,7 @@ _start:
 	csrs medeleg, t0			 # -'    Delegate page faults and ecall to supervisor
 
 	la gp, _kmap_global_ptr      # --
-	la sp, _kmap_kstack_top      #  |    Set initial stack pointer, global pointer,
+	la sp, mem_start             #  |    Set initial stack pointer, global pointer,
 	la t0, m_trap_stack_top      #  |    Provide stack space for machine-mode traps
 	csrw mscratch, t0            #  |    and system entry function
 	la t0, supervisor_start      #  |    

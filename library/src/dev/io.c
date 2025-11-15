@@ -59,7 +59,7 @@ int8_t fcreate(const char* path) {
 	return ecall_open(DISK_DEV_NUM, (byte*)&options);
 }
 
-/* Opens a file at path. Without malloc it requires you to pass in your own FILE */
+/* Opens a file at path. Without kmalloc it requires you to pass in your own FILE */
 int8_t fopen(const char* path, FILE* file) {
 	disk_dev_opts options;
 	file->fd = (FD)-1;

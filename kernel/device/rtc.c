@@ -1,7 +1,7 @@
 #include <lib/bareio.h>
 #include <device/rtc.h>
 #include <mm/vm.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <fs/fs.h>
 #include <util/string.h>
 
@@ -130,7 +130,7 @@ uint8_t change_localtime(const char* tz) {
 	/* Open and read the file */
 	FILE f;
 	if (open(tz, &f, tzinfo) != 0) return 1;
-	byte* buffer = malloc(f.inode.size + 1);
+	byte* buffer = kmalloc(f.inode.size + 1);
 	if (buffer == NULL) {
 		close(&f);
 		return 1;

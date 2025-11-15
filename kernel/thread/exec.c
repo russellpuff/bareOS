@@ -1,7 +1,7 @@
 #include <system/exec.h>
 #include <fs/fs.h>
 #include <lib/bareio.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <mm/vm.h>
 #include <system/thread.h>
 #include <system/semaphore.h>
@@ -46,7 +46,7 @@ static bool validate_segment(const pht_entry* ph, uint32_t file_size) {
 
 /* If we abort partway through, wipe the partially allocated thread table entry */
 static void cleanup_failed_thread(uint32_t tid) {
-	free_process_pages(tid);
+	mmu_free_process(tid);
 	thread_table[tid].root_ppn = NULL;
 	thread_table[tid].state = TH_FREE;
 	thread_table[tid].sem = create_sem(0);
@@ -84,7 +84,7 @@ static void process_args(const char* program_name, const char* arg_line, int32_t
 	if (alen != 0) {
 		/* Get space for the full buffer */
 		vlen = nlen + alen + 2;
-		argv = malloc(vlen);
+		argv = kmalloc(vlen);
 		allocated = true;
 		memcpy(argv, program_name, nlen + 1);
 		memcpy(argv + nlen + 1, args, alen + 1);
@@ -110,7 +110,7 @@ static void process_args(const char* program_name, const char* arg_line, int32_t
 	/* Compute virtual addresses of the strings (argv**) for storing in the array (argv*) */
 	uint64_t pointer_count = (uint64_t)argc + 1; /* argv[argc] must be NULL */
 	uint64_t arrsize = sizeof(uint64_t) * pointer_count;
-	uint64_t* argptrs = malloc(arrsize);
+	uint64_t* argptrs = kmalloc(arrsize);
 	uint64_t end_va = USER_REGION_SIZE - 1; /* End of the VA range these strings will appear in */
 
 	/* Padding required so sp is 16 byte aligned */
@@ -120,7 +120,7 @@ static void process_args(const char* program_name, const char* arg_line, int32_t
 	uint64_t start_va = end_va - total + 1;
 	uint64_t strings_base_va = start_va + arrsize + pad;
 
-	char* final = malloc(total);
+	char* final = kmalloc(total);
 	memset(final, 0, total);
 	memcpy(final + arrsize + pad, argv, vlen);
 
@@ -133,7 +133,7 @@ static void process_args(const char* program_name, const char* arg_line, int32_t
 	argptrs[argc] = 0;
 	memcpy(final, argptrs, arrsize);
 
-	copy_to_user(root_ppn, start_va, final, total);
+	copy_to_kva(root_ppn, start_va, final, total);
 
 	if (allocated) free(argv);
 	free(argptrs);
@@ -178,7 +178,7 @@ int32_t exec(const char* program_name, const char* arg_line) {
 
 	/* Copy entire elf into memory. Should be okay since they're all small.
 	   In the future we'll read it in chunks.                               */
-	byte* elf = malloc(f.inode.size);
+	byte* elf = kmalloc(f.inode.size);
 	if (elf == NULL) {
 		close(&f);
 		kprintf("%s: insufficient memory\n", program_name);
@@ -224,7 +224,7 @@ int32_t exec(const char* program_name, const char* arg_line) {
 
 	/* Once we have the root_ppn of the thread, we can start writing data to the pages */
 	thread_t* thread = &thread_table[tid];
-	if (zero_user(thread->root_ppn, 0, USER_REGION_SIZE) < 0) {
+	if (zero_user_pages(thread->root_ppn, 0, USER_REGION_SIZE) < 0) {
 		cleanup_failed_thread(tid);
 		free(elf);
 		kprintf("%s: failed to prepare address space\n", program_name);
@@ -238,7 +238,7 @@ int32_t exec(const char* program_name, const char* arg_line) {
 
 		if (ph->file_sz > 0) { 
 			/* Thankfully the pht entry does all the math for us, we just need to know where to write it */
-			if (copy_to_user(thread->root_ppn, ph->virt_addr, elf + ph->offset, ph->file_sz) < 0) {
+			if (copy_to_kva(thread->root_ppn, ph->virt_addr, elf + ph->offset, ph->file_sz) < 0) {
 				cleanup_failed_thread(tid);
 				free(elf);
 				kprintf("%s: failed to load segment\n", program_name);
@@ -250,7 +250,7 @@ int32_t exec(const char* program_name, const char* arg_line) {
 		   generally to be used as the .bss for this segment, per requirements     */
 		if (ph->mem_sz > ph->file_sz) {
 			uint64_t zero_len = ph->mem_sz - ph->file_sz;
-			if (zero_user(thread->root_ppn, ph->virt_addr + ph->file_sz, zero_len) < 0) {
+			if (zero_user_pages(thread->root_ppn, ph->virt_addr + ph->file_sz, zero_len) < 0) {
 				cleanup_failed_thread(tid);
 				free(elf);
 				kprintf("%s: failed to zero segment\n", program_name);

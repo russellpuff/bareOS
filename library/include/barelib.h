@@ -7,6 +7,7 @@
    For morons who use Visual Studio to develop this junk                     */
 #ifdef __INTELLISENSE__
 typedef enum { false, true } bool;
+#define nullptr 0x0
 #endif
 
 #define NULL 0x0

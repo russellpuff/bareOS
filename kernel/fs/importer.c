@@ -1,7 +1,7 @@
 #include <fs/fs.h>
 #include <fs/importer.h>
 #include <lib/bareio.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <util/string.h>
 #include <barelib.h>
 
@@ -15,14 +15,14 @@ static uint32_t bytes_to_u32(const byte* ptr) {
 }
 
 /* Important helper functon that mallocs enough bytes to handle maxing out the  *
- * ramdisk instantly. As long as this runs as the system's first call to malloc *
+ * ramdisk instantly. As long as this runs as the system's first call to kmalloc *
  * the data injected by the generic loader is safe.                             */
 void* malloc_loaded_range(void) {
 	const uint64_t HEAD_SZ = 4 + FILENAME_LEN;
 	const uint64_t MAX_FILES = 100;
 	const uint64_t MAX_SIZE = 1.5 * 1024 * 1024;
 	const uint64_t IMPORT_BYTES_NEEDED = MAX_SIZE + (HEAD_SZ * MAX_FILES);
-	return malloc(IMPORT_BYTES_NEEDED);
+	return kmalloc(IMPORT_BYTES_NEEDED);
 }
 
 /* Basic helper function to advance a pointer to the end of a c string. */
@@ -43,7 +43,7 @@ uint8_t generic_importer(byte* ptr) {
 	const uint32_t LOG_PER_FILE = PER_LINE_OVERHEAD + FILENAME_LEN + SIZE_DIGITS_MAX;
 	uint32_t log_bytes = LOG_HEADER + (uint32_t)num_files * LOG_PER_FILE + LOG_FOOTER;
 
-	byte* status_msg = malloc(log_bytes);
+	byte* status_msg = kmalloc(log_bytes);
 	memset(status_msg, 0, log_bytes);
 	byte* status_ptr = status_msg;
 

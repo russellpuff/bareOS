@@ -1,5 +1,5 @@
 #include <fs/fs.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <util/string.h>
 
 #include <lib/bareio.h>
@@ -22,12 +22,12 @@ uint8_t mkfs(uint32_t blocksize, uint32_t numblocks) {
 	temp_fsd.super.intable_size = blocksize / sizeof(inode_t); /* times numblks, which is just 1 for a new fs */
 	temp_fsd.super.intable_blocks[0] = IN_BIT;
 	temp_fsd.super.intable_numblks = 1;
-	temp_fsd.device = malloc(sizeof(bdev_t));
+	temp_fsd.device = kmalloc(sizeof(bdev_t));
 	if (mk_ramdisk(blocksize, numblocks, &temp_fsd) == -1) {
 		// todo: handle error based on whether it's critical or not
 		// critical = there's no other fs on the system and we're trying to create a blank one to run on
 		// panic() doesn't exist on this branch
-		kprintf("couldn't malloc space for the ramdisk");
+		kprintf("couldn't kmalloc space for the ramdisk");
 		while (1);
 	}
 
@@ -113,7 +113,7 @@ uint8_t mkfs(uint32_t blocksize, uint32_t numblocks) {
 uint8_t discover_drive(byte* ramdisk) {
 	if (*(uint32_t*)ramdisk != FS_MAGIC) return 1; /* Not a readable drive. */
    
-	drv_reg* new = malloc(sizeof(drv_reg));
+	drv_reg* new = kmalloc(sizeof(drv_reg));
 	if (new == NULL) return 3; /* OOM */
 	new->next = NULL;
 
@@ -144,7 +144,7 @@ uint8_t discover_drive(byte* ramdisk) {
  * and sets the device as mounted for system use.               */
 uint32_t mount_fs(drive_t* drive, const char* mount_point) {
 	/* Allocate memory for the drive.fsd */
-	drive->fsd = (fsystem_t*)malloc(sizeof(fsystem_t));
+	drive->fsd = (fsystem_t*)kmalloc(sizeof(fsystem_t));
 	if (drive->fsd == NULL) return 1; /* Not enough memory. */
 	drive->fsd->device = &drive->bdev;
 
@@ -168,13 +168,13 @@ uint32_t mount_fs(drive_t* drive, const char* mount_point) {
 	}
 
 	/* Add to mounted list */
-	/* malloc space for the entry*/
-	mount_t* mnt = (mount_t*)malloc(sizeof(mount_t));
+	/* kmalloc space for the entry*/
+	mount_t* mnt = (mount_t*)kmalloc(sizeof(mount_t));
 	if ((byte*)mnt == NULL) return 1;
 
 	/* copy in mount point, TODO: validate this somewhere */
 	uint32_t n = strlen(mount_point);
-	mnt->mp = malloc(n + 1);
+	mnt->mp = kmalloc(n + 1);
 	if (mnt->mp == NULL) return 1;
 	memcpy(mnt->mp, mount_point, n);
 	mnt->mp[n] = '\0';

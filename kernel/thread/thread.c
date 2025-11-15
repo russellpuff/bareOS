@@ -3,7 +3,7 @@
 #include <system/syscall.h>
 #include <system/panic.h>
 #include <mm/vm.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <system/queue.h>
 #include <util/string.h>
 
@@ -86,7 +86,7 @@ int32_t create_thread(void* proc, thread_mode mode) {
 	thread_t* thread = &thread_table[new_id];
 
 	/* Allocate per-thread address space for VM */
-	uint64_t root_ppn = alloc_page(new_id);
+	uint64_t root_ppn = mmu_prepare_process(new_id);
 	if (root_ppn == NULL) {
 		panic("Page allocator failed to allocate a page for this new thread.\n");
 	}
@@ -116,7 +116,7 @@ int32_t create_thread(void* proc, thread_mode mode) {
 		tf->sepc = (uint64_t)proc;
 		tf->ra = 0;
 	}
-	tf->sp = STACK_BASE + STACK_SIZE - 0x20;
+	tf->sp = STACK_BASE + STACK_SIZE - 0x20; /* Pick some 16 byte aligned default value */
 	
 	/* Publish into thread record */
 	thread->tf = tf;
@@ -178,7 +178,7 @@ int32_t kill_thread(uint32_t thread_id) {
 	*/
 
 	if (thread->root_ppn != kernel_root_ppn) {
-		free_process_pages(thread_id);   /*  Free pages associated with thread     */
+		mmu_free_process(thread_id);   /*  Free pages associated with thread     */
 	}
 	thread->root_ppn = NULL;
 	post_sem(&thread->sem); /* Notify waiting threads. */

@@ -5,7 +5,7 @@
 #include <system/queue.h>
 #include <system/panic.h>
 #include <system/memlayout.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <mm/vm.h>
 #include <device/tty.h>
 #include <device/uart.h>
@@ -27,21 +27,26 @@
  *  devices and other systems.
  */
 static void initialize(void) {
+	/* Always init console hardware first */
 	init_tty();
 	init_uart();
-	init_threads();
-	init_queues();
 	init_heap();
-	byte* imp = malloc_loaded_range(); /* QEMU loader injects at top of freelist. So we steal it asap. */
-	// temporary fs behavior:
-	// create new ramdisk on boot (no persistence between boots)
-	// mount the lone ramdisk and set it as the boot_fsd
-	// no point in bothering with any more than that until we can persist the disk
-	mkfs(BDEV_BLOCK_SIZE, BDEV_NUM_BLOCKS);
-	mount_fs(&reg_drives->drive, "/");
+
+	/* Do drive stuff once heap is alive*/
+	byte* imp = malloc_loaded_range(); 
+	
+	if (discover_drive(&ramdisk_start) != 0) {
+		mkfs(BDEV_BLOCK_SIZE, BDEV_NUM_BLOCKS);
+	}
+	mount_fs(&reg_drives->drive, "/"); /* For now just trusts your reloaded drive can be mounted. Todo: harden. */
 	boot_fsd = reg_drives->drive.fsd;
+
 	generic_importer(imp);
 	free(imp); 
+
+	/* Do the rest of the hardware and core kernel functionality */
+	init_threads();
+	init_queues();
 	init_rtc();
 	init_pages();
 	init_interrupts();
@@ -85,7 +90,7 @@ static void display_welcome(bool dailyMsg) {
 		bool importer_ok = false;
 		bool log_available = open(log_path, &f, root) == 0;
 		if (log_available) {
-			char* buffer = (char*)malloc(f.inode.size + 1);
+			char* buffer = (char*)kmalloc(f.inode.size + 1);
 			buffer[f.inode.size] = '\0';
 			read(&f, (byte*)buffer, f.inode.size);
 			importer_ok = strstr(buffer, sentinel) != NULL; /* Janky way of detecting status */
@@ -132,16 +137,26 @@ static void root_thread(void) {
 	if (!dir_child_exists(boot_fsd->super.root_dirent, "bin", &bin))
 		panic("Fatal: /bin missing, cannot start shell.\n");
 
-	FILE f;
-	f.fd = (FD)-1;
-	open("shell.elf", &f, bin);
-	if (f.fd == (FD)-1)
-		panic("Fatal: no shell to run on boot.\n");
-	close(&f);
+	bool firstRun = true;
 	/* Spawning the shell will block execution of this thread until it finishes. 
 	   Then we just restart it. No logout mechanism exists.                      */
 	while (1) {
+		/* Check if shell exists */
+		FILE f;
+		f.fd = (FD)-1;
+		open("shell.elf", &f, bin);
+		if (f.fd == (FD)-1) {
+			const char* msg = firstRun ?
+				"Fatal: no shell to run on boot.\n" :
+				"Fatal: shell cannot be restarted because its ELF was deleted. Why did you do that?\n";
+			panic("%s", msg);
+		}
+			
+		close(&f);
+
+		/* Spawn shell, blocks until shell exists, to which we regen welcome and spawn again */
 		ecall_spawn("shell", NULL);
+		firstRun = false;
 		display_welcome(false);
 	}
 }

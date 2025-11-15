@@ -1,5 +1,5 @@
 #include <fs/fs.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <util/string.h>
 
 /* Resolve the directory from the provided filepath, if invalid or the file  *

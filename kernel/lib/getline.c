@@ -1,6 +1,6 @@
 #include <lib/bareio.h>
 #include <fs/fs.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <device/tty.h>
 #include <system/thread.h>
 #include <util/string.h>
@@ -65,7 +65,7 @@ char* autocomplete(char* line) {
    This is for debugging purposes and should eventually be removed                 */
 uint32_t get_raw_line(char* buffer, uint32_t size) {
 	if (size == 0) return 0;
-	char* raw_in = malloc(size * 2);
+	char* raw_in = kmalloc(size * 2);
 	memset(raw_in, '\0', size * 2);
 	char* ptr = raw_in;
 	char* end = raw_in + (size * 2) - 1;

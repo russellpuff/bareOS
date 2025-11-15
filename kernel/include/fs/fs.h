@@ -15,13 +15,12 @@ typedef enum { FAT_FREE = 0, FAT_END = -1, FAT_RSVD = -2, FAT_BAD = -3 } FAT_FLA
 typedef struct { inode_t inode; uint32_t offset; uint32_t in_idx; uint32_t sz; } dir_iter_t;
 
 /* Function prototypes used in the file system */
-uint32_t mk_ramdisk(uint32_t, uint32_t, fsystem_t*);      /* Build the block device                      */
-uint32_t free_ramdisk(void);                              /* Free resources associated with block device */
-uint32_t read_bdev(uint32_t, uint32_t, void*, uint32_t);  /* Read a block from the block device          */
-uint32_t write_bdev(uint32_t, uint32_t, void*, uint32_t); /* Write a block to the block device           */
-uint32_t write_super(void);                               /* Write the super in memory to the device     */
-void bdev_zero_blocks(uint16_t, uint16_t);                /* Zeroes out blocks at a start index          */
-int32_t allocate_block(void);                             /* Finds a free block and returns it           */
+uint32_t mk_ramdisk(uint32_t, uint32_t, fsystem_t*, bool); /* Build the block device                      */
+uint32_t read_bdev(uint32_t, uint32_t, void*, uint32_t);   /* Read a block from the block device          */
+uint32_t write_bdev(uint32_t, uint32_t, void*, uint32_t);  /* Write a block to the block device           */
+uint32_t write_super(void);                                /* Write the super in memory to the device     */
+void bdev_zero_blocks(uint16_t, uint16_t);                 /* Zeroes out blocks at a start index          */
+int32_t allocate_block(void);                              /* Finds a free block and returns it           */
 
 void bm_set(uint32_t);   /* Mark a block as used      */
 void bm_clear(uint32_t); /* Mark a block as unused    */

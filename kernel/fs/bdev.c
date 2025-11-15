@@ -1,4 +1,6 @@
-#include <mm/malloc.h>
+#include <system/memlayout.h>
+#include <mm/kmalloc.h>
+#include <system/panic.h>
 #include <fs/fs.h>
 #include <util/string.h>
 #include <barelib.h>
@@ -7,10 +9,25 @@
  * the memory for the device itself. This prefers the constants which are meant for the "primary"  *
  * bareOS filesystem, but this allows for setting the device to a custom size. It requires passing *
  * in a "temp" fsd that will be written to the super block and then mounted later, or overwritten  */
-uint32_t mk_ramdisk(uint32_t blocksize, uint32_t numblocks, fsystem_t* temp_fsd) {
+uint32_t mk_ramdisk(uint32_t blocksize, uint32_t numblocks, fsystem_t* temp_fsd, bool boot_disk) {
   temp_fsd->device->block_size = (blocksize == NULL ? BDEV_BLOCK_SIZE : blocksize);
   temp_fsd->device->num_blocks = (numblocks == NULL ? BDEV_NUM_BLOCKS : numblocks);
-  temp_fsd->device->ramdisk = malloc((uint64_t)temp_fsd->device->block_size * temp_fsd->device->num_blocks);
+  
+  /* If we're not creating the boot disk, we kmalloc space for the second ramdisk.  *
+   * As a consequence, we'll be able to find it in the memory backed file by	   *
+   * locating the super block and reading it, but restoring it on reboot would be  *
+   * a huge pain in the ass and I have no reason to support this right now.        */
+  if (boot_disk) {
+	  uint64_t requested = (uint64_t)temp_fsd->device->block_size * temp_fsd->device->num_blocks;
+	  if (requested > BDEV_BLOCK_SIZE * BDEV_NUM_BLOCKS) {
+		  panic("mk_ramdisk was called to create a fresh boot disk larger than the max allotted size\nMax allotted: %lu\nRequested: %lu", 
+			  BDEV_BLOCK_SIZE * BDEV_NUM_BLOCKS, requested);
+	  }
+	  temp_fsd->device->ramdisk = &ramdisk_start;
+  }
+  else {
+	  temp_fsd->device->ramdisk = kmalloc((uint64_t)temp_fsd->device->block_size * temp_fsd->device->num_blocks);
+  }
 
   return (temp_fsd->device->ramdisk == NULL ? -1 : 0);
 }

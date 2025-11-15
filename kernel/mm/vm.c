@@ -1,28 +1,37 @@
 #include <mm/vm.h>
-#include <mm/malloc.h>
+#include <mm/kmalloc.h>
 #include <system/thread.h>
 #include <system/panic.h>
 #include <system/memlayout.h>
 #include <util/string.h>
 #include <barelib.h>
 
-#define FREEMASK_RANGE ((uint64_t)ALIGN_UP_2M(&mem_end - &text_start))
+/* Allocator does not consider anything below &mem_start allocatable *
+ * Since we've enforced boundaries and alignment for all this, we    *
+ * just need to manually map reserved sections to the kernel         */
+#define FREEMASK_RANGE ((uint64_t)(&mem_end - &mem_start))
 #define FREEMASK_BITS (FREEMASK_RANGE / PAGE_SIZE)
 #define FREEMASK_SZ ((uint64_t)((FREEMASK_BITS + 7) / 8))
-#define PPN_TO_IDX(ppn) (ppn - ((uint64_t)&text_start >> PAGE_SHIFT))
-#define IDX_TO_PPN(idx) (idx + ((uint64_t)&text_start >> PAGE_SHIFT))
+#define PPN_TO_IDX(ppn) (ppn - ((uint64_t)&mem_start >> PAGE_SHIFT))
+#define IDX_TO_PPN(idx) (idx + ((uint64_t)&mem_start >> PAGE_SHIFT))
 
+/* Helpers that extract the Sv39 virtual page numbers (VPNs) from a virtual	    *
+ * address. Each VPN corresponds to an index within a level of the three-level  *
+ * page table hierarchy (L2 -> L1 -> L0).                                       */
 static inline uint64_t va_vpn2(uint64_t va) { return (va >> 30) & 0x1ff; }
 static inline uint64_t va_vpn1(uint64_t va) { return (va >> 21) & 0x1ff; }
 static inline uint64_t va_vpn0(uint64_t va) { return (va >> 12) & 0x1ff; }
 
+/* The freemask is a bitmask used to track what pages are free. 1 byte = 8 bits = 8 pages tracked. *
+ * We start tracking pages managed by the allocator at &mem_start, so in order to translate a 	   *
+ * physical page number to index, we use the above helpers to move back and forth.                 */
 byte* page_freemask;
 uint64_t kernel_root_ppn;
 byte* s_trap_top;
 volatile uint8_t MMU_ENABLED;
 
 //
-// Bitmask operators
+// Freemask operators
 //
 /* Takes a ppn and sets it as used in the bitmask */
 static void pfm_set(uint64_t ppn) {
@@ -139,28 +148,28 @@ static pte_t* ensure_l1(uint64_t root_l2_ppn, uint64_t va) {
  * Enforcement is done in the allocator                               */
 
 /* Maps a 2M megapage assuming you already have the page */
-static void map_2m(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
+static void map_2m(uint64_t root_ppn, uint64_t virt_addr, uint64_t phys_addr,
 	bool R, bool W, bool X, bool G, bool U) {
-	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
+	pte_t* l1_page = ensure_l1(root_ppn, virt_addr);
 	uint64_t idx = va_vpn1(virt_addr);
-	l1_page[idx] = make_leaf(PA_TO_PPN(page_addr), R, W, X, G, U);
+	l1_page[idx] = make_leaf(PA_TO_PPN(phys_addr), R, W, X, G, U);
 }
 
-///* Maps a regular 4K page assuming you already have it */
-//static void map_4k(uint64_t root_l2_ppn, uint64_t virt_addr, uint64_t page_addr,
-//	bool R, bool W, bool X, bool G, bool U) {
-//	pte_t* l1_page = ensure_l1(root_l2_ppn, virt_addr);
-//	uint64_t l1_idx = va_vpn1(virt_addr);
-//	if (!l1_page[l1_idx].v) {
-//		uint64_t l0_ppn = pfm_findfree_4k(); 
-//		pfm_set(l0_ppn); 
-//		clean_page(l0_ppn);
-//		l1_page[l1_idx] = make_nonleaf(l0_ppn);
-//	}
-//	pte_t* l0 = (pte_t*)PPN_TO_KVA(l1_page[l1_idx].ppn);
-//	uint64_t i0 = va_vpn0(virt_addr);
-//	l0[i0] = make_leaf(PA_TO_PPN(page_addr), R, W, X, G, U);
-//}
+/* Maps a regular 4K page assuming you already have it */
+static void map_4k(uint64_t root_ppn, uint64_t virt_addr, uint64_t phys_addr,
+	bool R, bool W, bool X, bool G, bool U) {
+	pte_t* l1_page = ensure_l1(root_ppn, virt_addr);
+	uint64_t l1_idx = va_vpn1(virt_addr);
+	if (!l1_page[l1_idx].v) {
+		uint64_t l0_ppn = pfm_findfree_4k(); 
+		pfm_set(l0_ppn); 
+		clean_page(l0_ppn);
+		l1_page[l1_idx] = make_nonleaf(l0_ppn);
+	}
+	pte_t* l0 = (pte_t*)PPN_TO_KVA(l1_page[l1_idx].ppn);
+	uint64_t i0 = va_vpn0(virt_addr);
+	l0[i0] = make_leaf(PA_TO_PPN(phys_addr), R, W, X, G, U);
+}
 
 static void clone_page_tables(uint64_t dst_ppn, uint64_t src_ppn, uint8_t level) {
 	byte* dst = (byte*)PPN_TO_KVA(dst_ppn);
@@ -220,91 +229,35 @@ static void free_l1(uint64_t l1_ppn) {
 //
 //
 
-/* TODO: panic if any ppn is -1 */
-void init_pages(void) {
-	MMU_ENABLED = false;
 
-	page_freemask = malloc(FREEMASK_SZ);
-	if (page_freemask == NULL) {
-		panic("Couldn't malloc enough space for the page freemask, cannot init pages.\n");
-	}
-	memset(page_freemask, 0, FREEMASK_SZ);
-
-	int64_t kernel_leaf_ppn = pfm_findfree_2m(); /* First 2M available is where the kernel lives */
-	set_megapage(kernel_leaf_ppn);
-
-	/* Do fixed heap size (for now). It's 16MiB and lives right past the kernel */
-	int64_t heap_leaf0_ppn = pfm_findfree_2m();
-	set_megapage(heap_leaf0_ppn);
-	for (uint32_t i = 1; i < 8; ++i) { int64_t h = pfm_findfree_2m(); set_megapage(h);}
-
-	/* Create root page for kernel */
-	kernel_root_ppn = pfm_findfree_4k();
-	if (kernel_root_ppn == NULL) {
-		panic("Couldn't find a free page for the kernel root, cannot init pages.\n");
-	}
-	pfm_set(kernel_root_ppn);
-	clean_page(kernel_root_ppn);
-
-	/* Map all of ram virtual-style */
-	uint64_t pa = (uint64_t)&text_start & ~((1ULL << 21) - 1);
-	uint64_t end = ((uint64_t)&mem_end + ((1ULL << 21) - 1)) & ~((1ULL << 21) - 1);
-	for (; pa < end; pa += (1UL << 21)) {
-		uint64_t va = KVM_BASE + pa;
-		map_2m(kernel_root_ppn, va, pa, /*R*/1,/*W*/1,/*X*/1,/*G*/1,/*U*/0);
-	}
-
-	/* Map kernel (identity-map style) */
-	uint64_t k_virt_addr = (uint64_t)&text_start;
-	uint64_t p_page_addr = (uint64_t)PPN_TO_PA(kernel_leaf_ppn);
-	map_2m(kernel_root_ppn, k_virt_addr, p_page_addr,/*R*/1,/*W*/1,/*X*/1,/*G*/1,/*U*/0);
-
-	/* Get a page for supervisor interrupt stack */
-	uint64_t s_trap_ppn = pfm_findfree_4k();
-	if (s_trap_ppn == NULL) {
-		panic("Couldn't find a free page for the stack trap page, cannot init pages.\n");
-	}
-	pfm_set(s_trap_ppn);
-	clean_page(s_trap_ppn);
-	s_trap_top = (byte*)(PPN_TO_PA(s_trap_ppn) + PAGE_SIZE); /* For use by the trap handler */
-
-	/* Map kernel-heap to kernel root */
-	for (uint64_t i = 0; i < 8; ++i) {
-		uint64_t hva = k_virt_addr + 0x200000UL * (i + 1);
-		uint64_t hpa = (uint64_t)PPN_TO_PA(heap_leaf0_ppn) + (0x200000UL * i);
-		map_2m(kernel_root_ppn, hva, hpa, /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
-	}
-
-	/* Map whole ass MMIO to kernel. Why not? */
-	pte_t* l2 = (pte_t*)(PPN_TO_KVA(kernel_root_ppn));
-	/* L2 index for 1 GiB slices */
-	const uint64_t mmio_va0 = 0x00000000UL + KVM_BASE;
-	const uint64_t mmio_va1 = 0x40000000UL + KVM_BASE;
-	/* Yeah sure write anywhere to MMIO */
-	l2[va_vpn2(mmio_va0)] = make_leaf(PA_TO_PPN(0x00000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
-	l2[va_vpn2(mmio_va1)] = make_leaf(PA_TO_PPN(0x40000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
-}
-
-/* Rudimentary page allocator, allocates a static number of pages and returns  *
- * the root ppn of the newly allocated pages.                                  *
- * Implicitly enforces alignment... for now. Need MVP, will worry later        *
- * Only allocs for processes which are given 4MiB of RAM to work with, for now */
-uint64_t alloc_page(uint32_t thread_id) {
+uint64_t mmu_prepare_process(uint32_t thread_id, thread_mode mode) {
 	if (thread_id > NTHREADS) return NULL;
-	int64_t leaf_ppn;
-	int64_t root_ppn = NULL;
+
 	/* Get root */
-	root_ppn = pfm_findfree_4k();
+	int64_t root_ppn = pfm_findfree_4k();
 	pfm_set(root_ppn); clone_kernel_map(root_ppn);
-	/* Get leaves */
-	leaf_ppn = pfm_findfree_2m();
-	set_megapage(leaf_ppn);
-	int64_t leaf2_ppn = pfm_findfree_2m();
-	set_megapage(leaf2_ppn);
-	/* Map leaves to root */
-	map_2m(root_ppn, 0x0UL, (uint64_t)PPN_TO_PA(leaf_ppn), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
-	map_2m(root_ppn, 0x200000UL, (uint64_t)PPN_TO_PA(leaf2_ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
-	/* Get kstack. Assures leaves are consecutive in lieu of atomic operations */
+
+	/* Get singular starting code leaf */
+	int64_t code_leaf = pfm_findfree_4k();
+	pfm_set(code_leaf);
+	map_4k(root_ppn, 0x0UL, PPN_TO_PA(code_leaf), /*R*/1,/*W*/1,/*X*/1,/*G*/0,/*U*/1);
+
+	/* Get singular starting heap leaf */
+	int64_t heap_leaf = pfm_findfree_4k();
+	pfm_set(heap_leaf);
+	map_4k(root_ppn, HEAP_START_VA, PPN_TO_PA(heap_leaf), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
+
+	/* Get some stack space, 512KiB of stack space for now. Dynamic later. */
+	const uint16_t stack_size = 512 * 1024;
+	uint16_t n_pages = stack_size / PAGE_SIZE;
+	const uint64_t start_addr = KVM_BASE - stack_size;
+	for (uint16_t i = 0; i < n_pages; ++i) {
+		int64_t ppn = pfm_findfree_4k();
+		pfm_set(ppn);
+		map_4k(root_ppn, start_addr + (i * PAGE_SIZE), PPN_TO_PA(ppn), /*R*/1,/*W*/1,/*X*/0,/*G*/0,/*U*/1);
+	}
+	
+	/* Get 8KiB kstack for process. Assures leaves are consecutive in lieu of atomic operations */
 	int64_t kleaf, kleaf2;
 	while (1) {
 		kleaf = pfm_findfree_4k();
@@ -317,9 +270,7 @@ uint64_t alloc_page(uint32_t thread_id) {
 		}
 		else break;
 	}
-	clean_page(kleaf);
-	clean_page(kleaf2);
-	/* Manual instead of to-KVA func because this is called once before MMU enabled */
+	/* This is called once before MMU is enabled so context_load has to correct that. */
 	thread_table[thread_id].kstack_base = (byte*)PPN_TO_KVA(kleaf); 
 	thread_table[thread_id].kstack_top = (byte*)(PPN_TO_KVA(kleaf2) + PAGE_SIZE);
 	return root_ppn;
@@ -327,7 +278,7 @@ uint64_t alloc_page(uint32_t thread_id) {
 
 /* Rudimentary page clearer. Should be able to free all children of a root page. */
 /* Cannot clear a gigapage. We don't have any non-kernel gigapages so who cares. */
-void free_pages(uint64_t root_ppn) {
+void mmu_free_table(uint64_t root_ppn) {
 	if (root_ppn == kernel_root_ppn) return;
 	pte_t* root = (pte_t*)PPN_TO_KVA(root_ppn);
 
@@ -342,16 +293,145 @@ void free_pages(uint64_t root_ppn) {
 	pfm_clear(root_ppn);
 }
 
-void free_process_pages(uint32_t thread_id) {
+/* Frees up all the pages owned by a process */
+void mmu_free_process(uint32_t thread_id) {
 	uint64_t k1 = KVA_TO_PPN(thread_table[thread_id].kstack_base);
 	pfm_clear(k1);
 	uint64_t k2 = KVA_TO_PPN(thread_table[thread_id].kstack_base + PAGE_SIZE);
 	pfm_clear(k2);
-	free_pages(thread_table[thread_id].root_ppn);
+	mmu_free_table(thread_table[thread_id].root_ppn);
 }
 
+/* This is a key function used to migrate kernel functionality 
+ * from a pre-MMU state	to a post-MMU state.                   */
+void mmu_migrate_kernel(void) {
+	/* s_trap_top is permanently unused after ctxload */
+	uint32_t trap_ppn = PA_TO_PPN(s_trap_top - PAGE_SIZE);
+	pfm_clear(trap_ppn);
+}
+
+/* Function is called when a process heap needs to be enlarged. *
+ * We pass in the thread_id of the calling process, or NTHREADS	*
+ * if the caller is kmalloc. Returns the number of bytes the	*
+ * target heap was expanded by.                                 */
+uint32_t mmu_expand_heap(uint32_t request, uint8_t thread_id) {
+	if (thread_id > NTHREADS || thread_table[thread_id].state == TH_DEFUNCT) return 0;
+	bool is_kernel = thread_id == NTHREADS;
+	uint32_t sz;
+	uint16_t root_ppn;
+	if (is_kernel) { /* Caller is kmalloc */
+		sz = k_heap_sz;
+		root_ppn = kernel_root_ppn;
+	}
+	else {
+		sz = thread_table[thread_id].heap_sz;
+		root_ppn = thread_table[thread_id].root_ppn;
+	}
+	/* Lazy check to block insane requests. Until we decide realistic process limits, *
+	 * attempting to malloc something close to this will just OOM the system          */
+	const uint64_t MAX_HEAP = ((uint64_t)&mem_end - (uint64_t)&mem_start);
+	if ((uint64_t)sz + request > MAX_HEAP) return 0;
+
+	uint16_t pages_needed = (request + PAGE_SIZE - 1) / PAGE_SIZE;
+	uint32_t expanded_by = 0;
+	/* One by one attempt to complete the request, exit early if we run out of pages */
+	for (int i = 0; i < pages_needed; ++i) {
+		int64_t page = pfm_findfree_4k();
+		if (page == NULL) break;
+		pfm_set(page);
+		uint64_t virt_addr = HEAP_START_VA + sz + expanded_by;
+		map_4k(root_ppn, virt_addr, PPN_TO_PA(page), /*R*/1,/*W*/1,/*X*/0,/*G*/is_kernel,/*U*/!is_kernel);
+		expanded_by += PAGE_SIZE;
+	}
+	return expanded_by;
+}
+
+static uint32_t mmu_expand_code(uint32_t request, uint8_t thread_id) {
+
+}
+
+/* TODO: panic if any ppn is -1 */
+/* Initialize the MMU state by preparing the kernel root page */
+void init_pages(void) {
+	//
+	// Setup
+	//
+	MMU_ENABLED = false;
+
+	page_freemask = kmalloc(FREEMASK_SZ);
+	if (page_freemask == NULL) {
+		panic("Couldn't kmalloc enough space for the page freemask, cannot init pages.\n");
+	}
+	memset(page_freemask, 0, FREEMASK_SZ);
+
+	/* Assess that &mem_start is 4K aligned so the MMU can correctly map the kernel */
+	if (((uint64_t)&mem_start & (uint64_t)0xFFF) != 0) {
+		panic("Fatal: mem_start is not 4KiB aligned.\n");
+	}
+
+	//
+	// Map the kernel's code (&text_start to &mem_start - 1) identity-style
+	// This assures that Supervisor can access kernel functions while running
+	// on a user SATP during interrupts.
+	//
+
+	/* Create root page for kernel */
+	kernel_root_ppn = pfm_findfree_4k();
+	if (kernel_root_ppn == NULL) {
+		panic("Couldn't find a free page for the kernel root, cannot init pages.\n");
+	}
+	pfm_set(kernel_root_ppn);
+	clean_page(kernel_root_ppn);
+
+	/* TODO: don't identity map the kernel, move the program counter up to the KVA range */
+	/* Surgically map the kernel identity-style, positioned between &text_start and &mem_start */
+	for (uint64_t page = &text_start; page < &mem_start; page += 0x1000UL) {
+		map_4k(kernel_root_ppn, page, page, /*R*/1,/*W*/1,/*X*/1,/*G*/1,/*U*/0);
+	}
+
+	//
+	// Map all of MMIO and ram virtual-style
+	//
+
+	/* Map all of ram virtual-style */
+	uint64_t pa = (uint64_t)&text_start & ~((1ULL << 21) - 1);
+	uint64_t end = ((uint64_t)&mem_end + ((1ULL << 21) - 1)) & ~((1ULL << 21) - 1);
+	for (; pa < end; pa += (1UL << 21)) {
+		uint64_t va = KVM_BASE + pa;
+		map_2m(kernel_root_ppn, va, pa, /*R*/1,/*W*/1,/*X*/1,/*G*/1,/*U*/0);
+	}
+
+	/* Map whole ass MMIO to kernel. Why not? */
+	pte_t* l2 = (pte_t*)(PPN_TO_KVA(kernel_root_ppn));
+	/* L2 index for 1 GiB slices */
+	const uint64_t mmio_va0 = 0x00000000UL + KVM_BASE;
+	const uint64_t mmio_va1 = 0x40000000UL + KVM_BASE;
+	/* Yeah sure write anywhere to MMIO */
+	l2[va_vpn2(mmio_va0)] = make_leaf(PA_TO_PPN(0x00000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+	l2[va_vpn2(mmio_va1)] = make_leaf(PA_TO_PPN(0x40000000UL), /*R*/1,/*W*/1,/*X*/0,/*G*/1,/*U*/0);
+
+	/* Get a page for supervisor interrupt stack */
+	uint64_t s_trap_ppn = pfm_findfree_4k();
+	if (s_trap_ppn == NULL) {
+		panic("Couldn't find a free page for the stack trap page, cannot init pages.\n");
+	}
+	pfm_set(s_trap_ppn);
+	clean_page(s_trap_ppn);
+	s_trap_top = (byte*)(PPN_TO_PA(s_trap_ppn) + PAGE_SIZE); /* For use by the trap handler */
+
+	/* Get the kernel's starter heap */
+	k_heap_sz = 0;
+	if (mmu_expand_heap(PAGE_SIZE, NTHREADS) != PAGE_SIZE) {
+		panic("Failed to initialize the kernel's virtual heap.\n");
+	}
+}
+
+//
+// Utility functions used by exec()
+//
+
 /* Helper function finds the KVA that correlates to a user virtual address */
-void* translate_user_address(uint64_t root_ppn, uint64_t va) {
+void* translate_user_va(uint64_t root_ppn, uint64_t va) {
 	if (root_ppn == NULL) return NULL;
 
 	pte_t* l2 = (pte_t*)PPN_TO_KVA(root_ppn);
@@ -381,12 +461,12 @@ void* translate_user_address(uint64_t root_ppn, uint64_t va) {
 }
 
 /* Copies data into user pages */
-int32_t copy_to_user(uint64_t root_ppn, uint64_t va, const void* src, uint64_t len) {
+int32_t copy_to_kva(uint64_t root_ppn, uint64_t va, const void* src, uint64_t len) {
 	const byte* src_bytes = (const byte*)src;
 	uint64_t remaining = len;
 
 	while (remaining > 0) {
-		byte* dst = (byte*)translate_user_address(root_ppn, va);
+		byte* dst = (byte*)translate_user_va(root_ppn, va);
 		if (dst == NULL) return -1;
 
 		uint64_t chunk = PAGE_SIZE - (va & (PAGE_SIZE - 1));
@@ -403,11 +483,11 @@ int32_t copy_to_user(uint64_t root_ppn, uint64_t va, const void* src, uint64_t l
 }
 
 /* Zeroes out user pages starting at va for len */
-int32_t zero_user(uint64_t root_ppn, uint64_t va, uint64_t len) {
+int32_t zero_user_pages(uint64_t root_ppn, uint64_t va, uint64_t len) {
 	uint64_t remaining = len;
 
 	while (remaining > 0) {
-		byte* dst = (byte*)translate_user_address(root_ppn, va);
+		byte* dst = (byte*)translate_user_va(root_ppn, va);
 		if (dst == NULL) return -1;
 
 		uint64_t chunk = PAGE_SIZE - (va & (PAGE_SIZE - 1));

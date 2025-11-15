@@ -14,5 +14,7 @@ extern byte bss_start;
 extern byte bss_end;
 extern byte mem_start;
 extern byte mem_end;
+extern byte ramdisk_start;
+extern byte krsvd;
 
 #endif
